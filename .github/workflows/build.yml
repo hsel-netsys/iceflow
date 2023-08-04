@@ -1,0 +1,57 @@
+name: Verify and Build
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  merge_group:
+    branches: [ main ]
+
+jobs:
+  build-ubuntu:
+    runs-on: ubuntu-latest
+    container: ghcr.io/hsel-netsys/iceflow-ci-image:main
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Verify Formatting
+        run: clang-format -i src/**/*.cpp src/**/*.hpp --dry-run -Werror
+
+      - name: Build IceFlow Applications
+        run: |
+          cmake .
+          make
+
+  build-macos:
+    runs-on: macos-latest
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Install Dependencies
+        run: brew install boost openssl pkg-config opencv nlohmann-json yaml-cpp
+
+      - name: Install ndn-cxx
+        run: |
+          git clone https://github.com/named-data/ndn-cxx
+          cd ndn-cxx
+          ./waf configure
+          ./waf
+          sudo ./waf install
+          cd ..
+
+      - name: Install PSync
+        run: |
+          git clone https://github.com/named-data/PSync.git
+          cd PSync
+          ./waf configure
+          ./waf
+          sudo ./waf install
+          cd ..
+
+      - name: Build IceFlow Applications
+        run: |
+          cmake .
+          make
