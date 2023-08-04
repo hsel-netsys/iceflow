@@ -1,0 +1,22 @@
+Consumer:
+  subSyncPrefix: /VP/imageSource
+  subPrefixDataMain: /imageSource/dataMain
+  subPrefixDataManifest: /imageSource/dataManifest/0
+  subPrefixAck: /imageSource/ack
+  nSub: [0, 1, 2]
+  inputThreshold: 3
+
+Producer:
+  pubSyncPrefix: /VP/faceRecognition
+  userPrefixDataMain: /faceRecognition/dataMain
+  userPrefixDataManifest: /faceRecognition/dataManifest
+  userPrefixAck: /faceRecognition/ack
+  nDataStreams: 1
+  publishInterval: 0
+  publishIntervalNew: 100
+  outputThreshold: 1
+  namesInManifest: 200
+  mapThreshold: 200
+Measurement:
+  nodeName: FaceDetection
+  saveInterval: 100

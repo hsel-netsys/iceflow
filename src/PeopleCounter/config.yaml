@@ -1,0 +1,23 @@
+Consumer:
+  subSyncPrefix: /VP/imageSource
+  subPrefixDataMain: /imageSource/dataMain
+  subPrefixDataManifest: /imageSource/dataManifest/0
+  subPrefixAck: /imageSource/ack
+  nSub: [0, 1, 2]
+  inputThreshold: 100
+
+Producer:
+  pubSyncPrefix: /VP/personDetection
+  userPrefixDataMain: /personDetection/dataMain
+  userPrefixDataManifest: /personDetection/dataManifest
+  userPrefixAck: /personDetection/ack
+  nDataStreams: 1
+  publishInterval: 0
+  publishIntervalNew: 100
+  outputThreshold: 100
+  namesInManifest: 200
+  mapThreshold: 100
+  computeThreads: 1
+Measurement:
+  nodeName: PeopleCounter
+  saveInterval: 100

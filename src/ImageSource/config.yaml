@@ -1,0 +1,15 @@
+Producer:
+  pubSyncPrefix: /VP/imageSource
+  userPrefixDataMain: /imageSource/dataMain
+  userPrefixDataManifest: /imageSource/dataManifest
+  userPrefixAck: /imageSource/ack
+  nDataStreams: 3
+  publishInterval: 0
+  publishIntervalNew: 1
+  outputThreshold: 1
+  namesInManifest: 370
+  frameRate: 3
+  mapThreshold: 1
+Measurement:
+  nodeName: ImageSource
+  saveInterval: 100

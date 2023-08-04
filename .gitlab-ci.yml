@@ -1,0 +1,29 @@
+stages:
+  - verify
+  - build
+
+Verify formatting with clang-format:
+  stage: verify
+  image: jkrhb/iceflow-ci:latest
+  script:
+    - apt-get update
+    - apt-get -y install clang-format
+    - clang-format -i src/**/*.cpp src/**/*.hpp --dry-run -Werror
+
+build:
+  stage: build
+  image: jkrhb/iceflow-ci:latest
+  artifacts:
+    expose_as: "Binaries"
+    paths:
+      [
+        "src/AgeDetection/agedetection",
+        "src/Aggregate/aggregate",
+        "src/FaceDetection/facedetection",
+        "src/GenderDetection/genderdetection",
+        "src/ImageSource/imagesource",
+        "src/PeopleCounter/peoplecounter",
+      ]
+  script:
+    - cmake .
+    - make
