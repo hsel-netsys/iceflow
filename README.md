@@ -1,3 +1,5 @@
+[![Build Status](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml/badge.svg)](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml)
+
 # IceFlow
 
 This repository contains IceFlow, a stream processing library based on
