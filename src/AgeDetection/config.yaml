@@ -1,0 +1,23 @@
+Consumer:
+  subSyncPrefix: /VP/faceRecognition
+  subPrefixDataMain: /faceRecognition/dataMain
+  subPrefixDataManifest: /faceRecognition/dataManifest/0
+  subPrefixAck: /faceRecognition/ack
+  nSub: [0]
+  inputThreshold: 1
+
+Producer:
+  pubSyncPrefix: /VP/age
+  userPrefixDataMain: /age/dataMain
+  userPrefixDataManifest: /age/dataManifest
+  userPrefixAck: /age/ack
+  nDataStreams: 1
+  publishInterval: 0
+  publishIntervalNew: 100
+  outputThreshold: 1
+  namesInManifest: 200
+  mapThreshold: 100
+
+Measurement:
+  nodeName: AgeDetection
+  saveInterval: 100
