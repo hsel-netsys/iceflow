@@ -22,7 +22,7 @@ After installing it (e.g., by using `brew install clang-format` on macOS) you
 can format all source files by invoking the following command:
 
 ```sh
-clang-format -i src/**/*.cpp src/**/*.hpp
+clang-format -i apps/**/*.cpp include/**/*.hpp
 ```
 The CI pipeline will assert that the codebase is always correctly
 formatted and will fail otherwise.

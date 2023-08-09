@@ -16,13 +16,14 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "core/block.hpp"
-#include "core/measurements.hpp"
-#include "core/producer-tlv.hpp"
-#include "yaml-cpp/yaml.h"
-
 #include <csignal>
 #include <thread>
+
+#include "yaml-cpp/yaml.h"
+
+#include "iceflow/block.hpp"
+#include "iceflow/measurements.hpp"
+#include "iceflow/producer-tlv.hpp"
 
 iceflow::Measurement *msCmp;
 

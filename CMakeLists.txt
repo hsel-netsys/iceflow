@@ -15,40 +15,29 @@
 # SPDX-License-Identifier: Apache-2.0
 
 cmake_minimum_required(VERSION 3.21)
-project(ICEFLOW_APPLICATIONS)
-
-find_package(OpenCV REQUIRED)
-find_package(yaml-cpp REQUIRED)
-
+project(
+  IceFlow
+  VERSION 0.1.0
+  DESCRIPTION "NDN-based stream processing library written in C++.")
 set(CMAKE_CXX_STANDARD 20)
-FIND_PACKAGE( Boost 1.74 COMPONENTS program_options REQUIRED )
-INCLUDE_DIRECTORIES( src ${Boost_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIR} ${YAML_INCLUDE_DIRS} /usr/local/include )
-add_compile_options(-D_GNU_SOURCE -DBOOST_LOG_DYN_LINK)
 
-if(APPLE)
-    link_directories( /usr/local/lib )
+add_subdirectory(include)
+
+option(BUILD_APPS "Build IceFlow applications" ON)
+option(BUILD_TESTS "Build library tests" OFF)
+
+if(BUILD_APPS)
+  message(STATUS "Building IceFlow applications...")
+  add_subdirectory(apps)
 endif()
 
-set(SOURCES
-    src/ImageSource/imagesource.cpp
-    src/PeopleCounter/peoplecounter.cpp
-    src/FaceDetection/facedetection.cpp
-    src/AgeDetection/agedetection.cpp
-    src/GenderDetection/genderdetection.cpp
-    src/Aggregate/aggregate.cpp
-)
+if(BUILD_TESTS)
+  message(STATUS "Building tests...")
+  add_subdirectory(tests)
+endif()
 
-foreach( SOURCE_FILE ${SOURCES} )
-    get_filename_component(EXECUTABLE_NAME ${SOURCE_FILE} NAME_WE)
-    get_filename_component(EXECUTABLE_PATH ${SOURCE_FILE} DIRECTORY)
-    add_executable( ${EXECUTABLE_NAME} ${SOURCE_FILE} )
-    set_target_properties( ${EXECUTABLE_NAME}
-            PROPERTIES
-            RUNTIME_OUTPUT_DIRECTORY "${EXECUTABLE_PATH}"
-    )
-    if(APPLE)
-        target_link_libraries( ${EXECUTABLE_NAME} -lpthread -lPSync -lndn-cxx  ${OpenCV_LIBS} -lboost_log-mt -lboost_chrono-mt -lyaml-cpp)
-    else()
-        target_link_libraries( ${EXECUTABLE_NAME} ${Boost_LIBRARIES} -lboost_log -lboost_system -lpthread -lndn-cxx  -lPSync ${OpenCV_LIBS} ${YAML_CPP_LIBRARIES} )
-    endif()
-endforeach( SOURCE_FILE ${SOURCES} )
+install(FILES cmake/iceflow-config.cmake
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/iceflow/cmake)
+
+install(EXPORT ${CMAKE_PROJECT_NAME}
+        DESTINATION ${CMAKE_INSTALL_LIBDIR}/iceflow/cmake)

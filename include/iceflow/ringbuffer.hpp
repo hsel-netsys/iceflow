@@ -19,9 +19,9 @@
 #ifndef ICEFLOW_CORE_RINGBUFFER_HPP
 #define ICEFLOW_CORE_RINGBUFFER_HPP
 
-#include "boost/circular_buffer.hpp"
-
 #include <condition_variable>
+
+#include "boost/circular_buffer.hpp"
 
 namespace iceflow {
 

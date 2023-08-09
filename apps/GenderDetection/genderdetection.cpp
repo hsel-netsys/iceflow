@@ -16,18 +16,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "core/consumer-tlv.hpp"
-#include "core/producer-tlv.hpp"
-
-#include "core/measurements.hpp"
-#include "mutex"
-#include "yaml-cpp/yaml.h"
-
 #include <csignal>
 #include <thread>
 
-// ###### MEASUREMENT ######
+#include "yaml-cpp/yaml.h"
 
+#include "iceflow/consumer-tlv.hpp"
+#include "iceflow/measurements.hpp"
+#include "iceflow/producer-tlv.hpp"
+
+// ###### MEASUREMENT ######
 iceflow::Measurement *msCmp;
 
 void signalCallbackHandler(int signum) {
@@ -39,77 +37,56 @@ void signalCallbackHandler(int signum) {
 class Compute {
 
 public:
-  std::string ageProto = "./age_deploy.prototxt";
-  std::string ageModel = "./age_net.caffemodel";
+  std::string genderProto = "./gender_deploy.prototxt";
+  std::string genderModel = "./gender_net.caffemodel";
   cv::Scalar MODEL_MEAN_VALUES =
       cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
-  std::vector<std::string> ageList = {"(0-2)",   "(4-6)",   "(8-12)",
-                                      "(15-20)", "(25-32)", "(38-43)",
-                                      "(48-53)", "(60-100)"};
+  std::vector<std::string> genderList = {"Male", "Female"};
 
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
                             int outputThreshold) {
 
-    cv::dnn::Net ageNet = cv::dnn::readNet(ageModel, ageProto);
+    cv::dnn::Net genderNet = cv::dnn::readNet(genderModel, genderProto);
 
     int computeCounter = 0;
+
     while (true) {
-      NDN_LOG_INFO("Output size" << output->size());
-      NDN_LOG_INFO("Input size" << input->size());
-      auto start = std::chrono::system_clock::now();
 
       auto inputData = input->waitAndPopValue();
       auto frameData = inputData.pullFrame();
       auto jsonData = inputData.pullJson();
+
       nlohmann::json jsonInput = jsonData.getJson();
-
       // ##### MEASUREMENT #####
-      msCmp->setField(std::to_string(jsonInput["frameID"].get<int>()), "FD->AD",
+      msCmp->setField(std::to_string(jsonInput["frameID"].get<int>()), "FD->GD",
                       0);
-
       msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
-      if (!frameData.empty()) {
-        cv::Mat blob;
-        blob = cv::dnn::blobFromImage(frameData, 1, cv::Size(227, 227),
-                                      MODEL_MEAN_VALUES, false);
-        ageNet.setInput(blob);
-        std::vector<float> agePreds = ageNet.forward();
-        // finding maximum indiced in the agePreds vector
-        int maxIndiceAge = std::distance(
-            agePreds.begin(), max_element(agePreds.begin(), agePreds.end()));
-        std::string age = ageList[maxIndiceAge];
-        NDN_LOG_INFO("Age: " << age);
 
-        jsonInput["Age"] = age;
+      cv::Mat blob;
+      blob = cv::dnn::blobFromImage(frameData, 1, cv::Size(227, 227),
+                                    MODEL_MEAN_VALUES, false);
+      genderNet.setInput(blob);
+      std::vector<float> gendPreds = genderNet.forward();
 
-        m_jsonOutput.setJson(jsonInput);
-        NDN_LOG_INFO("Renewed JSON: " << m_jsonOutput.getJson());
-        iceflow::Block resultBlock;
-        resultBlock.pushJson(m_jsonOutput);
+      // finding maximum indiced in the genPreds std::vector
+      int maxIndiceGender = std::distance(
+          gendPreds.begin(), max_element(gendPreds.begin(), gendPreds.end()));
+      std::string gender = genderList[maxIndiceGender];
+      NDN_LOG_INFO("gender: " << gender);
 
-        msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
+      jsonInput["Gender"] = gender;
+      m_jsonOutput.setJson(jsonInput);
+      NDN_LOG_INFO("Renewed JSON: " << m_jsonOutput.getJson());
 
-        auto end = std::chrono::system_clock::now();
-        std::chrono::duration<double> elapsedTime = (end - start);
-        NDN_LOG_INFO("AD Compute Time: " << elapsedTime.count());
+      iceflow::Block resultBlock;
+      resultBlock.pushJson(m_jsonOutput);
 
-        auto blockingTimeStart = std::chrono::system_clock::now();
-        output->pushData(resultBlock, outputThreshold);
-        NDN_LOG_INFO("Output Queue Size: " << output->size());
-        auto blockingTimeEnd = std::chrono::system_clock::now();
-
-        std::chrono::duration<double> elapsedBlockingTime =
-            (blockingTimeEnd - blockingTimeStart);
-        NDN_LOG_INFO("Blocking Time: " << elapsedBlockingTime.count());
-        NDN_LOG_INFO("Absolute Compute time: "
-                     << (elapsedTime - elapsedBlockingTime).count());
-
-        // ##### MEASUREMENT #####
-        msCmp->setField(std::to_string(jsonInput["frameID"].get<int>()),
-                        "AD->AGG", 0);
-        computeCounter++;
-      }
+      output->pushData(resultBlock, outputThreshold);
+      // ##### MEASUREMENT #####
+      msCmp->setField(std::to_string(jsonInput["frameID"].get<int>()),
+                      "GD->AGG", 0);
+      computeCounter++;
     }
   }
 
@@ -155,9 +132,12 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
 
   // Data
   std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+
   std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
   std::thread th3(&Compute::compute, compute, &totalInput,
                   &simpleProducer->outputQueueBlock, outputThreshold);
+
+  // Data
   std::thread th4(&iceflow::ProducerTlv::runPro, simpleProducer);
 
   std::vector<std::thread> ProducerThreads;
@@ -217,7 +197,6 @@ int main(int argc, char *argv[]) {
   std::string nodeName = config["Measurement"]["nodeName"].as<std::string>();
   int saveInterval = config["Measurement"]["saveInterval"].as<int>();
   std::string measurementName = argv[2];
-
   ::signal(SIGINT, signalCallbackHandler);
   msCmp =
       new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");

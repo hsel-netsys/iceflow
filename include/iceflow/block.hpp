@@ -19,11 +19,12 @@
 #ifndef ICEFLOW_CORE_ICEFLOWBLOCK_HPP
 #define ICEFLOW_CORE_ICEFLOWBLOCK_HPP
 
-#include "content-type-value.hpp"
-#include "logger.hpp"
 #include "ndn-cxx/data.hpp"
 #include "nlohmann/json.hpp"
 #include "opencv2/opencv.hpp" // TODO: Remove this dependency
+
+#include "content-type-value.hpp"
+#include "logger.hpp"
 #include "typed-data.hpp"
 
 namespace iceflow {
