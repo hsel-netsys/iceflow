@@ -21,8 +21,9 @@
 
 #include "PSync/consumer.hpp"
 #include "boost/algorithm/string.hpp"
-#include "core/block.hpp"
 #include "ndn-cxx/face.hpp"
+
+#include "block.hpp"
 #include "ringbuffer.hpp"
 
 namespace iceflow {

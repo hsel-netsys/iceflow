@@ -17,12 +17,24 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Verify Formatting
-        run: clang-format -i src/**/*.cpp src/**/*.hpp --dry-run -Werror
+        run: clang-format -i apps/**/*.cpp include/**/*.hpp --dry-run -Werror
 
       - name: Build IceFlow Applications
         run: |
           cmake .
           make
+
+      - name: Export IceFlow Example Application Binaries
+        uses: actions/upload-artifact@v3
+        with:
+          name: ubuntu-binaries
+          path: |
+            build/agedetection
+            build/aggregate
+            build/facedetection
+            build/genderdetection
+            build/imagesource
+            build/peoplecounter
 
   build-macos:
     runs-on: macos-latest
@@ -51,7 +63,19 @@ jobs:
           sudo ./waf install
           cd ..
 
-      - name: Build IceFlow Applications
+      - name: Build IceFlow Example Applications
         run: |
           cmake .
           make
+
+      - name: Export IceFlow Example Application Binaries
+        uses: actions/upload-artifact@v3
+        with:
+          name: macos-binaries
+          path: |
+            build/agedetection
+            build/aggregate
+            build/facedetection
+            build/genderdetection
+            build/imagesource
+            build/peoplecounter

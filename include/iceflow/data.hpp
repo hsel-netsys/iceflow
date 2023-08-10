@@ -19,10 +19,11 @@
 #ifndef ICEFLOW_CORE_ICEFLOW_DATA_HPP
 #define ICEFLOW_CORE_ICEFLOW_DATA_HPP
 
-#include "ndn-cxx/data.hpp"
-#include "typed-data.hpp"
-
 #include <span>
+
+#include "ndn-cxx/data.hpp"
+
+#include "typed-data.hpp"
 
 namespace iceflow {
 
