@@ -1,4 +1,5 @@
 [![Build Status](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml/badge.svg)](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml)
+![License](https://img.shields.io/github/license/hsel-netsys/iceflow)
 
 # IceFlow
 
