@@ -34,6 +34,7 @@ endif()
 if(BUILD_TESTS)
   message(STATUS "Building tests...")
   add_subdirectory(tests)
+  enable_testing()
 endif()
 
 install(FILES cmake/iceflow-config.cmake
