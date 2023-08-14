@@ -89,15 +89,14 @@ public:
         if (resultSubElements[i].type() == ContentTypeValue::SegmentManifest) {
           std::vector<uint8_t> frameBuffer(resultSubElements[i].value_begin(),
                                            resultSubElements[i].value_end());
-          return imdecode(cv::Mat(frameBuffer), 1);
+          return cv::imdecode(cv::Mat(frameBuffer), 1);
         }
       }
-    } else {
-      NDN_LOG_INFO("pullFrame Main data");
-      std::vector<uint8_t> frameBuffer(m_data.value_begin(),
-                                       m_data.value_end());
-      return imdecode(cv::Mat(frameBuffer), 1);
     }
+
+    NDN_LOG_INFO("pullFrame Main data");
+    std::vector<uint8_t> frameBuffer(m_data.value_begin(), m_data.value_end());
+    return cv::imdecode(cv::Mat(frameBuffer), 1);
   }
 
   void pushSegmentManifestBlock(std::vector<uchar> &buffer) {
