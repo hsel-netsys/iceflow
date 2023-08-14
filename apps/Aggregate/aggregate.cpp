@@ -34,7 +34,7 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class Compute {
+class Aggregate {
 
 public:
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input) {
@@ -147,7 +147,7 @@ void DataFlow(std::string &subSyncPrefix1, std::vector<int> nSub1,
       new iceflow::ConsumerTlv(subSyncPrefix4, subPrefixDataMain4,
                                subPrefixAck4, nSub4, inputThreshold4);
 
-  auto *compute = new Compute();
+  auto *compute = new Aggregate();
 
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
@@ -163,7 +163,7 @@ void DataFlow(std::string &subSyncPrefix1, std::vector<int> nSub1,
   std::thread th3(&iceflow::ConsumerTlv::runCon, simpleConsumer3);
   std::thread th4(&iceflow::ConsumerTlv::runCon, simpleConsumer4);
   std::thread th5(&fusion, &inputs, &totalInput, inputThreshold1);
-  std::thread th6(&Compute::compute, compute, &totalInput);
+  std::thread th6(&Aggregate::compute, compute, &totalInput);
 
   ProducerThreads.push_back(std::move(th1));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");

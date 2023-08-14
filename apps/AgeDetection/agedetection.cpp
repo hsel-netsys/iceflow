@@ -36,7 +36,7 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class Compute {
+class AgeDetector {
 
 public:
   std::string ageProto = "./age_deploy.prototxt";
@@ -149,14 +149,14 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
   auto *simpleConsumer = new iceflow::ConsumerTlv(
       subSyncPrefix, subPrefixDataMain, subPrefixAck, sub, inputThreshold);
 
-  auto *compute = new Compute();
+  auto *compute = new AgeDetector();
 
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
   // Data
   std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
   std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
-  std::thread th3(&Compute::compute, compute, &totalInput,
+  std::thread th3(&AgeDetector::compute, compute, &totalInput,
                   &simpleProducer->outputQueueBlock, outputThreshold);
   std::thread th4(&iceflow::ProducerTlv::runPro, simpleProducer);
 
