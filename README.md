@@ -1,4 +1,5 @@
 [![Build Status](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml/badge.svg)](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml)
+[![Documentation Status](https://img.shields.io/github/actions/workflow/status/hsel-netsys/iceflow/doxygen-gh-pages.yml?label=Documentation&link=https%3A%2F%2Fhsel-netsys.github.io%2Ficeflow)](https://hsel-netsys.github.io/iceflow)
 ![License](https://img.shields.io/github/license/hsel-netsys/iceflow)
 
 # IceFlow
@@ -16,7 +17,7 @@ Detailed installation instructions can be found in the file [Install.md](Install
 
 ## Documentation
 
-IceFlow's documentation can be found [here](). <!-- TODO: Insert GitHub Pages link -->
+IceFlow's documentation can be found [here](https://hsel-netsys.github.io/iceflow).
 Alternatively, you can generate the documentation locally using Doxygen and
 running the `doxygen` command in the repository's root directory.
 
