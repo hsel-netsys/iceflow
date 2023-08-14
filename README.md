@@ -14,6 +14,12 @@ repository illustrating the use of IceFlow for a video processing use case.
 
 Detailed installation instructions can be found in the file [Install.md](Install.md).
 
+## Documentation
+
+IceFlow's documentation can be found [here](). <!-- TODO: Insert GitHub Pages link -->
+Alternatively, you can generate the documentation locally using Doxygen and
+running the `doxygen` command in the repository's root directory.
+
 ## Code Style
 
 In order to achieve a consistent style, IceFlow's codebase is formatted using
