@@ -1,4 +1,4 @@
-name: Verify and Build
+name: Build Status
 
 on:
   push:
