@@ -8,7 +8,7 @@ Verify formatting with clang-format:
   script:
     - apt-get update
     - apt-get -y install clang-format
-    - clang-format -i apps/**/*.cpp include/**/*.hpp --dry-run -Werror
+    - clang-format -i apps/**/*.cpp tests/*.cpp include/**/*.hpp --dry-run -Werror
 
 build:
   stage: build
@@ -25,5 +25,6 @@ build:
         "src/PeopleCounter/peoplecounter",
       ]
   script:
-    - cmake .
+    - cmake -DBUILD_TESTS=ON .
     - make
+    - make test
