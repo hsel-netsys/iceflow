@@ -16,7 +16,7 @@ Detailed installation instructions can be found in the file [Install.md](Install
 
 ## Documentation
 
-IceFlow's documentation can be found [here](). <!-- TODO: Insert GitHub Pages link -->
+IceFlow's documentation can be found [here](https://hsel-netsys.github.io/iceflow).
 Alternatively, you can generate the documentation locally using Doxygen and
 running the `doxygen` command in the repository's root directory.
 
