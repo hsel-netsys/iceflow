@@ -1,0 +1,9 @@
+.git
+.github
+cmake
+CMakeFiles
+CMakeCache.txt
+Install.md
+README.md
+Makefile
+
