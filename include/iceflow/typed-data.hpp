@@ -23,18 +23,6 @@
 
 namespace iceflow {
 
-class membuf : public std::basic_streambuf<char> {
-public:
-  membuf(const uint8_t *p, size_t l) {
-    setg((char *)p, (char *)p, (char *)p + l);
-    setp((char *)p, (char *)p + l);
-  }
-  int size() const { return this->pptr() - this->pbase(); };
-  uint8_t *getP() { return (uint8_t *)(gptr()); }
-  uint8_t *getBPtr() { return (uint8_t *)(eback()); }
-  uint8_t *getEPtr() { return (uint8_t *)(egptr()); }
-};
-
 // Abstract base class.
 class TypedData {
 public:
