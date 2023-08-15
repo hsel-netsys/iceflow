@@ -16,8 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef ICEFLOW_CORE_ANY_DATA_HPP
-#define ICEFLOW_CORE_ANY_DATA_HPP
+#ifndef ICEFLOW_CORE_TYPED_DATA_HPP
+#define ICEFLOW_CORE_TYPED_DATA_HPP
 
 #include "nlohmann/json.hpp"
 
@@ -55,4 +55,4 @@ private:
 
 } // namespace iceflow
 
-#endif // ICEFLOW_CORE_ANY_DATA_HPP
+#endif // ICEFLOW_CORE_TYPED_DATA_HPP
