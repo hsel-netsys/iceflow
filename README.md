@@ -26,10 +26,11 @@ running the `doxygen` command in the repository's root directory.
 In order to achieve a consistent style, IceFlow's codebase is formatted using
 `clang-format`.
 After installing it (e.g., by using `brew install clang-format` on macOS) you
-can format all source files by invoking the following command:
+can format all source files by invoking the following commands:
 
 ```sh
-clang-format -i apps/**/*.cpp tests/*.cpp include/**/*.hpp
+cmake .
+make format
 ```
 The CI pipeline will assert that the codebase is always correctly
 formatted and will fail otherwise.
