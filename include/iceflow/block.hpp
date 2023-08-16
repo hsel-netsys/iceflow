@@ -31,25 +31,22 @@ namespace iceflow {
 
 class Block {
 public:
-  std::vector<ndn::Block> subData;
-
   Block() {}
   Block(ndn::Block block) { m_data = block; }
 
   Block(ndn::Block block, uint32_t type) {
-    auto encodedBlock = ndn::encoding::makeBinaryBlock(
-        type, block.value_begin(), block.value_end());
-    m_data = encodedBlock;
+    m_data = ndn::encoding::makeBinaryBlock(type, block.value_begin(),
+                                            block.value_end());
   }
 
   void pushJson(JsonData inputJson) {
     std::string jsonString = inputJson.getJson().dump();
     NDN_LOG_INFO("IceFlow Block: " << jsonString);
-
     ndn::Block jsonContent = ndn::encoding::makeBinaryBlock(
         ContentTypeValue::Json, jsonString.begin(), jsonString.end());
-    m_data.push_back(jsonContent);
+    pushBlock(jsonContent);
   }
+
   JsonData pullJson() {
     std::vector<ndn::Block> resultSubElements = m_data.elements();
     JsonData outputJson;
@@ -61,8 +58,6 @@ public:
                                             resultSubElements[0].value_end());
     } else {
       NDN_LOG_INFO("pullJson Main data");
-      membuf m(m_data.value(), m_data.value_size());
-      std::istream in(&m);
       convertedJson =
           nlohmann::json::parse(m_data.value_begin(), m_data.value_end());
     }
@@ -73,11 +68,7 @@ public:
   void pushFrame(cv::Mat frame) {
     std::vector<uchar> buffer;
     cv::imencode(".jpeg", frame, buffer);
-    std::vector<uint8_t> &frameBuffer =
-        reinterpret_cast<std::vector<uint8_t> &>(buffer);
-    ndn::Block frameContent = ndn::encoding::makeBinaryBlock(
-        ContentTypeValue::SegmentManifest, buffer);
-    m_data.push_back(frameContent);
+    pushSegmentManifestBlock(buffer);
   }
 
   void pushFrameCompress(cv::Mat frame) {
@@ -86,11 +77,7 @@ public:
     param[0] = cv::IMWRITE_JPEG_QUALITY;
     param[1] = 10; // default(95) 0-100
     cv::imencode(".jpeg", frame, buffer, param);
-    std::vector<uint8_t> &frameBuffer =
-        reinterpret_cast<std::vector<uint8_t> &>(buffer);
-    ndn::Block frameContent = ndn::encoding::makeBinaryBlock(
-        ContentTypeValue::SegmentManifest, buffer);
-    m_data.push_back(frameContent);
+    pushSegmentManifestBlock(buffer);
   }
 
   cv::Mat pullFrame() {
@@ -103,27 +90,31 @@ public:
         if (resultSubElements[i].type() == ContentTypeValue::SegmentManifest) {
           std::vector<uint8_t> frameBuffer(resultSubElements[i].value_begin(),
                                            resultSubElements[i].value_end());
-          cv::Mat frameReconstructed = imdecode(cv::Mat(frameBuffer), 1);
-          return frameReconstructed;
+          return imdecode(cv::Mat(frameBuffer), 1);
         }
       }
     } else {
       NDN_LOG_INFO("pullFrame Main data");
       std::vector<uint8_t> frameBuffer(m_data.value_begin(),
                                        m_data.value_end());
-      cv::Mat frameReconstructed = imdecode(cv::Mat(frameBuffer), 1);
-      return frameReconstructed;
+      return imdecode(cv::Mat(frameBuffer), 1);
     }
   }
+
+  void pushSegmentManifestBlock(std::vector<uchar> &buffer) {
+    std::vector<uint8_t> &frameBuffer =
+        reinterpret_cast<std::vector<uint8_t> &>(buffer);
+    ndn::Block frameContent = ndn::encoding::makeBinaryBlock(
+        ContentTypeValue::SegmentManifest, buffer);
+    pushBlock(frameContent);
+  }
+
   void pushBlock(ndn::Block block) { m_data.push_back(block); }
 
   void iceFlowBlockEncode() { m_data.encode(); }
   void iceFlowBlockParse() { m_data.parse(); }
 
-  std::vector<ndn::Block> getSubElements() {
-    auto elements = m_data.elements();
-    return elements;
-  }
+  std::vector<ndn::Block> getSubElements() { return m_data.elements(); }
 
   void printInfo() {
     NDN_LOG_INFO("data type: " << m_data.type());

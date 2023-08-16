@@ -133,6 +133,7 @@ void DataFlow(std::string &subSyncPrefix1, std::vector<int> nSub1,
               std::vector<int> nSub4, std::string &subPrefixDataMain4,
               std::string &subPrefixAck4, int inputThreshold4) {
 
+
 	// Data
 	auto *simpleConsumer1 =
 			new iceflow::ConsumerTlv(subSyncPrefix1, subPrefixDataMain1,
@@ -181,6 +182,8 @@ void DataFlow(std::string &subSyncPrefix1, std::vector<int> nSub1,
 	for (auto &t : ProducerThreads) {
 		t.join();
 	}
+
+
 }
 
 int main(int argc, char *argv[]) {

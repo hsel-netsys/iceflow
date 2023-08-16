@@ -1,4 +1,4 @@
-name: Verify and Build
+name: Build Status
 
 on:
   push:
@@ -16,13 +16,17 @@ jobs:
     steps:
       - uses: actions/checkout@v3
 
-      - name: Verify Formatting
-        run: clang-format -i apps/**/*.cpp include/**/*.hpp --dry-run -Werror
+      - name: Generate CMake Build Files
+        run: cmake -DBUILD_TESTS=ON .
 
-      - name: Build IceFlow Applications
-        run: |
-          cmake .
-          make
+      - name: Verify Formatting
+        run: make check-format
+
+      - name: Build IceFlow Example Applications and Tests
+        run: make
+
+      - name: Run Tests
+        run: make test
 
       - name: Export IceFlow Example Application Binaries
         uses: actions/upload-artifact@v3
@@ -38,12 +42,13 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
+    needs: build-ubuntu
 
     steps:
       - uses: actions/checkout@v3
 
       - name: Install Dependencies
-        run: brew install boost openssl pkg-config opencv nlohmann-json yaml-cpp
+        run: brew install boost openssl pkg-config opencv nlohmann-json yaml-cpp clang-format
 
       - name: Install ndn-cxx
         run: |
@@ -63,10 +68,17 @@ jobs:
           sudo ./waf install
           cd ..
 
-      - name: Build IceFlow Example Applications
-        run: |
-          cmake .
-          make
+      - name: Generate CMake Build Files
+        run: cmake -DBUILD_TESTS=ON .
+
+      - name: Verify Formatting
+        run: make check-format
+
+      - name: Build IceFlow Example Applications and Tests
+        run: make
+
+      - name: Run Tests
+        run: make test
 
       - name: Export IceFlow Example Application Binaries
         uses: actions/upload-artifact@v3

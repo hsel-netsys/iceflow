@@ -34,7 +34,7 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class Compute {
+class FaceDetector {
 
 public:
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
@@ -183,16 +183,17 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
   auto *simpleConsumer = new iceflow::ConsumerTlv(
       subSyncPrefix, subPrefixDataMain, subPrefixAck, sub, inputThreshold);
 
-  auto *compute = new Compute();
+  auto *compute = new FaceDetector();
 
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
   // Data
   std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
   std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
+
   std::thread th3(&Compute::compute, compute, &totalInput,
                   &simpleProducer->outputQueueBlock, outputThreshold, std::ref(ml_proto) , std::ref(ml_model));
-  std::thread th4(&iceflow::ProducerTlv::runPro, simpleProducer);
+
 
   std::vector<std::thread> ProducerThreads;
   ProducerThreads.push_back(std::move(th1));

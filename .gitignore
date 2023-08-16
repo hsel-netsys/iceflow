@@ -29,9 +29,9 @@
 *.app
 
 ### JetBrains template
-# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm, 
+# Covers JetBrains IDEs: IntelliJ, RubyMine, PhpStorm, AppCode, PyCharm,
 CLion, Android Studio and Webstorm
-# Reference: 
+# Reference:
 https://intellij-support.jetbrains.com/hc/en-us/articles/206544839
 
 # User-specific stuff:
@@ -89,3 +89,12 @@ install_manifest.txt
 
 # VS Code files
 .vscode
+
+# Documentation folder
+docs/
+
+# CTest files
+*.tcl
+CTestTestfile.cmake
+Testing/
+test_build/

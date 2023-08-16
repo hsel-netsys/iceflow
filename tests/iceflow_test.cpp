@@ -16,31 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#ifndef ICEFLOW_CORE_TYPED_DATA_HPP
-#define ICEFLOW_CORE_TYPED_DATA_HPP
+#include <iostream>
 
-#include "nlohmann/json.hpp"
-
-namespace iceflow {
-
-// Abstract base class.
-class TypedData {
-public:
-  virtual size_t getSize() = 0;
-};
-
-class JsonData : public TypedData {
-public:
-  void setJson(nlohmann::json jsnew) { m_json = jsnew; }
-
-  nlohmann::json getJson() { return m_json; }
-  size_t getSize() { return m_json.dump().size(); }
-
-private:
-  nlohmann::json m_json;
-  size_t m_size;
-};
-
-} // namespace iceflow
-
-#endif // ICEFLOW_CORE_TYPED_DATA_HPP
+int main() {
+  std::cout << "Test started!" << std::endl;
+  std::cout << "Test succeeded!" << std::endl;
+  return 0;
+}

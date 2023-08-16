@@ -21,6 +21,8 @@ project(
   DESCRIPTION "NDN-based stream processing library written in C++.")
 set(CMAKE_CXX_STANDARD 20)
 
+include(cmake/formatting.cmake)
+
 add_subdirectory(include)
 
 option(BUILD_APPS "Build IceFlow applications" ON)
@@ -34,6 +36,7 @@ endif()
 if(BUILD_TESTS)
   message(STATUS "Building tests...")
   add_subdirectory(tests)
+  enable_testing()
 endif()
 
 install(FILES cmake/iceflow-config.cmake

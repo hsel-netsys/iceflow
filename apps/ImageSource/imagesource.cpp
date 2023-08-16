@@ -33,7 +33,7 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class Compute {
+class ImageSource {
 
 public:
   void compute(const std::string &videoFilename,
@@ -145,9 +145,9 @@ void DataFlow(std::string &pubSyncPrefix, const std::string &userPrefixDataMain,
       pubSyncPrefix, userPrefixDataMain, userPrefixDataManifest, userPrefixAck,
       nDataStreams, publishInterval, publishIntervalNew, mapThreshold);
 
-  auto *compute = new Compute();
+  auto *compute = new ImageSource();
 
-  std::thread th1(&Compute::compute, compute, fileName,
+  std::thread th1(&ImageSource::compute, compute, fileName,
                   &simpleProducer->outputQueueBlock, outputThreshold,
                   frameRate);
 
