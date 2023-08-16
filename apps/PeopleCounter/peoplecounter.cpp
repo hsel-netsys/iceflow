@@ -91,10 +91,8 @@ public:
 
   int detect(const cv::HOGDescriptor &hog, cv::Mat &img) {
     std::vector<cv::Rect> found, foundFiltered;
-    double time = (double)cv::getTickCount();
     hog.detectMultiScale(img, found, 0, cv::Size(8, 8), cv::Size(16, 16), 1.07,
                          2);
-    time = (double)cv::getTickCount() - time;
 
     for (size_t i = 0; i < found.size(); i++) {
       cv::Rect r = found[i];

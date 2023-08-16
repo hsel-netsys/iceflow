@@ -170,7 +170,6 @@ int main(int argc, char *argv[]) {
               << std::endl;
     return 1;
   }
-  std::vector<std::thread> ProducerThreads;
 
   YAML::Node config = YAML::LoadFile(argv[1]);
 
