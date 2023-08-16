@@ -1,3 +1,7 @@
 # Ignore output binary
 age
 agedetection
+
+# Ignore machine learning models
+age_deploy.prototxt
+age_net.caffemodel

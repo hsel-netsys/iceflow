@@ -1,2 +1,6 @@
 # Ignore output binary
 facedetection
+
+# Ignore machine learning models
+opencv_face_detector.pbtxt
+opencv_face_detector_uint8.pb

@@ -202,7 +202,7 @@ private:
               interest.getName().toUri(); // save manifest name per segment --
                                           // change name later
           m_names[interest.getName().toUri()].push_back(
-              manifestNames[i]); // save total frame list (manifests woth the
+              manifestNames[i]); // save total frame list (manifests with the
                                  // list of names)
         }
       } break;
