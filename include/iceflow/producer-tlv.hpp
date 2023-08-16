@@ -89,8 +89,7 @@ public:
         int dataLength = m_updateSeq[i] - m_updateSeqPrev[i];
 
         std::pair<int, int> key = std::make_pair(manifestId, manifestStream);
-        m_updatesAckManifestNew[std::make_pair(manifestId, manifestStream)] =
-            dataLength;
+        m_updatesAckManifestNew[std::make_pair(manifestId, manifestStream)] = dataLength;
         m_updatesAckManifest[manifestId] = dataLength;
         NDN_LOG_INFO("manifest ID: " << manifestId
                                      << " number of data: " << dataLength);
@@ -127,8 +126,7 @@ public:
         if (resultSubElements.size() > 1) {
           // test the size of each sub element and split if needed
           for (int i = 0; i < resultSubElements.size(); i++) {
-            if (resultSubElements[i].value_size() >
-                ndn::MAX_NDN_PACKET_SIZE * 0.7) {
+            if (resultSubElements[i].value_size() > ndn::MAX_NDN_PACKET_SIZE * 0.7) {
               // need to split
               std::vector<uint8_t> blockValue(
                   resultSubElements[i].value_begin(),
@@ -164,7 +162,7 @@ public:
           // add the manifest to manifest storage
           // store the manifest holding names of one result
           // manifest prefix
-          // serialize the manifest and place it in the updates storage
+          // serialize the manifest and place it in the update storage
           // create block from the manifest and store it
           interestNameDataMain =
               m_userPrefixDataMain + "/" + std::to_string(m_stream) + "/" +
@@ -290,7 +288,7 @@ private:
             Data(interest.getName(), mainDataBlockBackup,
                  mainDataBlockBackup.type());
 
-        mainDataPacketBackup.setFreshnessPeriod(ndn::time::seconds(10));
+        mainDataPacketBackup.setFreshnessPeriod(ndn::time::seconds(4));
         // Sign Data packet with default identity
         m_keyChain.sign(mainDataPacketBackup);
         // Return Data packet to the requester
@@ -318,7 +316,7 @@ private:
                                   manifestDataBlock.type());
       }
 
-      manifestDataPacket.setFreshnessPeriod(ndn::time::seconds(10));
+      manifestDataPacket.setFreshnessPeriod(ndn::time::seconds(4));
       // Sign Data packet with default identity
       m_keyChain.sign(manifestDataPacket);
       // Return Data packet to the requester

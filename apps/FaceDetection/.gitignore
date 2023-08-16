@@ -1,2 +1,4 @@
 # Ignore output binary
 facedetection
+opencv_face_detector.pbtxt
+opencv_face_detector_uint8.pb

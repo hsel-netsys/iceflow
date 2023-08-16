@@ -7,10 +7,10 @@ Consumer:
   inputThreshold: 100
 
 Producer:
-  pubSyncPrefix: /VP/personDetection
-  userPrefixDataMain: /personDetection/dataMain
-  userPrefixDataManifest: /personDetection/dataManifest
-  userPrefixAck: /personDetection/ack
+  pubSyncPrefix: /VP/personDetection/0
+  userPrefixDataMain: /personDetection/0/dataMain
+  userPrefixDataManifest: /personDetection/0/dataManifest
+  userPrefixAck: /personDetection/0/ack
   nDataStreams: 1
   publishInterval: 0
   publishIntervalNew: 100

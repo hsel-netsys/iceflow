@@ -39,13 +39,11 @@ class Compute {
 public:
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
-                            int outputThreshold) {
-    std::string faceProto = "./opencv_face_detector.pbtxt";
-    std::string faceModel = "./opencv_face_detector_uint8.pb";
+                            int outputThreshold, std::string ml_proto, std::string ml_model) {
 
     cv::Scalar MODEL_MEAN_VALUES =
         cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
-    cv::dnn::Net faceNet = cv::dnn::readNet(faceModel, faceProto);
+    cv::dnn::Net faceNet = cv::dnn::readNet(ml_model, ml_proto);
     cv::Mat frameFace;
     int padding = 20;
     int computeCounter = 0;
@@ -174,7 +172,7 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
               const std::string &userPrefixDataManifest,
               const std::string &userPrefixAck, int nDataStreams,
               int publishInterval, int publishIntervalNew, int namesInManifest,
-              int outputThreshold, int mapThreshold) {
+              int outputThreshold, int mapThreshold, const std::string ml_proto, const std::string ml_model) {
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   // Data
@@ -193,7 +191,7 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
   std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
   std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
   std::thread th3(&Compute::compute, compute, &totalInput,
-                  &simpleProducer->outputQueueBlock, outputThreshold);
+                  &simpleProducer->outputQueueBlock, outputThreshold, std::ref(ml_proto) , std::ref(ml_model));
   std::thread th4(&iceflow::ProducerTlv::runPro, simpleProducer);
 
   std::vector<std::thread> ProducerThreads;
@@ -213,9 +211,9 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
 
 int main(int argc, char *argv[]) {
 
-  if (argc != 3) {
+  if (argc != 5) {
     std::cout << "usage: " << argv[0] << " "
-              << "<config-file><test-name>" << std::endl;
+              << "<config-file><test-name><protobuf_binary><ML-Model>" << std::endl;
     return 1;
   }
 
@@ -245,6 +243,8 @@ int main(int argc, char *argv[]) {
   int outputThreshold = config["Producer"]["outputThreshold"].as<int>();
   int namesInManifest = config["Producer"]["namesInManifest"].as<int>();
   int mapThreshold = config["Producer"]["mapThreshold"].as<int>();
+  std::string ml_proto = argv[3];
+  std::string ml_model = argv[4];
 
   // --------------------------------------------------------------------------
   // ##### MEASUREMENT #####
@@ -261,7 +261,7 @@ int main(int argc, char *argv[]) {
              inputThreshold, pubSyncPrefix, userPrefixDataMain,
              userPrefixDataManifest, userPrefixAck, nDataStreams,
              publishInterval, publishIntervalNew, namesInManifest,
-             outputThreshold, mapThreshold);
+             outputThreshold, mapThreshold, ml_proto, ml_model);
   }
 
   catch (const std::exception &e) {

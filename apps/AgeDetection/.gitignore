@@ -1,3 +1,5 @@
 # Ignore output binary
 age
 agedetection
+age_deploy.prototxt
+age_net.caffemodel

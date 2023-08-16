@@ -152,7 +152,7 @@ private:
             m_theoreticalWindowSize++;
             m_step = 0;
           }
-          sendInterestNew(1);
+	        sendInterestNew(1);
           flag++;
         }
       }
@@ -202,7 +202,7 @@ private:
               interest.getName().toUri(); // save manifest name per segment --
                                           // change name later
           m_names[interest.getName().toUri()].push_back(
-              manifestNames[i]); // save total frame list (manifests woth the
+              manifestNames[i]); // save total frame list (manifests with the
                                  // list of names)
         }
       } break;
@@ -211,7 +211,7 @@ private:
         boost::split(strs, interest.getName().toUri(), boost::is_any_of("/"));
         addBlockToInputQueue(Block(data.getContent(), data.getContentType()));
         // need to update a manifest of json names and not only one data item
-        /////////////////////////////////////////////////
+		/////////////////////////////////////////////////
         // stream
         int manifestStreamCount = stoi(strs[strs.size() - 2]);
         // data sequence
