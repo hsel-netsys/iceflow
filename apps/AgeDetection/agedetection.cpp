@@ -47,8 +47,8 @@ public:
 
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
-                            int outputThreshold, std::string &ml_proto,
-                            std::string &ml_model) {
+                            int outputThreshold, std::string ml_proto,
+                            std::string ml_model) {
 
     cv::dnn::Net ageNet = cv::dnn::readNet(ml_model, ml_proto);
 

@@ -39,8 +39,8 @@ class FaceDetector {
 public:
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
-                            int outputThreshold, std::string &ml_proto,
-                            std::string &ml_model) {
+                            int outputThreshold, std::string ml_proto,
+                            std::string ml_model) {
 
     cv::Scalar MODEL_MEAN_VALUES =
         cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
