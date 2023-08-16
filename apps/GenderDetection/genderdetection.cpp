@@ -37,8 +37,6 @@ void signalCallbackHandler(int signum) {
 class Compute {
 
 public:
-  std::string genderProto = "./gender_deploy.prototxt";
-  std::string genderModel = "./gender_net.caffemodel";
   cv::Scalar MODEL_MEAN_VALUES =
       cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
   std::vector<std::string> genderList = {"Male", "Female"};
