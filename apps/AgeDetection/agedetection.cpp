@@ -47,7 +47,8 @@ public:
 
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
-                            int outputThreshold, std::string ml_proto, std::string ml_model) {
+                            int outputThreshold, std::string ml_proto,
+                            std::string ml_model) {
 
     cv::dnn::Net ageNet = cv::dnn::readNet(ml_model, ml_proto);
 
@@ -79,7 +80,7 @@ public:
         std::string age = ageList[maxIndiceAge];
         NDN_LOG_INFO("Age: " << age);
 
-		jsonInput["Age"] = std::stoi(age);
+        jsonInput["Age"] = std::stoi(age);
 
         m_jsonOutput.setJson(jsonInput);
         NDN_LOG_INFO("Renewed JSON: " << m_jsonOutput.getJson());
@@ -136,7 +137,8 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
               const std::string &userPrefixDataManifest,
               const std::string &userPrefixAck, int nDataStreams,
               int publishInterval, int publishIntervalNew, int namesInManifest,
-              int outputThreshold, int mapThreshold, const std::string ml_proto, const std::string ml_model) {
+              int outputThreshold, int mapThreshold, const std::string ml_proto,
+              const std::string ml_model) {
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   // Data
@@ -156,8 +158,8 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
   std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
 
   std::thread th3(&Compute::compute, compute, &totalInput,
-                  &simpleProducer->outputQueueBlock, outputThreshold, std::ref(ml_proto) , std::ref(ml_model));
-
+                  &simpleProducer->outputQueueBlock, outputThreshold,
+                  std::ref(ml_proto), std::ref(ml_model));
 
   std::vector<std::thread> ProducerThreads;
   ProducerThreads.push_back(std::move(th1));
@@ -178,7 +180,8 @@ int main(int argc, char *argv[]) {
 
   if (argc != 5) {
     std::cout << "usage: " << argv[0] << " "
-              << "<config-file><test-name><protobuf_binary><ML-Model>" << std::endl;
+              << "<config-file><test-name><protobuf_binary><ML-Model>"
+              << std::endl;
     return 1;
   }
 
@@ -228,7 +231,7 @@ int main(int argc, char *argv[]) {
              inputThreshold, pubSyncPrefix, userPrefixDataMain,
              userPrefixDataManifest, userPrefixAck, nDataStreams,
              publishInterval, publishIntervalNew, namesInManifest,
-             outputThreshold, mapThreshold,ml_proto, ml_model);
+             outputThreshold, mapThreshold, ml_proto, ml_model);
   }
 
   catch (const std::exception &e) {

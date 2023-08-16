@@ -89,7 +89,8 @@ public:
         int dataLength = m_updateSeq[i] - m_updateSeqPrev[i];
 
         std::pair<int, int> key = std::make_pair(manifestId, manifestStream);
-        m_updatesAckManifestNew[std::make_pair(manifestId, manifestStream)] = dataLength;
+        m_updatesAckManifestNew[std::make_pair(manifestId, manifestStream)] =
+            dataLength;
         m_updatesAckManifest[manifestId] = dataLength;
         NDN_LOG_INFO("manifest ID: " << manifestId
                                      << " number of data: " << dataLength);
@@ -126,7 +127,8 @@ public:
         if (resultSubElements.size() > 1) {
           // test the size of each sub element and split if needed
           for (int i = 0; i < resultSubElements.size(); i++) {
-            if (resultSubElements[i].value_size() > ndn::MAX_NDN_PACKET_SIZE * 0.7) {
+            if (resultSubElements[i].value_size() >
+                ndn::MAX_NDN_PACKET_SIZE * 0.7) {
               // need to split
               std::vector<uint8_t> blockValue(
                   resultSubElements[i].value_begin(),
