@@ -61,8 +61,6 @@ public:
                                             resultSubElements[0].value_end());
     } else {
       NDN_LOG_INFO("pullJson Main data");
-      membuf m(m_data.value(), m_data.value_size());
-      std::istream in(&m);
       convertedJson =
           nlohmann::json::parse(m_data.value_begin(), m_data.value_end());
     }
