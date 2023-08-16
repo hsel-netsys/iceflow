@@ -114,8 +114,8 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
               const std::string &userPrefixDataManifest,
               const std::string &userPrefixAck, int nDataStreams,
               int publishInterval, int publishIntervalNew, int namesInManifest,
-              int outputThreshold, int mapThreshold, const std::string ml_proto,
-              const std::string ml_model) {
+              int outputThreshold, int mapThreshold,
+              const std::string &ml_proto, const std::string &ml_model) {
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   // Data

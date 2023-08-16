@@ -392,14 +392,14 @@ private:
             // manifest storage backup
             NDN_LOG_INFO("List of names in a manifest: "
                          << m_frameNames[frameName].size());
-            for (int i = 0; i < m_frameNames[frameName].size(); i++) {
+            for (int j = 0; j < m_frameNames[frameName].size(); j++) {
               auto var = m_dataManifestStorage.find(
-                  m_frameNames[frameName][i].toUri());
+                  m_frameNames[frameName][j].toUri());
               if (var != m_dataManifestStorage.end()) {
                 m_dataManifestStorageBackup.insert(make_pair(
-                    m_frameNames[frameName][i].toUri(),
-                    m_dataManifestStorage[m_frameNames[frameName][i].toUri()]));
-                m_dataManifestStorage.erase(m_frameNames[frameName][i].toUri());
+                    m_frameNames[frameName][j].toUri(),
+                    m_dataManifestStorage[m_frameNames[frameName][j].toUri()]));
+                m_dataManifestStorage.erase(m_frameNames[frameName][j].toUri());
               }
             }
           }
@@ -435,7 +435,6 @@ private:
   std::map<std::string, std::vector<ndn::Name>>
       m_frameNames; // for the manifest (or frame) -- here we store the
                     // manifests that contain the names of seg & mI
-  std::map<std::string, std::vector<ndn::Name>> m_frameNamesBackup;
 
   std::map<std::string, ndn::Block> m_dataMainStorageBackup;
   std::map<std::string, ndn::Block> m_dataMainStorage;

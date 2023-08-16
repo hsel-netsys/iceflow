@@ -34,11 +34,11 @@ public:
   void setJson(nlohmann::json jsnew) { m_json = jsnew; }
 
   nlohmann::json getJson() { return m_json; }
-  size_t getSize() { return m_json.dump().size(); }
+
+  size_t getSize() override { return m_json.dump().size(); }
 
 private:
   nlohmann::json m_json;
-  size_t m_size;
 };
 
 } // namespace iceflow
