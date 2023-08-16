@@ -22,6 +22,7 @@ project(
 set(CMAKE_CXX_STANDARD 20)
 
 include(cmake/formatting.cmake)
+include(cmake/lint.cmake)
 
 add_subdirectory(include)
 
