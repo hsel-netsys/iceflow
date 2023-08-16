@@ -36,7 +36,7 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class Compute {
+class PeopleCounter {
 
 public:
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
@@ -146,7 +146,7 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
   auto *simpleConsumer = new iceflow::ConsumerTlv(
       subSyncPrefix, subPrefixDataMain, subPrefixAck, sub, inputThreshold);
 
-  auto *compute = new Compute();
+  auto *compute = new PeopleCounter();
   std::vector<std::thread> ThreadCollector;
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 

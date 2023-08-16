@@ -90,6 +90,9 @@ install_manifest.txt
 # VS Code files
 .vscode
 
+#idea files
+.idea
+
 # Documentation folder
 docs/
 

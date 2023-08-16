@@ -43,8 +43,8 @@ public:
 
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
-                            int outputThreshold, std::string ml_proto,
-                            std::string ml_model) {
+                            int outputThreshold, std::string &ml_proto,
+                            std::string &ml_model) {
 
     cv::dnn::Net genderNet = cv::dnn::readNet(ml_model, ml_proto);
 
@@ -135,7 +135,7 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
 
   std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
 
-  std::thread th3(&Compute::compute, compute, &totalInput,
+  std::thread th3(&GenderDetector::compute, compute, &totalInput,
                   &simpleProducer->outputQueueBlock, outputThreshold,
                   std::ref(ml_proto), std::ref(ml_model));
 
