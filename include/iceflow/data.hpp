@@ -87,11 +87,6 @@ public:
     setContent(binaryBlock);
   }
 
-  void setSegment(std::vector<uint8_t> segment) {
-    m_segment = segment;
-    setContent(segment);
-  }
-
   void wireDecode(const ndn::Block &wire) {
     Data::wireDecode(wire);
     uint32_t contentType = getContentType();
@@ -112,12 +107,9 @@ public:
     }
   }
 
-  std::vector<ndn::Name> getnamesList() const { return m_names; }
-
 private:
   uint32_t m_type;
   std::vector<ndn::Name> m_names;
-  std::vector<uint8_t> m_segment;
 };
 
 } // namespace iceflow
