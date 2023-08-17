@@ -187,16 +187,20 @@ private:
         NDN_LOG_INFO("got Manifest");
         auto manifestNames = extractNamesFromData(data);
 
-        NDN_LOG_INFO("Manifest size: " << manifestNames.size());
-        for (int i = 0; i < manifestNames.size(); ++i) {
-          NDN_LOG_INFO("Manifest names: " << manifestNames[i]);
-          m_interestDeque.push(manifestNames[i]); // Add name to cc updates
-          m_segmentToFrame[manifestNames[i]] =
-              interest.getName().toUri(); // save manifest name per segment --
-                                          // change name later
-          m_names[interest.getName().toUri()].push_back(
-              manifestNames[i]); // save total frame list (manifests with the
-                                 // list of names)
+        NDN_LOG_INFO(
+            "Number of manifest names received: " << manifestNames.size());
+
+        for (const auto &manifestName : manifestNames) {
+          NDN_LOG_INFO("Processing manifest name " << manifestName);
+          std::string interestUri = interest.getName().toUri();
+
+          m_interestDeque.push(manifestName); // Add name to cc updates
+
+          // save manifest name per segment -- change name later
+          m_segmentToFrame[manifestName] = interestUri;
+
+          // save total frame list (manifests with the list of names)
+          m_names[interestUri].push_back(manifestName);
         }
       } break;
       case Json: {
