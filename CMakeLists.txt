@@ -21,6 +21,7 @@ project(
   DESCRIPTION "NDN-based stream processing library written in C++.")
 set(CMAKE_CXX_STANDARD 20)
 
+include(cmake/docs.cmake)
 include(cmake/format.cmake)
 include(cmake/lint.cmake)
 
