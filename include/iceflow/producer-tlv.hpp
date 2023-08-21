@@ -22,6 +22,7 @@
 #include "PSync/partial-producer.hpp"
 #include "boost/algorithm/string.hpp"
 
+#include "constants.hpp"
 #include "data.hpp"
 #include "ringbuffer.hpp"
 
@@ -272,7 +273,7 @@ private:
       auto mainDataPacket =
           Data(interest.getName(), mainDataBlock, mainDataBlock.type());
 
-      mainDataPacket.setFreshnessPeriod(ndn::time::seconds(4));
+      mainDataPacket.setFreshnessPeriod(constants::producerFreshnessPeriod);
 
       // Sign Data packet with default identity
       m_keyChain.sign(mainDataPacket);
@@ -290,7 +291,8 @@ private:
             Data(interest.getName(), mainDataBlockBackup,
                  mainDataBlockBackup.type());
 
-        mainDataPacketBackup.setFreshnessPeriod(ndn::time::seconds(4));
+        mainDataPacketBackup.setFreshnessPeriod(
+            constants::producerFreshnessPeriod);
         // Sign Data packet with default identity
         m_keyChain.sign(mainDataPacketBackup);
         // Return Data packet to the requester
@@ -318,7 +320,7 @@ private:
                                   manifestDataBlock.type());
       }
 
-      manifestDataPacket.setFreshnessPeriod(ndn::time::seconds(4));
+      manifestDataPacket.setFreshnessPeriod(constants::producerFreshnessPeriod);
       // Sign Data packet with default identity
       m_keyChain.sign(manifestDataPacket);
       // Return Data packet to the requester
@@ -342,7 +344,8 @@ private:
                                     manifestDataBlock.type());
         }
 
-        manifestDataPacket.setFreshnessPeriod(ndn::time::seconds(10));
+        manifestDataPacket.setFreshnessPeriod(
+            constants::producerFreshnessPeriod);
         // Sign Data packet with default identity
         m_keyChain.sign(manifestDataPacket);
         // Return Data packet to the requester

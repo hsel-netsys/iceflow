@@ -4,6 +4,7 @@ add_library(iceflow INTERFACE ${ICEFLOW_INTERFACE_FILES})
 
 set(ICEFLOW_INTERFACE_FILES
     iceflow/block.hpp
+    iceflow/constants.hpp
     iceflow/consumer-tlv.hpp
     iceflow/content-type-value.hpp
     iceflow/data.hpp
