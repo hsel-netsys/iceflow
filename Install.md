@@ -25,7 +25,7 @@ The ndn-cxx library is the most important dependency for IceFlow, as it provides
 - Boost >= 1.71.0
 - OpenSSL >= 1.1.1
 - SQLite 3.x
-- CMake >= 3.21
+- CMake >= 3.18
 
 Under Ubuntu, you can install the requirements from the terminal using the following command:
 
