@@ -1,5 +1,5 @@
 [![Build Status](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml/badge.svg)](https://github.com/hsel-netsys/iceflow/actions/workflows/build.yml)
-[![Documentation Status](https://img.shields.io/github/actions/workflow/status/hsel-netsys/iceflow/doxygen-gh-pages.yml?label=Documentation&link=https%3A%2F%2Fhsel-netsys.github.io%2Ficeflow)](https://hsel-netsys.github.io/iceflow)
+[![Documentation Status](https://img.shields.io/github/actions/workflow/status/hsel-netsys/iceflow/doxygen-gh-pages.yml?label=docs&link=https%3A%2F%2Fhsel-netsys.github.io%2Ficeflow)](https://hsel-netsys.github.io/iceflow)
 ![License](https://img.shields.io/github/license/hsel-netsys/iceflow)
 
 # IceFlow
