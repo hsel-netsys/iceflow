@@ -13,7 +13,7 @@ In order to compile and run IceFlow, we need the following dependencies installe
 4. nlohman-json (for handling JSON)
 5. yaml-cpp (for handling YAML)
 
-## Install ndn-cxx from the source
+### Install ndn-cxx from source
 
 The ndn-cxx library is the most important dependency for IceFlow, as it provides the fundamental NDN capabilities.
 
@@ -46,26 +46,19 @@ Now we are set for building ndn-cxx.
 
 ```sh
 git clone https://github.com/named-data/ndn-cxx
-cd ndn-cxx
-./waf configure
-./waf
-sudo ./waf install
-sudo ldconfig  # on Linux only
 ```
 
-## Download the NFD from Git and build from the source files
+You can then follow the [instructions](https://docs.named-data.net/ndn-cxx/current/INSTALL.html)
+for building ndn-cxx as a shared library.
 
-```sh
-git clone --recursive https://github.com/named-data/NFD
-cd NFD
-./waf configure
-./waf
-sudo ./waf install
-sudo ldconfig
-sudo cp /usr/local/etc/ndn/nfd.conf.sample /usr/local/etc/ndn/nfd.conf
-```
 
-To check if the NFD is running, type:
+### Install the NFD from source
+
+After the ndn-cxx installation is complete, you can install the NFD by following
+its [build instructions](https://docs.named-data.net/NFD/current/INSTALL.html#building-from-source).
+
+After the installation is complete, you can check if the NFD is running by
+typing:
 
 ```sh
 nfd-start
@@ -77,17 +70,21 @@ If it runs successfully, you can stop it with
 nfd-stop
 ```
 
-## Download PSync from Git and build from the source files
+### Install PSync from source
+
+To install PSync, first clone its Git repository using
 
 ```sh
 git clone https://github.com/named-data/PSync.git
-cd PSync
-./waf configure
-./waf
-sudo ./waf install
 ```
 
-## Install nlohman-json
+Then you can perform the installation by following the respective
+[instructions](https://docs.named-data.net/PSync/current/install.html).
+
+### Install nlohman-json
+
+To install nlohmann-json using a package manager like homebrew, you can follow
+the [official instructions](https://json.nlohmann.me/integration/package_managers/).
 
 On Ubuntu, you can perform the installation via a PPA.
 
@@ -104,25 +101,10 @@ Afterward, you can install the `nlohmann-json3-dev` deb package as follows:
 sudo apt-get install nlohmann-json3-dev
 ```
 
-Under macOS, you can use Homebrew:
+### Install yaml-cpp
 
-```sh
-brew install nlohmann-json
-```
-
-## Install yaml-cpp
-
-Under Ubuntu, you need to build yaml-cpp from its source files:
-
-```sh
-git clone https://github.com/jbeder/yaml-cpp.git
-cd yaml-cpp
-mkdir build
-cd build
-cmake -DYAML_BUILD_SHARED_LIBS=on ..
-make
-sudo make install
-```
+Under most Linux distributions, you will need to
+[build yaml-cpp from source](https://github.com/jbeder/yaml-cpp#how-to-build).
 
 Under macOS, you can install it using Homebrew:
 
@@ -155,12 +137,36 @@ otool -L /usr/local/lib/libPSync.dylib
 otool -L /usr/local/lib/libyaml-cpp.a
 ```
 
-## Compile the available IceFlow applications
+## Building and Installing
+
+Before building and installing IceFlow, you will need to generate the build
+files using CMake.
+To do so, simply enter
+
+```sh
+cmake .
+```
+
+in the repository's root directory.
+
+### Compile the available IceFlow applications
 
 To compile all the IceFlow applications that are currently defined in the
 `src` directory, run the following commands:
 
 ```sh
-cmake .
 make
 ```
+
+### Installing IceFlow
+
+To install IceFlow as a library on your system, run
+
+```sh
+sudo make install
+```
+
+after generating the build files.
+For now, IceFlow only supports static linking, as it is not compiled to a shared
+library.
+This will probaby change in future IceFlow versions.
