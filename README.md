@@ -9,21 +9,29 @@ Named-Data Networking (NDN) written in C++.
 Besides the actual library, a number of applications are included in the
 repository illustrating the use of IceFlow for a video processing use case.
 
-<!-- TODO: Expand README -->
+## Pre-Requisites and Installation
 
-## Installation
+Detailed installation instructions for installing the required dependencies and IceFlow itself can be found in the file [Install.md](Install.md).
 
-Detailed installation instructions can be found in the file [Install.md](Install.md).
+## Generating Build Files
+
+To set up the build system for the project, you need to have CMake (with a minimum version of 3.21) installed on your system.
+With CMake installed, you can generate the build files using the command
+
+```sh
+cmake .
+```
+
+in the repository's root directory.
 
 ## Documentation
 
 IceFlow's documentation can be found [here](https://hsel-netsys.github.io/iceflow).
 
-If you Doxygen installed, you can generate the documentation locally using the
-following commands in the repository's root directory:
+If you have Doxygen installed, you can generate the documentation locally
+(after generating the build files) using the following command:
 
 ```sh
-cmake .
 make docs
 ```
 
@@ -31,22 +39,20 @@ make docs
 
 In order to achieve a consistent style, IceFlow's codebase is formatted using
 `clang-format`.
-After installing it (e.g., by using `brew install clang-format` on macOS) you
-can format all source files by invoking the following commands:
+After installing it (e.g., by using `brew install clang-format` on macOS) and generating the build files, you can format all source files by invoking
 
 ```sh
-cmake .
 make format
 ```
+
 The CI pipeline will assert that the codebase is always correctly
 formatted and will fail otherwise.
 
 ## Static Analysis
 
 IceFlow uses cppcheck to lint its source code.
-To perform the linting step locally, use the following commands:
+To perform the linting step locally, use the following command (after generating the build files):
 
 ```sh
-cmake .
 make lint
 ```
