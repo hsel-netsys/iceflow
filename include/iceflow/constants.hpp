@@ -23,7 +23,7 @@
 
 namespace iceflow {
 namespace constants {
-constexpr ndn::time::seconds PRODUCER_FRESHNESS_PERIOD = ndn::time::seconds(4);
+const ndn::time::seconds PRODUCER_FRESHNESS_PERIOD = ndn::time::seconds(4);
 }
 } // namespace iceflow
 
