@@ -220,39 +220,42 @@ int main(int argc, char *argv[]) {
   }
 
   YAML::Node config = YAML::LoadFile(argv[1]);
+  auto consumerConfig = config["Consumer"];
+  auto producerConfig = config["Producer"];
+  auto measurementConfig = config["Measurement"];
 
   // ----------------------- Consumer------------------------------------------
-  auto subSyncPrefix = config["Consumer"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix = consumerConfig["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain =
-      config["Consumer"]["subPrefixDataMain"].as<std::string>();
+      consumerConfig["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest =
-      config["Consumer"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck = config["Consumer"]["subPrefixAck"].as<std::string>();
-  auto nSub = config["Consumer"]["nSub"].as<std::vector<int>>();
-  int inputThreshold = config["Consumer"]["inputThreshold"].as<int>();
+      consumerConfig["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck = consumerConfig["subPrefixAck"].as<std::string>();
+  auto nSub = consumerConfig["nSub"].as<std::vector<int>>();
+  int inputThreshold = consumerConfig["inputThreshold"].as<int>();
 
   // ----------------------- Producer -----------------------------------------
 
-  auto pubSyncPrefix = config["Producer"]["pubSyncPrefix"].as<std::string>();
+  auto pubSyncPrefix = producerConfig["pubSyncPrefix"].as<std::string>();
   auto userPrefixDataMain =
-      config["Producer"]["userPrefixDataMain"].as<std::string>();
+      producerConfig["userPrefixDataMain"].as<std::string>();
   auto userPrefixDataManifest =
-      config["Producer"]["userPrefixDataManifest"].as<std::string>();
-  auto userPrefixAck = config["Producer"]["userPrefixAck"].as<std::string>();
-  int nDataStreams = config["Producer"]["nDataStreams"].as<int>();
-  int publishInterval = config["Producer"]["publishInterval"].as<int>();
-  int publishIntervalNew = config["Producer"]["publishIntervalNew"].as<int>();
-  int outputThreshold = config["Producer"]["outputThreshold"].as<int>();
-  int namesInManifest = config["Producer"]["namesInManifest"].as<int>();
-  int mapThreshold = config["Producer"]["mapThreshold"].as<int>();
+      producerConfig["userPrefixDataManifest"].as<std::string>();
+  auto userPrefixAck = producerConfig["userPrefixAck"].as<std::string>();
+  int nDataStreams = producerConfig["nDataStreams"].as<int>();
+  int publishInterval = producerConfig["publishInterval"].as<int>();
+  int publishIntervalNew = producerConfig["publishIntervalNew"].as<int>();
+  int outputThreshold = producerConfig["outputThreshold"].as<int>();
+  int namesInManifest = producerConfig["namesInManifest"].as<int>();
+  int mapThreshold = producerConfig["mapThreshold"].as<int>();
   std::string ml_proto = argv[3];
   std::string ml_model = argv[4];
 
   // --------------------------------------------------------------------------
   // ##### MEASUREMENT #####
 
-  std::string nodeName = config["Measurement"]["nodeName"].as<std::string>();
-  int saveInterval = config["Measurement"]["saveInterval"].as<int>();
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
   std::string measurementName = argv[2];
   ::signal(SIGINT, signalCallbackHandler);
   msCmp =

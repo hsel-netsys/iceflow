@@ -173,26 +173,28 @@ int main(int argc, char *argv[]) {
   }
 
   YAML::Node config = YAML::LoadFile(argv[1]);
+  auto producerConfig = config["Producer"];
+  auto measurementConfig = config["Measurement"];
 
-  auto pubSyncPrefix = config["Producer"]["pubSyncPrefix"].as<std::string>();
+  auto pubSyncPrefix = producerConfig["pubSyncPrefix"].as<std::string>();
   auto userPrefixDataMain =
-      config["Producer"]["userPrefixDataMain"].as<std::string>();
+      producerConfig["userPrefixDataMain"].as<std::string>();
   auto userPrefixDataManifest =
-      config["Producer"]["userPrefixDataManifest"].as<std::string>();
-  auto userPrefixAck = config["Producer"]["userPrefixAck"].as<std::string>();
-  int nDataStreams = config["Producer"]["nDataStreams"].as<int>();
-  int publishInterval = config["Producer"]["publishInterval"].as<int>();
-  int publishIntervalNew = config["Producer"]["publishIntervalNew"].as<int>();
-  int outputThreshold = config["Producer"]["outputThreshold"].as<int>();
-  int namesInManifest = config["Producer"]["namesInManifest"].as<int>();
+      producerConfig["userPrefixDataManifest"].as<std::string>();
+  auto userPrefixAck = producerConfig["userPrefixAck"].as<std::string>();
+  int nDataStreams = producerConfig["nDataStreams"].as<int>();
+  int publishInterval = producerConfig["publishInterval"].as<int>();
+  int publishIntervalNew = producerConfig["publishIntervalNew"].as<int>();
+  int outputThreshold = producerConfig["outputThreshold"].as<int>();
+  int namesInManifest = producerConfig["namesInManifest"].as<int>();
   std::string fileName = argv[2];
-  int frameRate = config["Producer"]["frameRate"].as<int>();
-  int mapThreshold = config["Producer"]["mapThreshold"].as<int>();
+  int frameRate = producerConfig["frameRate"].as<int>();
+  int mapThreshold = producerConfig["mapThreshold"].as<int>();
 
   // ##### MEASUREMENT #####
   std::string measurementName = argv[3];
-  std::string nodeName = config["Measurement"]["nodeName"].as<std::string>();
-  int saveInterval = config["Measurement"]["saveInterval"].as<int>();
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
 
   ::signal(SIGINT, signalCallbackHandler);
   msCmp =

@@ -193,63 +193,68 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   YAML::Node config = YAML::LoadFile(argv[1]);
+  auto consumer1Config = config["Consumer1"];
+  auto consumer2Config = config["Consumer2"];
+  auto consumer3Config = config["Consumer3"];
+  auto consumer4Config = config["Consumer4"];
+  auto measurementConfig = config["Measurement"];
 
   //	----------------------- Consumer 1
   //-----------------------------------------
-  auto subSyncPrefix1 = config["Consumer1"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix1 = consumer1Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain1 =
-      config["Consumer1"]["subPrefixDataMain"].as<std::string>();
+      consumer1Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest1 =
-      config["Consumer1"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck1 = config["Consumer1"]["subPrefixAck"].as<std::string>();
-  auto nSub1 = config["Consumer1"]["nSub"].as<std::vector<int>>();
-  int inputThreshold1 = config["Consumer1"]["inputThreshold"].as<int>();
+      consumer1Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck1 = consumer1Config["subPrefixAck"].as<std::string>();
+  auto nSub1 = consumer1Config["nSub"].as<std::vector<int>>();
+  int inputThreshold1 = consumer1Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   //	----------------------- Consumer 2
   //-----------------------------------------
-  auto subSyncPrefix2 = config["Consumer2"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix2 = consumer2Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain2 =
-      config["Consumer2"]["subPrefixDataMain"].as<std::string>();
+      consumer2Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest2 =
-      config["Consumer2"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck2 = config["Consumer2"]["subPrefixAck"].as<std::string>();
-  auto nSub2 = config["Consumer2"]["nSub"].as<std::vector<int>>();
-  int inputThreshold2 = config["Consumer2"]["inputThreshold"].as<int>();
+      consumer2Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck2 = consumer2Config["subPrefixAck"].as<std::string>();
+  auto nSub2 = consumer2Config["nSub"].as<std::vector<int>>();
+  int inputThreshold2 = consumer2Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   //	----------------------- Consumer 3
   //-----------------------------------------
-  auto subSyncPrefix3 = config["Consumer3"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix3 = consumer3Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain3 =
-      config["Consumer3"]["subPrefixDataMain"].as<std::string>();
+      consumer3Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest3 =
-      config["Consumer3"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck3 = config["Consumer3"]["subPrefixAck"].as<std::string>();
-  auto nSub3 = config["Consumer3"]["nSub"].as<std::vector<int>>();
-  int inputThreshold3 = config["Consumer3"]["inputThreshold"].as<int>();
+      consumer3Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck3 = consumer3Config["subPrefixAck"].as<std::string>();
+  auto nSub3 = consumer3Config["nSub"].as<std::vector<int>>();
+  int inputThreshold3 = consumer3Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   //	----------------------- Consumer 4
   //-----------------------------------------
-  auto subSyncPrefix4 = config["Consumer4"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix4 = consumer4Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain4 =
-      config["Consumer4"]["subPrefixDataMain"].as<std::string>();
+      consumer4Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest4 =
-      config["Consumer4"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck4 = config["Consumer4"]["subPrefixAck"].as<std::string>();
-  auto nSub4 = config["Consumer4"]["nSub"].as<std::vector<int>>();
-  int inputThreshold4 = config["Consumer4"]["inputThreshold"].as<int>();
+      consumer4Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck4 = consumer4Config["subPrefixAck"].as<std::string>();
+  auto nSub4 = consumer4Config["nSub"].as<std::vector<int>>();
+  int inputThreshold4 = consumer4Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   // ##### MEASUREMENT #####
 
-  std::string nodeName = config["Measurement"]["nodeName"].as<std::string>();
-  int saveInterval = config["Measurement"]["saveInterval"].as<int>();
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
   std::string measurementName = argv[2];
 
   ::signal(SIGINT, signalCallbackHandler);
