@@ -160,22 +160,22 @@ void startProcessing(std::string &subSyncPrefix1, std::vector<int> nSub1,
   inputs.push_back(simpleConsumer4->getInputBlockQueue());
 
   // Data
-  std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer1);
-  std::thread th2(&iceflow::ConsumerTlv::runCon, simpleConsumer2);
-  std::thread th3(&iceflow::ConsumerTlv::runCon, simpleConsumer3);
-  std::thread th4(&iceflow::ConsumerTlv::runCon, simpleConsumer4);
-  std::thread th5(&fusion, &inputs, &totalInput, inputThreshold1);
+  std::thread thread1(&iceflow::ConsumerTlv::runCon, simpleConsumer1);
+  std::thread thread2(&iceflow::ConsumerTlv::runCon, simpleConsumer2);
+  std::thread thread3(&iceflow::ConsumerTlv::runCon, simpleConsumer3);
+  std::thread thread4(&iceflow::ConsumerTlv::runCon, simpleConsumer4);
+  std::thread thread5(&fusion, &inputs, &totalInput, inputThreshold1);
   std::thread th6(&Aggregate::compute, compute, &totalInput);
 
   ProducerThreads.push_back(std::move(th1));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th2));
+  ProducerThreads.push_back(std::move(thread2));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th3));
+  ProducerThreads.push_back(std::move(thread3));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th4));
+  ProducerThreads.push_back(std::move(thread4));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th5));
+  ProducerThreads.push_back(std::move(thread5));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
   ProducerThreads.push_back(std::move(th6));
 

@@ -150,9 +150,9 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
   // Data
-  std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  std::thread thread1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
 
-  std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
+  std::thread thread2(&fusion, &inputs, &totalInput, inputThreshold);
   for (int i = 0; i < computeThreads; ++i) {
 
     ThreadCollector.emplace_back([&]() {
@@ -162,13 +162,13 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
   }
 
   // Data
-  std::thread th3(&iceflow::ProducerTlv::runPro, simpleProducer);
+  std::thread thread3(&iceflow::ProducerTlv::runPro, simpleProducer);
 
   ThreadCollector.push_back(std::move(th1));
   NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-  ThreadCollector.push_back(std::move(th2));
+  ThreadCollector.push_back(std::move(thread2));
   NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-  ThreadCollector.push_back(std::move(th3));
+  ThreadCollector.push_back(std::move(thread3));
   NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
 
   for (auto &t : ThreadCollector) {
@@ -187,7 +187,7 @@ int main(int argc, char *argv[]) {
   YAML::Node config = YAML::LoadFile(argv[1]);
   auto consumerConfig = config["Consumer"];
   auto producerConfig = config["Producer"];
-  auto measurementConfig = config["Measurement2"];
+  auto measurementConfig = config["Measurement"];
 
   // ----------------------- Consumer------------------------------------------
   auto subSyncPrefix = consumerConfig["subSyncPrefix"].as<std::string>();

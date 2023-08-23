@@ -148,16 +148,16 @@ void startProcessing(std::string &pubSyncPrefix,
 
   auto *compute = new ImageSource();
 
-  std::thread th1(&ImageSource::compute, compute, fileName,
-                  &simpleProducer->outputQueueBlock, outputThreshold,
-                  frameRate);
+  std::thread thread1(&ImageSource::compute, compute, fileName,
+                      &simpleProducer->outputQueueBlock, outputThreshold,
+                      frameRate);
 
   // Data
-  std::thread th2(&iceflow::ProducerTlv::runPro, simpleProducer);
+  std::thread thread2(&iceflow::ProducerTlv::runPro, simpleProducer);
 
   std::vector<std::thread> ProducerThreads;
   ProducerThreads.push_back(std::move(th1));
-  ProducerThreads.push_back(std::move(th2));
+  ProducerThreads.push_back(std::move(thread2));
   usleep(200000);
 
   for (auto &t : ProducerThreads) {

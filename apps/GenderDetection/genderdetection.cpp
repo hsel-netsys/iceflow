@@ -134,25 +134,26 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
   // Data
-  std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  std::thread thread1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
 
-  std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
+  std::thread thread2(&fusion, &inputs, &totalInput, inputThreshold);
 
-  std::thread th3(&GenderDetector::compute, compute, &totalInput,
-                  &simpleProducer->outputQueueBlock, outputThreshold,
-                  std::ref(ml_proto), std::ref(ml_model));
+  std::thread thread3(&GenderDetector::compute, compute, &totalInput,
+                      &simpleProducer->outputQueueBlock, outputThreshold,
+                      std::ref(protobufBinaryFileName),
+                      std::ref(mlModelFileName));
 
   // Data
-  std::thread th4(&iceflow::ProducerTlv::runPro, simpleProducer);
+  std::thread thread4(&iceflow::ProducerTlv::runPro, simpleProducer);
 
   std::vector<std::thread> ProducerThreads;
   ProducerThreads.push_back(std::move(th1));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th2));
+  ProducerThreads.push_back(std::move(thread2));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th3));
+  ProducerThreads.push_back(std::move(thread3));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th4));
+  ProducerThreads.push_back(std::move(thread4));
   NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
 
   for (auto &t : ProducerThreads) {
@@ -210,8 +211,8 @@ int main(int argc, char *argv[]) {
   std::string nodeName = measurementConfig["nodeName"].as<std::string>();
   int saveInterval = measurementConfig["saveInterval"].as<int>();
   ::signal(SIGINT, signalCallbackHandler);
-  msCmp =
-      new iceflow::Measurement(measurementFileName, nodeName, saveInterval, "A");
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
     startProcessing(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
