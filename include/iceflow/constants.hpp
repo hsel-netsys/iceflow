@@ -23,8 +23,11 @@
 
 namespace iceflow {
 namespace constants {
-constexpr ndn::time::seconds producerFreshnessPeriod = ndn::time::seconds(4);
-}
+/**
+ * Duration for which an IceFlow producer considers a data packet fresh.
+ */
+const ndn::time::seconds PRODUCER_FRESHNESS_PERIOD = ndn::time::seconds(4);
+} // namespace constants
 } // namespace iceflow
 
 #endif // ICEFLOW_CORE_CONSTANTS_HPP

@@ -273,7 +273,7 @@ private:
       auto mainDataPacket =
           Data(interest.getName(), mainDataBlock, mainDataBlock.type());
 
-      mainDataPacket.setFreshnessPeriod(constants::producerFreshnessPeriod);
+      mainDataPacket.setFreshnessPeriod(constants::PRODUCER_FRESHNESS_PERIOD);
 
       // Sign Data packet with default identity
       m_keyChain.sign(mainDataPacket);
@@ -292,7 +292,7 @@ private:
                  mainDataBlockBackup.type());
 
         mainDataPacketBackup.setFreshnessPeriod(
-            constants::producerFreshnessPeriod);
+            constants::PRODUCER_FRESHNESS_PERIOD);
         // Sign Data packet with default identity
         m_keyChain.sign(mainDataPacketBackup);
         // Return Data packet to the requester
@@ -320,7 +320,8 @@ private:
                                   manifestDataBlock.type());
       }
 
-      manifestDataPacket.setFreshnessPeriod(constants::producerFreshnessPeriod);
+      manifestDataPacket.setFreshnessPeriod(
+          constants::PRODUCER_FRESHNESS_PERIOD);
       // Sign Data packet with default identity
       m_keyChain.sign(manifestDataPacket);
       // Return Data packet to the requester
@@ -345,7 +346,7 @@ private:
         }
 
         manifestDataPacket.setFreshnessPeriod(
-            constants::producerFreshnessPeriod);
+            constants::PRODUCER_FRESHNESS_PERIOD);
         // Sign Data packet with default identity
         m_keyChain.sign(manifestDataPacket);
         // Return Data packet to the requester
