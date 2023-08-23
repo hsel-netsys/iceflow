@@ -35,7 +35,7 @@ RUN apt-get update && \
     cd ../.. && \
     rm -rf yaml-cpp && \
     # Build and install NFD
-    git clone --recursive https://github.com/named-data/NFD && \
+    git clone --recursive https://github.com/JKRhb/NFD-out-of-the-box.git NFD --branch self-learning-rebased && \
     cd NFD && \
     ./waf configure && \
     ./waf && \
