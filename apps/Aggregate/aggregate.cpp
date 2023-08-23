@@ -120,8 +120,6 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
   }
 }
 
-std::vector<std::thread> ProducerThreads;
-
 void startProcessing(std::string &subSyncPrefix1, std::vector<int> nSub1,
                      std::string &subPrefixDataMain1,
                      std::string &subPrefixAck1, int inputThreshold1,
@@ -159,29 +157,18 @@ void startProcessing(std::string &subSyncPrefix1, std::vector<int> nSub1,
   inputs.push_back(simpleConsumer3->getInputBlockQueue());
   inputs.push_back(simpleConsumer4->getInputBlockQueue());
 
-  // Data
-  std::thread thread1(&iceflow::ConsumerTlv::runCon, simpleConsumer1);
-  std::thread thread2(&iceflow::ConsumerTlv::runCon, simpleConsumer2);
-  std::thread thread3(&iceflow::ConsumerTlv::runCon, simpleConsumer3);
-  std::thread thread4(&iceflow::ConsumerTlv::runCon, simpleConsumer4);
-  std::thread thread5(&fusion, &inputs, &totalInput, inputThreshold1);
-  std::thread th6(&Aggregate::compute, compute, &totalInput);
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer1);
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer2);
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer3);
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer4);
+  threads.emplace_back(&fusion, &inputs, &totalInput, inputThreshold1);
+  threads.emplace_back(&Aggregate::compute, compute, &totalInput);
 
-  ProducerThreads.push_back(std::move(th1));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(thread2));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(thread3));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(thread4));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(thread5));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th6));
-
-  // wait for thread to finish
-  for (auto &t : ProducerThreads) {
-    t.join();
+  int threadCounter = 0;
+  for (auto &thread : threads) {
+    NDN_LOG_INFO("Thread " << threadCounter++ << " started");
+    thread.join();
   }
 }
 

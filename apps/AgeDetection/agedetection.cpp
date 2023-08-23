@@ -157,27 +157,19 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
   // Data
-  std::thread thread1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
-  std::thread thread2(&fusion, &inputs, &totalInput, inputThreshold);
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  threads.emplace_back(&fusion, &inputs, &totalInput, inputThreshold);
+  threads.emplace_back(&AgeDetector::compute, compute, &totalInput,
+                       &simpleProducer->outputQueueBlock, outputThreshold,
+                       std::ref(protobufBinaryFileName),
+                       std::ref(mlModelFileName));
+  threads.emplace_back(&iceflow::ProducerTlv::runPro, simpleProducer);
 
-  std::thread thread3(&AgeDetector::compute, compute, &totalInput,
-                      &simpleProducer->outputQueueBlock, outputThreshold,
-                      std::ref(protobufBinaryFileName),
-                      std::ref(mlModelFileName));
-
-  std::thread thread4(&iceflow::ProducerTlv::runPro, simpleProducer);
-  std::vector<std::thread> ProducerThreads;
-  ProducerThreads.push_back(std::move(th1));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(thread2));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(thread3));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(thread4));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-
-  for (auto &t : ProducerThreads) {
-    t.join();
+  int threadCounter = 0;
+  for (auto &thread : threads) {
+    thread.join();
+    NDN_LOG_INFO("Thread " << threadCounter++ << " started");
   }
 }
 

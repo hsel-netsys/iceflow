@@ -146,33 +146,24 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
       subSyncPrefix, subPrefixDataMain, subPrefixAck, sub, inputThreshold);
 
   auto *compute = new PeopleCounter();
-  std::vector<std::thread> ThreadCollector;
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
-  // Data
-  std::thread thread1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  threads.emplace_back(&fusion, &inputs, &totalInput, inputThreshold);
 
-  std::thread thread2(&fusion, &inputs, &totalInput, inputThreshold);
   for (int i = 0; i < computeThreads; ++i) {
-
-    ThreadCollector.emplace_back([&]() {
+    threads.emplace_back([&]() {
       compute->compute(&totalInput, &simpleProducer->outputQueueBlock,
                        outputThreshold);
     });
   }
+  threads.emplace_back(&iceflow::ProducerTlv::runPro, simpleProducer);
 
-  // Data
-  std::thread thread3(&iceflow::ProducerTlv::runPro, simpleProducer);
-
-  ThreadCollector.push_back(std::move(th1));
-  NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-  ThreadCollector.push_back(std::move(thread2));
-  NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-  ThreadCollector.push_back(std::move(thread3));
-  NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-
-  for (auto &t : ThreadCollector) {
-    t.join();
+  int threadCounter = 0;
+  for (auto &thread : threads) {
+    thread.join();
+    NDN_LOG_INFO("Thread " << threadCounter++ << " started");
   }
 }
 
