@@ -161,7 +161,7 @@ void startProcessing(std::string &pubSyncPrefix,
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
   if (argc != 4) {
     std::cout << "usage: " << argv[0] << " <config-file><input-file><test-name>"
               << std::endl;

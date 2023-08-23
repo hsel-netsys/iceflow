@@ -172,7 +172,7 @@ void startProcessing(std::string &subSyncPrefix1, std::vector<int> nSub1,
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
 
   if (argc != 3) {
     std::cout << "usage: " << argv[0] << " "
