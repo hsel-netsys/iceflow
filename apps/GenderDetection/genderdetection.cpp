@@ -43,10 +43,12 @@ public:
 
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
-                            int outputThreshold, std::string ml_proto,
-                            std::string ml_model) {
+                            int outputThreshold,
+                            std::string protobufBinaryFileName,
+                            std::string mlModelFileName) {
 
-    cv::dnn::Net genderNet = cv::dnn::readNet(ml_model, ml_proto);
+    cv::dnn::Net genderNet =
+        cv::dnn::readNet(mlModelFileName, protobufBinaryFileName);
 
     int computeCounter = 0;
 
@@ -107,15 +109,16 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
   }
 }
 
-void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
-              std::string &subPrefixDataMain, std::string &subPrefixAck,
-              int inputThreshold, std::string &pubSyncPrefix,
-              std::string &userPrefixDataMain,
-              const std::string &userPrefixDataManifest,
-              const std::string &userPrefixAck, int nDataStreams,
-              int publishInterval, int publishIntervalNew, int namesInManifest,
-              int outputThreshold, int mapThreshold,
-              const std::string &ml_proto, const std::string &ml_model) {
+void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
+                     std::string &subPrefixDataMain, std::string &subPrefixAck,
+                     int inputThreshold, std::string &pubSyncPrefix,
+                     std::string &userPrefixDataMain,
+                     const std::string &userPrefixDataManifest,
+                     const std::string &userPrefixAck, int nDataStreams,
+                     int publishInterval, int publishIntervalNew,
+                     int namesInManifest, int outputThreshold, int mapThreshold,
+                     const std::string &protobufBinaryFileName,
+                     const std::string &mlModelFileName) {
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   // Data
@@ -130,34 +133,23 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
 
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
-  // Data
-  std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  threads.emplace_back(&fusion, &inputs, &totalInput, inputThreshold);
+  threads.emplace_back(&GenderDetector::compute, compute, &totalInput,
+                       &simpleProducer->outputQueueBlock, outputThreshold,
+                       std::ref(protobufBinaryFileName),
+                       std::ref(mlModelFileName));
+  threads.emplace_back(&iceflow::ProducerTlv::runPro, simpleProducer);
 
-  std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
-
-  std::thread th3(&GenderDetector::compute, compute, &totalInput,
-                  &simpleProducer->outputQueueBlock, outputThreshold,
-                  std::ref(ml_proto), std::ref(ml_model));
-
-  // Data
-  std::thread th4(&iceflow::ProducerTlv::runPro, simpleProducer);
-
-  std::vector<std::thread> ProducerThreads;
-  ProducerThreads.push_back(std::move(th1));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th2));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th3));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th4));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-
-  for (auto &t : ProducerThreads) {
-    t.join();
+  int threadCounter = 0;
+  for (auto &thread : threads) {
+    NDN_LOG_INFO("Thread " << threadCounter++ << " started");
+    thread.join();
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
 
   if (argc != 5) {
     std::cout << "usage: " << argv[0] << " "
@@ -166,51 +158,57 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  YAML::Node config = YAML::LoadFile(argv[1]);
+  std::string configFileName = argv[1];
+  std::string measurementFileName = argv[2];
+  std::string protobufBinaryFileName = argv[3];
+  std::string mlModelFileName = argv[4];
+
+  YAML::Node config = YAML::LoadFile(configFileName);
+  auto consumerConfig = config["Consumer"];
+  auto producerConfig = config["Producer"];
+  auto measurementConfig = config["Measurement"];
 
   // ----------------------- Consumer------------------------------------------
-  auto subSyncPrefix = config["Consumer"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix = consumerConfig["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain =
-      config["Consumer"]["subPrefixDataMain"].as<std::string>();
+      consumerConfig["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest =
-      config["Consumer"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck = config["Consumer"]["subPrefixAck"].as<std::string>();
-  auto nSub = config["Consumer"]["nSub"].as<std::vector<int>>();
-  int inputThreshold = config["Consumer"]["inputThreshold"].as<int>();
+      consumerConfig["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck = consumerConfig["subPrefixAck"].as<std::string>();
+  auto nSub = consumerConfig["nSub"].as<std::vector<int>>();
+  int inputThreshold = consumerConfig["inputThreshold"].as<int>();
 
   // ----------------------- Producer -----------------------------------------
 
-  auto pubSyncPrefix = config["Producer"]["pubSyncPrefix"].as<std::string>();
+  auto pubSyncPrefix = producerConfig["pubSyncPrefix"].as<std::string>();
   auto userPrefixDataMain =
-      config["Producer"]["userPrefixDataMain"].as<std::string>();
+      producerConfig["userPrefixDataMain"].as<std::string>();
   auto userPrefixDataManifest =
-      config["Producer"]["userPrefixDataManifest"].as<std::string>();
-  auto userPrefixAck = config["Producer"]["userPrefixAck"].as<std::string>();
-  int nDataStreams = config["Producer"]["nDataStreams"].as<int>();
-  int publishInterval = config["Producer"]["publishInterval"].as<int>();
-  int publishIntervalNew = config["Producer"]["publishIntervalNew"].as<int>();
-  int outputThreshold = config["Producer"]["outputThreshold"].as<int>();
-  int namesInManifest = config["Producer"]["namesInManifest"].as<int>();
-  int mapThreshold = config["Producer"]["mapThreshold"].as<int>();
-  std::string ml_proto = argv[3];
-  std::string ml_model = argv[4];
+      producerConfig["userPrefixDataManifest"].as<std::string>();
+  auto userPrefixAck = producerConfig["userPrefixAck"].as<std::string>();
+  int nDataStreams = producerConfig["nDataStreams"].as<int>();
+  int publishInterval = producerConfig["publishInterval"].as<int>();
+  int publishIntervalNew = producerConfig["publishIntervalNew"].as<int>();
+  int outputThreshold = producerConfig["outputThreshold"].as<int>();
+  int namesInManifest = producerConfig["namesInManifest"].as<int>();
+  int mapThreshold = producerConfig["mapThreshold"].as<int>();
   // --------------------------------------------------------------------------
 
   // ##### MEASUREMENT #####
 
-  std::string nodeName = config["Measurement"]["nodeName"].as<std::string>();
-  int saveInterval = config["Measurement"]["saveInterval"].as<int>();
-  std::string measurementName = argv[2];
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
   ::signal(SIGINT, signalCallbackHandler);
-  msCmp =
-      new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
-    DataFlow(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
-             inputThreshold, pubSyncPrefix, userPrefixDataMain,
-             userPrefixDataManifest, userPrefixAck, nDataStreams,
-             publishInterval, publishIntervalNew, namesInManifest,
-             outputThreshold, mapThreshold, ml_proto, ml_model);
+    startProcessing(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
+                    inputThreshold, pubSyncPrefix, userPrefixDataMain,
+                    userPrefixDataManifest, userPrefixAck, nDataStreams,
+                    publishInterval, publishIntervalNew, namesInManifest,
+                    outputThreshold, mapThreshold, protobufBinaryFileName,
+                    mlModelFileName);
   }
 
   catch (const std::exception &e) {

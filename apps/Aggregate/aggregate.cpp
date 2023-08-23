@@ -120,18 +120,18 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
   }
 }
 
-std::vector<std::thread> ProducerThreads;
-
-void DataFlow(std::string &subSyncPrefix1, std::vector<int> nSub1,
-              std::string &subPrefixDataMain1, std::string &subPrefixAck1,
-              int inputThreshold1, std::string &subSyncPrefix2,
-              std::vector<int> nSub2, std::string &subPrefixDataMain2,
-              std::string &subPrefixAck2, int inputThreshold2,
-              std::string &subSyncPrefix3, std::vector<int> nSub3,
-              std::string &subPrefixDataMain3, std::string &subPrefixAck3,
-              int inputThreshold3, std::string &subSyncPrefix4,
-              std::vector<int> nSub4, std::string &subPrefixDataMain4,
-              std::string &subPrefixAck4, int inputThreshold4) {
+void startProcessing(std::string &subSyncPrefix1, std::vector<int> nSub1,
+                     std::string &subPrefixDataMain1,
+                     std::string &subPrefixAck1, int inputThreshold1,
+                     std::string &subSyncPrefix2, std::vector<int> nSub2,
+                     std::string &subPrefixDataMain2,
+                     std::string &subPrefixAck2, int inputThreshold2,
+                     std::string &subSyncPrefix3, std::vector<int> nSub3,
+                     std::string &subPrefixDataMain3,
+                     std::string &subPrefixAck3, int inputThreshold3,
+                     std::string &subSyncPrefix4, std::vector<int> nSub4,
+                     std::string &subPrefixDataMain4,
+                     std::string &subPrefixAck4, int inputThreshold4) {
 
   // Data
   auto *simpleConsumer1 =
@@ -157,109 +157,107 @@ void DataFlow(std::string &subSyncPrefix1, std::vector<int> nSub1,
   inputs.push_back(simpleConsumer3->getInputBlockQueue());
   inputs.push_back(simpleConsumer4->getInputBlockQueue());
 
-  // Data
-  std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer1);
-  std::thread th2(&iceflow::ConsumerTlv::runCon, simpleConsumer2);
-  std::thread th3(&iceflow::ConsumerTlv::runCon, simpleConsumer3);
-  std::thread th4(&iceflow::ConsumerTlv::runCon, simpleConsumer4);
-  std::thread th5(&fusion, &inputs, &totalInput, inputThreshold1);
-  std::thread th6(&Aggregate::compute, compute, &totalInput);
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer1);
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer2);
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer3);
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer4);
+  threads.emplace_back(&fusion, &inputs, &totalInput, inputThreshold1);
+  threads.emplace_back(&Aggregate::compute, compute, &totalInput);
 
-  ProducerThreads.push_back(std::move(th1));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th2));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th3));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th4));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th5));
-  NDN_LOG_INFO("Thread " << ProducerThreads.size() << " Started");
-  ProducerThreads.push_back(std::move(th6));
-
-  // wait for thread to finish
-  for (auto &t : ProducerThreads) {
-    t.join();
+  int threadCounter = 0;
+  for (auto &thread : threads) {
+    NDN_LOG_INFO("Thread " << threadCounter++ << " started");
+    thread.join();
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
 
   if (argc != 3) {
     std::cout << "usage: " << argv[0] << " "
               << "<config-file><test-name>" << std::endl;
     return 1;
   }
-  YAML::Node config = YAML::LoadFile(argv[1]);
+
+  std::string configFileName = argv[1];
+  std::string measurementFileName = argv[2];
+
+  YAML::Node config = YAML::LoadFile(configFileName);
+  auto consumer1Config = config["Consumer1"];
+  auto consumer2Config = config["Consumer2"];
+  auto consumer3Config = config["Consumer3"];
+  auto consumer4Config = config["Consumer4"];
+  auto measurementConfig = config["Measurement"];
 
   //	----------------------- Consumer 1
   //-----------------------------------------
-  auto subSyncPrefix1 = config["Consumer1"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix1 = consumer1Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain1 =
-      config["Consumer1"]["subPrefixDataMain"].as<std::string>();
+      consumer1Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest1 =
-      config["Consumer1"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck1 = config["Consumer1"]["subPrefixAck"].as<std::string>();
-  auto nSub1 = config["Consumer1"]["nSub"].as<std::vector<int>>();
-  int inputThreshold1 = config["Consumer1"]["inputThreshold"].as<int>();
+      consumer1Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck1 = consumer1Config["subPrefixAck"].as<std::string>();
+  auto nSub1 = consumer1Config["nSub"].as<std::vector<int>>();
+  int inputThreshold1 = consumer1Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   //	----------------------- Consumer 2
   //-----------------------------------------
-  auto subSyncPrefix2 = config["Consumer2"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix2 = consumer2Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain2 =
-      config["Consumer2"]["subPrefixDataMain"].as<std::string>();
+      consumer2Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest2 =
-      config["Consumer2"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck2 = config["Consumer2"]["subPrefixAck"].as<std::string>();
-  auto nSub2 = config["Consumer2"]["nSub"].as<std::vector<int>>();
-  int inputThreshold2 = config["Consumer2"]["inputThreshold"].as<int>();
+      consumer2Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck2 = consumer2Config["subPrefixAck"].as<std::string>();
+  auto nSub2 = consumer2Config["nSub"].as<std::vector<int>>();
+  int inputThreshold2 = consumer2Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   //	----------------------- Consumer 3
   //-----------------------------------------
-  auto subSyncPrefix3 = config["Consumer3"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix3 = consumer3Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain3 =
-      config["Consumer3"]["subPrefixDataMain"].as<std::string>();
+      consumer3Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest3 =
-      config["Consumer3"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck3 = config["Consumer3"]["subPrefixAck"].as<std::string>();
-  auto nSub3 = config["Consumer3"]["nSub"].as<std::vector<int>>();
-  int inputThreshold3 = config["Consumer3"]["inputThreshold"].as<int>();
+      consumer3Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck3 = consumer3Config["subPrefixAck"].as<std::string>();
+  auto nSub3 = consumer3Config["nSub"].as<std::vector<int>>();
+  int inputThreshold3 = consumer3Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   //	----------------------- Consumer 4
   //-----------------------------------------
-  auto subSyncPrefix4 = config["Consumer4"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix4 = consumer4Config["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain4 =
-      config["Consumer4"]["subPrefixDataMain"].as<std::string>();
+      consumer4Config["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest4 =
-      config["Consumer4"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck4 = config["Consumer4"]["subPrefixAck"].as<std::string>();
-  auto nSub4 = config["Consumer4"]["nSub"].as<std::vector<int>>();
-  int inputThreshold4 = config["Consumer4"]["inputThreshold"].as<int>();
+      consumer4Config["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck4 = consumer4Config["subPrefixAck"].as<std::string>();
+  auto nSub4 = consumer4Config["nSub"].as<std::vector<int>>();
+  int inputThreshold4 = consumer4Config["inputThreshold"].as<int>();
 
   //	----------------------------------------------------------------------------
 
   // ##### MEASUREMENT #####
 
-  std::string nodeName = config["Measurement"]["nodeName"].as<std::string>();
-  int saveInterval = config["Measurement"]["saveInterval"].as<int>();
-  std::string measurementName = argv[2];
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
 
   ::signal(SIGINT, signalCallbackHandler);
-  msCmp =
-      new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
-    DataFlow(subSyncPrefix1, nSub1, subPrefixDataMain1, subPrefixAck1,
-             inputThreshold1, subSyncPrefix2, nSub2, subPrefixDataMain2,
-             subPrefixAck2, inputThreshold2, subSyncPrefix3, nSub3,
-             subPrefixDataMain3, subPrefixAck3, inputThreshold3, subSyncPrefix4,
-             nSub4, subPrefixDataMain4, subPrefixAck4, inputThreshold4);
+    startProcessing(subSyncPrefix1, nSub1, subPrefixDataMain1, subPrefixAck1,
+                    inputThreshold1, subSyncPrefix2, nSub2, subPrefixDataMain2,
+                    subPrefixAck2, inputThreshold2, subSyncPrefix3, nSub3,
+                    subPrefixDataMain3, subPrefixAck3, inputThreshold3,
+                    subSyncPrefix4, nSub4, subPrefixDataMain4, subPrefixAck4,
+                    inputThreshold4);
   } catch (const std::exception &e) {
     NDN_LOG_ERROR(e.what());
   }
