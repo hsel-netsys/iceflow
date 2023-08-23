@@ -1,7 +1,7 @@
 FROM ubuntu:latest
 COPY . /
 RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get -y install git cmake wget software-properties-common build-essential pkg-config python3-minimal libssl-dev libsqlite3-dev libopencv-dev clang-format libboost-all-dev libpcap-dev libsystemd-dev && \
+    DEBIAN_FRONTEND=noninteractive apt-get -y install git cmake wget software-properties-common build-essential pkg-config python3-minimal libssl-dev libsqlite3-dev libopencv-dev clang-format libboost-all-dev libpcap-dev libsystemd-dev psmisc sudo && \
     ln -s /usr/include/opencv4 /usr/local/include/opencv4 && \
     # Install nlohmann-json
     add-apt-repository ppa:team-xbmc/ppa &&  \
