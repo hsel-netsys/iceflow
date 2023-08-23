@@ -172,7 +172,11 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  YAML::Node config = YAML::LoadFile(argv[1]);
+  std::string configFileName = argv[1];
+  std::string inputFileName = argv[2];
+  std::string measurementFileName = argv[3];
+
+  YAML::Node config = YAML::LoadFile(configFileName);
   auto producerConfig = config["Producer"];
   auto measurementConfig = config["Measurement"];
 
@@ -187,23 +191,21 @@ int main(int argc, char *argv[]) {
   int publishIntervalNew = producerConfig["publishIntervalNew"].as<int>();
   int outputThreshold = producerConfig["outputThreshold"].as<int>();
   int namesInManifest = producerConfig["namesInManifest"].as<int>();
-  std::string fileName = argv[2];
   int frameRate = producerConfig["frameRate"].as<int>();
   int mapThreshold = producerConfig["mapThreshold"].as<int>();
 
   // ##### MEASUREMENT #####
-  std::string measurementName = argv[3];
   std::string nodeName = measurementConfig["nodeName"].as<std::string>();
   int saveInterval = measurementConfig["saveInterval"].as<int>();
 
   ::signal(SIGINT, signalCallbackHandler);
-  msCmp =
-      new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
     startProcessing(pubSyncPrefix, userPrefixDataMain, userPrefixDataManifest,
                     userPrefixAck, nDataStreams, publishInterval,
-                    publishIntervalNew, namesInManifest, fileName,
+                    publishIntervalNew, namesInManifest, inputFileName,
                     outputThreshold, frameRate, mapThreshold);
 
   } catch (const std::exception &e) {

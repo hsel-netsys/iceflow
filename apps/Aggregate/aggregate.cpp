@@ -192,7 +192,11 @@ int main(int argc, char *argv[]) {
               << "<config-file><test-name>" << std::endl;
     return 1;
   }
-  YAML::Node config = YAML::LoadFile(argv[1]);
+
+  std::string configFileName = argv[1];
+  std::string measurementFileName = argv[2];
+
+  YAML::Node config = YAML::LoadFile(configFileName);
   auto consumer1Config = config["Consumer1"];
   auto consumer2Config = config["Consumer2"];
   auto consumer3Config = config["Consumer3"];
@@ -255,11 +259,10 @@ int main(int argc, char *argv[]) {
 
   std::string nodeName = measurementConfig["nodeName"].as<std::string>();
   int saveInterval = measurementConfig["saveInterval"].as<int>();
-  std::string measurementName = argv[2];
 
   ::signal(SIGINT, signalCallbackHandler);
-  msCmp =
-      new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
     startProcessing(subSyncPrefix1, nSub1, subPrefixDataMain1, subPrefixAck1,

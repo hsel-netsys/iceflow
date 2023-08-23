@@ -39,12 +39,14 @@ class FaceDetector {
 public:
   [[noreturn]] void compute(iceflow::RingBuffer<iceflow::Block> *input,
                             iceflow::RingBuffer<iceflow::Block> *output,
-                            int outputThreshold, std::string ml_proto,
-                            std::string ml_model) {
+                            int outputThreshold,
+                            std::string protobufBinaryFileName,
+                            std::string mlModelFileName) {
 
     cv::Scalar MODEL_MEAN_VALUES =
         cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
-    cv::dnn::Net faceNet = cv::dnn::readNet(ml_model, ml_proto);
+    cv::dnn::Net faceNet =
+        cv::dnn::readNet(mlModelFileName, protobufBinaryFileName);
     cv::Mat frameFace;
     int padding = 20;
     int computeCounter = 0;
@@ -171,7 +173,8 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
                      const std::string &userPrefixAck, int nDataStreams,
                      int publishInterval, int publishIntervalNew,
                      int namesInManifest, int outputThreshold, int mapThreshold,
-                     const std::string &ml_proto, const std::string &ml_model) {
+                     const std::string &protobufBinaryFileName,
+                     const std::string &mlModelFileName) {
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   // Data
@@ -219,7 +222,12 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  YAML::Node config = YAML::LoadFile(argv[1]);
+  std::string configFileName = argv[1];
+  std::string measurementFileName = argv[2];
+  std::string protobufBinaryFileName = argv[3];
+  std::string mlModelFileName = argv[4];
+
+  YAML::Node config = YAML::LoadFile(configFileName);
   auto consumerConfig = config["Consumer"];
   auto producerConfig = config["Producer"];
   auto measurementConfig = config["Measurement"];
@@ -248,8 +256,6 @@ int main(int argc, char *argv[]) {
   int outputThreshold = producerConfig["outputThreshold"].as<int>();
   int namesInManifest = producerConfig["namesInManifest"].as<int>();
   int mapThreshold = producerConfig["mapThreshold"].as<int>();
-  std::string ml_proto = argv[3];
-  std::string ml_model = argv[4];
 
   // --------------------------------------------------------------------------
   // ##### MEASUREMENT #####
@@ -258,15 +264,16 @@ int main(int argc, char *argv[]) {
   int saveInterval = measurementConfig["saveInterval"].as<int>();
   std::string measurementName = argv[2];
   ::signal(SIGINT, signalCallbackHandler);
-  msCmp =
-      new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
     startProcessing(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
                     inputThreshold, pubSyncPrefix, userPrefixDataMain,
                     userPrefixDataManifest, userPrefixAck, nDataStreams,
                     publishInterval, publishIntervalNew, namesInManifest,
-                    outputThreshold, mapThreshold, ml_proto, ml_model);
+                    outputThreshold, mapThreshold, protobufBinaryFileName,
+                    mlModelFileName);
   }
 
   catch (const std::exception &e) {
