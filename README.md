@@ -15,7 +15,7 @@ Detailed installation instructions for installing the required dependencies and 
 
 ## Generating Build Files
 
-To set up the build system for the project, you need to have CMake (with a minimum version of 3.21) installed on your system.
+To set up the build system for the project, you need to have CMake (with a minimum version of 3.18) installed on your system.
 With CMake installed, you can generate the build files using the command
 
 ```sh
