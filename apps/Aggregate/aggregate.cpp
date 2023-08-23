@@ -122,16 +122,18 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
 
 std::vector<std::thread> ProducerThreads;
 
-void DataFlow(std::string &subSyncPrefix1, std::vector<int> nSub1,
-              std::string &subPrefixDataMain1, std::string &subPrefixAck1,
-              int inputThreshold1, std::string &subSyncPrefix2,
-              std::vector<int> nSub2, std::string &subPrefixDataMain2,
-              std::string &subPrefixAck2, int inputThreshold2,
-              std::string &subSyncPrefix3, std::vector<int> nSub3,
-              std::string &subPrefixDataMain3, std::string &subPrefixAck3,
-              int inputThreshold3, std::string &subSyncPrefix4,
-              std::vector<int> nSub4, std::string &subPrefixDataMain4,
-              std::string &subPrefixAck4, int inputThreshold4) {
+void startProcessing(std::string &subSyncPrefix1, std::vector<int> nSub1,
+                     std::string &subPrefixDataMain1,
+                     std::string &subPrefixAck1, int inputThreshold1,
+                     std::string &subSyncPrefix2, std::vector<int> nSub2,
+                     std::string &subPrefixDataMain2,
+                     std::string &subPrefixAck2, int inputThreshold2,
+                     std::string &subSyncPrefix3, std::vector<int> nSub3,
+                     std::string &subPrefixDataMain3,
+                     std::string &subPrefixAck3, int inputThreshold3,
+                     std::string &subSyncPrefix4, std::vector<int> nSub4,
+                     std::string &subPrefixDataMain4,
+                     std::string &subPrefixAck4, int inputThreshold4) {
 
   // Data
   auto *simpleConsumer1 =
@@ -255,11 +257,12 @@ int main(int argc, char *argv[]) {
       new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
 
   try {
-    DataFlow(subSyncPrefix1, nSub1, subPrefixDataMain1, subPrefixAck1,
-             inputThreshold1, subSyncPrefix2, nSub2, subPrefixDataMain2,
-             subPrefixAck2, inputThreshold2, subSyncPrefix3, nSub3,
-             subPrefixDataMain3, subPrefixAck3, inputThreshold3, subSyncPrefix4,
-             nSub4, subPrefixDataMain4, subPrefixAck4, inputThreshold4);
+    startProcessing(subSyncPrefix1, nSub1, subPrefixDataMain1, subPrefixAck1,
+                    inputThreshold1, subSyncPrefix2, nSub2, subPrefixDataMain2,
+                    subPrefixAck2, inputThreshold2, subSyncPrefix3, nSub3,
+                    subPrefixDataMain3, subPrefixAck3, inputThreshold3,
+                    subSyncPrefix4, nSub4, subPrefixDataMain4, subPrefixAck4,
+                    inputThreshold4);
   } catch (const std::exception &e) {
     NDN_LOG_ERROR(e.what());
   }

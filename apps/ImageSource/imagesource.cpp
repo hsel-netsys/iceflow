@@ -133,12 +133,13 @@ private:
   iceflow::JsonData m_jsonOutput;
 };
 
-void DataFlow(std::string &pubSyncPrefix, const std::string &userPrefixDataMain,
-              const std::string &userPrefixDataManifest,
-              const std::string &userPrefixAck, int nDataStreams,
-              int publishInterval, int publishIntervalNew, int namesInManifest,
-              std::string fileName, int outputThreshold, int frameRate,
-              int mapThreshold) {
+void startProcessing(std::string &pubSyncPrefix,
+                     const std::string &userPrefixDataMain,
+                     const std::string &userPrefixDataManifest,
+                     const std::string &userPrefixAck, int nDataStreams,
+                     int publishInterval, int publishIntervalNew,
+                     int namesInManifest, std::string fileName,
+                     int outputThreshold, int frameRate, int mapThreshold) {
 
   // Data producer
   auto *simpleProducer = new iceflow::ProducerTlv(
@@ -198,10 +199,10 @@ int main(int argc, char *argv[]) {
       new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
 
   try {
-    DataFlow(pubSyncPrefix, userPrefixDataMain, userPrefixDataManifest,
-             userPrefixAck, nDataStreams, publishInterval, publishIntervalNew,
-             namesInManifest, fileName, outputThreshold, frameRate,
-             mapThreshold);
+    startProcessing(pubSyncPrefix, userPrefixDataMain, userPrefixDataManifest,
+                    userPrefixAck, nDataStreams, publishInterval,
+                    publishIntervalNew, namesInManifest, fileName,
+                    outputThreshold, frameRate, mapThreshold);
 
   } catch (const std::exception &e) {
     std::cout << (e.what()) << std::endl;

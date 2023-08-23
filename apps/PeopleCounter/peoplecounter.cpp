@@ -127,14 +127,15 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
   }
 }
 
-void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
-              std::string &subPrefixDataMain, std::string &subPrefixAck,
-              int inputThreshold, std::string &pubSyncPrefix,
-              std::string &userPrefixDataMain,
-              const std::string &userPrefixDataManifest,
-              const std::string &userPrefixAck, int nDataStreams,
-              int publishInterval, int publishIntervalNew, int namesInManifest,
-              int outputThreshold, int mapThreshold, int computeThreads) {
+void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
+                     std::string &subPrefixDataMain, std::string &subPrefixAck,
+                     int inputThreshold, std::string &pubSyncPrefix,
+                     std::string &userPrefixDataMain,
+                     const std::string &userPrefixDataManifest,
+                     const std::string &userPrefixAck, int nDataStreams,
+                     int publishInterval, int publishIntervalNew,
+                     int namesInManifest, int outputThreshold, int mapThreshold,
+                     int computeThreads) {
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   auto *simpleProducer = new iceflow::ProducerTlv(
@@ -223,11 +224,11 @@ int main(int argc, char *argv[]) {
       new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
 
   try {
-    DataFlow(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
-             inputThreshold, pubSyncPrefix, userPrefixDataMain,
-             userPrefixDataManifest, userPrefixAck, nDataStreams,
-             publishInterval, publishIntervalNew, namesInManifest,
-             outputThreshold, mapThreshold, computeThreads);
+    startProcessing(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
+                    inputThreshold, pubSyncPrefix, userPrefixDataMain,
+                    userPrefixDataManifest, userPrefixAck, nDataStreams,
+                    publishInterval, publishIntervalNew, namesInManifest,
+                    outputThreshold, mapThreshold, computeThreads);
   }
 
   catch (const std::exception &e) {
