@@ -44,6 +44,14 @@ RUN apt-get update && \
     cp /usr/local/etc/ndn/nfd.conf.sample /usr/local/etc/ndn/nfd.conf && \
     cd .. && \
     rm -rf NFD && \
+    # Build and install NDN tools
+    git clone https://github.com/named-data/ndn-tools.git && \
+    cd ndn-tools && \
+    ./waf configure && \
+    ./waf && \
+    ./waf install && \
+    cd .. && \
+    rm -rf ndn-tools && \
     # Build IceFlow
     cmake .  && \
     make
