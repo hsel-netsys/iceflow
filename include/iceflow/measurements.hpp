@@ -25,7 +25,7 @@
 
 namespace iceflow {
 
-struct entry // represents an entry: #, entryname, timestamp
+struct Entry // represents an entry: #, entryname, timestamp
 {
   // string nodeName;
   // string observedObject;
@@ -37,30 +37,30 @@ struct entry // represents an entry: #, entryname, timestamp
 
 class Measurement {
 public:
-  Measurement(std::string measurementId, std::string nodeName, int saveInterval,
-              std::string observedObject) {
-    m_measurementId = measurementId;
-    m_nodeName = nodeName;
-    m_saveInterval = saveInterval;
-    m_observedObject = observedObject;
+  Measurement(const std::string &measurementId, const std::string &nodeName,
+              int saveInterval, const std::string &observedObject)
+      : m_observedObject(observedObject), m_nodeName(nodeName),
+        m_measurementId(measurementId), m_saveInterval(saveInterval) {
     m_fileCount = 0;
     m_lastSaveToFile = duration_cast<std::chrono::milliseconds>(
                            std::chrono::system_clock::now().time_since_epoch())
                            .count();
   }
   ~Measurement() {}
-  void setField(std::string interestName, std::string entryName, int dataSize) {
+  void setField(const std::string &interestName, const std::string &entryName,
+                int dataSize) {
     NDN_LOG_INFO("################# SETTING FIELD "
                  << interestName << " - " << entryName << "#################");
-    m_temporaryEntry.interest = interestName;
-    m_temporaryEntry.entryname = entryName;
-    m_temporaryEntry.size = dataSize;
+    Entry entry;
+    entry.interest = interestName;
+    entry.entryname = entryName;
+    entry.size = dataSize;
     uint64_t currentTimestamp =
         duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch())
             .count();
-    m_temporaryEntry.timestamp = currentTimestamp;
-    m_entries.push_back(m_temporaryEntry);
+    entry.timestamp = currentTimestamp;
+    m_entries.push_back(entry);
     if (m_entries.size() >= m_saveInterval) {
       recordToFile();
     }
@@ -100,11 +100,8 @@ private:
   std::string m_measurementId;
   std::string m_observedObject;
   int m_fileCount;
-  int m_measurementsArraySize;
-  std::vector<entry> m_entries;
+  std::vector<Entry> m_entries;
   int m_saveInterval;
-  uint64_t m_currentTime;
-  entry m_temporaryEntry;
   std::ofstream m_ofstream;
   int m_lastSaveToFile;
 };

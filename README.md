@@ -34,3 +34,13 @@ make format
 ```
 The CI pipeline will assert that the codebase is always correctly
 formatted and will fail otherwise.
+
+## Static Analysis
+
+IceFlow uses cppcheck to lint its source code.
+To perform the linting step locally, use the following commands:
+
+```sh
+cmake .
+make lint
+```

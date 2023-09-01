@@ -40,22 +40,22 @@ public:
   explicit Data(const ndn::Block &wire) { wireDecode(wire); }
 
   // for manifests
-  Data(const ndn::Name &name, std::vector<ndn::Name> namesInput,
+  Data(const ndn::Name &name, const std::vector<ndn::Name> &namesInput,
        ContentTypeValue type)
-      : ndn::Data(name), names(namesInput), type(type) {
+      : ndn::Data(name), m_names(namesInput), m_type(type) {
     encodeContent();
   }
 
   void encodeContent() {
-    setContentType(type);
+    setContentType(m_type);
     uint32_t contentType = getContentType();
     if (contentType == ContentTypeValue::UpdateManifest ||
         contentType == ContentTypeValue::FrameManifest) {
-      if (names.empty()) {
+      if (m_names.empty()) {
         setContent(std::span<uint8_t>{});
       } else {
         setContent(
-            makeNestedBlock(ndn::tlv::Content, names.begin(), names.end()));
+            makeNestedBlock(ndn::tlv::Content, m_names.begin(), m_names.end()));
       }
     }
   }
@@ -87,23 +87,18 @@ public:
     setContent(binaryBlock);
   }
 
-  void setSegment(std::vector<uint8_t> segment) {
-    this->segment = segment;
-    setContent(segment);
-  }
-
   void wireDecode(const ndn::Block &wire) {
     Data::wireDecode(wire);
     uint32_t contentType = getContentType();
 
     if (contentType == ContentTypeValue::UpdateManifest ||
         contentType == ContentTypeValue::FrameManifest) {
-      names.clear();
+      m_names.clear();
       auto content = getContent();
       content.parse();
       for (const auto &del : content.elements()) {
         if (del.type() == ndn::tlv::Name) {
-          names.emplace_back(del);
+          m_names.emplace_back(del);
         } else if (ndn::tlv::isCriticalType(del.type())) {
           NDN_THROW(Error("Unexpected TLV-TYPE " + std::to_string(del.type()) +
                           " while decoding ManifestContent"));
@@ -112,12 +107,9 @@ public:
     }
   }
 
-  std::vector<ndn::Name> getnamesList() const { return names; }
-
 private:
-  uint32_t type;
-  std::vector<ndn::Name> names;
-  std::vector<uint8_t> segment;
+  uint32_t m_type;
+  std::vector<ndn::Name> m_names;
 };
 
 } // namespace iceflow

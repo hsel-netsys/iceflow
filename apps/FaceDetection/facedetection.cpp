@@ -53,7 +53,6 @@ public:
 
       auto start = std::chrono::system_clock::now();
 
-      int i = 0;
       NDN_LOG_INFO("Input Queue Size: " << input->size());
       auto inputData = input->waitAndPopValue();
       auto frameData = inputData.pullFrame();
@@ -73,13 +72,11 @@ public:
                        it->at(2) - it->at(0) + 2 * padding,
                        it->at(3) - it->at(1) + 2 * padding);
           cv::Mat face = frameData(rec); // take the ROI of box on the frame
-          i++;
           msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
           NDN_LOG_INFO("Output Queue Size: " << output->size());
           iceflow::Block resultBlock;
           resultBlock.pushJson(jsonData);
           resultBlock.pushFrame(face);
-          std::pair<iceflow::JsonData, cv::Mat> result;
           auto end = std::chrono::system_clock::now();
           std::chrono::duration<double> elapsedTime = (end - start);
           NDN_LOG_INFO("Face Detection Compute Time: " << elapsedTime.count());
@@ -173,8 +170,13 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
               const std::string &userPrefixDataManifest,
               const std::string &userPrefixAck, int nDataStreams,
               int publishInterval, int publishIntervalNew, int namesInManifest,
+<<<<<<< HEAD
               int outputThreshold, int mapThreshold, const std::string ml_proto,
               const std::string ml_model) {
+=======
+              int outputThreshold, int mapThreshold,
+              const std::string &ml_proto, const std::string &ml_model) {
+>>>>>>> 3341744db7299b6138740deb3435b902af42b54c
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   // Data

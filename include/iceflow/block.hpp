@@ -32,12 +32,11 @@ namespace iceflow {
 class Block {
 public:
   Block() {}
-  Block(ndn::Block block) { m_data = block; }
+  explicit Block(ndn::Block block) : m_data(block) {}
 
-  Block(ndn::Block block, uint32_t type) {
-    m_data = ndn::encoding::makeBinaryBlock(type, block.value_begin(),
-                                            block.value_end());
-  }
+  Block(ndn::Block block, uint32_t type)
+      : m_data(ndn::encoding::makeBinaryBlock(type, block.value_begin(),
+                                              block.value_end())) {}
 
   void pushJson(JsonData inputJson) {
     std::string jsonString = inputJson.getJson().dump();

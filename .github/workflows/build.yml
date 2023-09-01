@@ -22,6 +22,9 @@ jobs:
       - name: Verify Formatting
         run: make check-format
 
+      - name: Lint Codebase
+        run: make lint
+
       - name: Build IceFlow Example Applications and Tests
         run: make
 
@@ -48,7 +51,7 @@ jobs:
       - uses: actions/checkout@v3
 
       - name: Install Dependencies
-        run: brew install boost openssl pkg-config opencv nlohmann-json yaml-cpp clang-format
+        run: brew install boost openssl pkg-config opencv nlohmann-json yaml-cpp clang-format cppcheck
 
       - name: Install ndn-cxx
         run: |
@@ -73,6 +76,9 @@ jobs:
 
       - name: Verify Formatting
         run: make check-format
+
+      - name: Lint Codebase
+        run: make lint
 
       - name: Build IceFlow Example Applications and Tests
         run: make

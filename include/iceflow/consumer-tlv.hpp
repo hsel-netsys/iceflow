@@ -40,7 +40,7 @@ public:
    * from
    */
   ConsumerTlv(const ndn::Name &syncPrefix, std::string &subPrefix,
-              std::string &subPrefixAck, std::vector<int> nSub,
+              const std::string &subPrefixAck, const std::vector<int> &nSub,
               int inputThreshold)
       : m_subscriptionList(nSub), m_scheduler(m_face.getIoService()),
         m_ack(subPrefixAck), m_Sub(subPrefix),
@@ -188,6 +188,7 @@ private:
         const auto &content = data.getContent();
         content.parse();
         std::vector<ndn::Name> manifestNames;
+        // TODO: Refactor with function like std::copy_if
         for (const auto &del : content.elements()) {
           if (del.type() == ndn::tlv::Name) {
             manifestNames.emplace_back(del);
@@ -269,9 +270,9 @@ private:
                     contentType) == m_manifestDataTypes.end()) {
         m_manifestDataTypes.push_back(contentType);
       }
-      std::vector<std::vector<ndn::Block>> splitManifestBlocks;
       if (m_presentData[frame] ==
           m_names[frame].size()) { // if we get all data belonging to one frame
+        std::vector<std::vector<ndn::Block>> splitManifestBlocks;
 
         // grouping manifest data according to type
         for (int i = 0; i < m_manifestDataTypes.size(); i++) {
@@ -427,7 +428,7 @@ private:
             if (m_inputQueueThreshold >= m_inputBlockQueue.size()) {
               m_theoreticalWindowSize =
                   m_inputQueueThreshold - m_inputBlockQueue.size();
-            } else if (m_inputQueueThreshold < m_inputBlockQueue.size()) {
+            } else {
               m_theoreticalWindowSize = 0;
             }
             m_flagNew = false;
@@ -438,12 +439,11 @@ private:
         // if shifting (or increase) and IQ starts to increase, need to decrease
         // ws to stay under threshold
         else {
+          m_step = 0;
           if (m_inputQueueThreshold >= m_inputBlockQueue.size()) {
-            m_step = 0;
             m_theoreticalWindowSize =
                 m_inputQueueThreshold - m_inputBlockQueue.size();
-          } else if (m_inputQueueThreshold < m_inputBlockQueue.size()) {
-            m_step = 0;
+          } else {
             m_theoreticalWindowSize = 0;
           }
           m_flagNew = false;
