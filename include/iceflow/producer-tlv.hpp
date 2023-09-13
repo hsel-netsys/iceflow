@@ -399,13 +399,6 @@ private:
           // manifest data to be emptied
           if (m_dataMainStorage[frameName].type() ==
               ContentTypeValue::MainData) {
-            // get the list of names, delete from manifest storage, add to
-            // manifest storage backup
-            //							NDN_LOG_INFO("List of
-            //names in a manifest:
-            //"
-            //									             <<
-            // m_frameNames[frameName].size());
             for (int j = 0; j < m_frameNames[frameName].size(); j++) {
               auto var = m_dataManifestStorage.find(
                   m_frameNames[frameName][j].toUri());
