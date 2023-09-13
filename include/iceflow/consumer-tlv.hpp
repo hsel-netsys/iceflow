@@ -274,7 +274,7 @@ private:
         // grouping manifest data according to type
         for (int m_manifestDataType : m_manifestDataTypes) {
           std::vector<ndn::Block> tmp;
-          for (auto & j : m_manifestBlocks[frame]) {
+          for (auto &j : m_manifestBlocks[frame]) {
             if (j.type() == m_manifestDataType) {
               tmp.push_back(j);
             }
@@ -282,7 +282,7 @@ private:
           splitManifestBlocks.push_back(tmp);
         }
         Block iceflowBlock;
-        for (auto & splitManifestBlock : splitManifestBlocks) {
+        for (auto &splitManifestBlock : splitManifestBlocks) {
           if (splitManifestBlock.size() > 1) { // for frames
             // here we have to aggregate
             std::vector<uint8_t> aggregatedData =
@@ -396,7 +396,7 @@ private:
     NDN_LOG_DEBUG("Received Nack with reason " << nack.getReason());
     m_scheduler.schedule(ndn::time::milliseconds(200),
                          [this] { sendInterestNew(1); });
-    NDN_LOG_DEBUG("Retransmission: "<< interest.getName());
+    NDN_LOG_DEBUG("Retransmission: " << interest.getName());
   }
 
   void onTimeout(const ndn::Interest &interest) {

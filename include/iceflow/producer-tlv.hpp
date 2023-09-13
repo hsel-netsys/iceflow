@@ -401,8 +401,8 @@ private:
               ContentTypeValue::MainData) {
             // get the list of names, delete from manifest storage, add to
             // manifest storage backup
-            //							NDN_LOG_INFO("List of names
-            //in a manifest:
+            //							NDN_LOG_INFO("List of
+            //names in a manifest:
             //"
             //									             <<
             // m_frameNames[frameName].size());
