@@ -79,7 +79,7 @@ public:
     interest.setMustBeFresh(true);
     interest.setInterestLifetime(
         ndn::time::milliseconds(1)); // The default is 4 seconds
-    NDN_LOG_INFO(">> Sending Interest ACK " << interest.getName().toUri());
+    NDN_LOG_DEBUG(">> Sending Interest ACK " << interest.getName().toUri());
     m_face.expressInterest(interest,
                            std::bind(&ConsumerTlv::onData, this, _1, _2),
                            std::bind(&ConsumerTlv::onNack, this, _1, _2),
@@ -92,21 +92,20 @@ private:
   void afterReceiveHelloData(const std::map<ndn::Name, uint64_t> &availSubs) {
     std::vector<ndn::Name> userStream;
     userStream.reserve(availSubs.size());
-    NDN_LOG_INFO("Number of Topics: " << availSubs.size());
+    //    NDN_LOG_INFO("Number of Topics: " << availSubs.size());
     for (const auto &it : availSubs) {
 
       userStream.insert(userStream.end(), it.first);
-      NDN_LOG_INFO("Topic names: " << it.first);
+      //      NDN_LOG_INFO("Topic names: " << it.first);
     }
-    for (int i = 0; i < m_subscriptionList.size(); ++i) {
-      ndn::Name prefix = m_Sub + "/" + std::to_string(m_subscriptionList[i]);
-      NDN_LOG_INFO("Subscribed: " << prefix);
+    for (int i : m_subscriptionList) {
+      ndn::Name prefix = m_Sub + "/" + std::to_string(i);
       auto it = availSubs.find(prefix);
       if (it != availSubs.end()) {
         NDN_LOG_INFO("Subscribing to: " << prefix);
         m_consumer.addSubscription(prefix, it->second);
       } else {
-        NDN_LOG_INFO("Topic not found");
+        NDN_LOG_DEBUG("Topic not found");
       }
       // After setting the subscription list, send the sync interest
       // The sync interest contains the subscription list
@@ -123,16 +122,14 @@ private:
       auto diff = update.highSeq - update.lowSeq;
 
       AckCount test;
-      NDN_LOG_INFO("Diff: " << update.prefix << "= " << diff);
-
       for (uint64_t i = 0; i <= diff; i++) {
         // Data can now be fetched using the prefix and sequence
         m_interestDeque.push(update.prefix.toUri() + "/" +
                              std::to_string(update.lowSeq + i));
-        NDN_LOG_INFO("Update: " << update.prefix << "/"
-                                << (std::to_string(update.lowSeq + i)));
+        //        NDN_LOG_INFO("Update: " << update.prefix << "/"
+        //                                << (std::to_string(update.lowSeq +
+        //                                i)));
         test.difference++;
-        NDN_LOG_INFO("interest dequeue size: " << m_interestDeque.size());
       }
       test.dataCount = 0;
 
@@ -141,9 +138,9 @@ private:
 
       std::pair<int, int> key = std::make_pair(update.lowSeq, stream);
       m_updatesAck[key] = test;
-      NDN_LOG_INFO("Manifest ID on update: "
-                   << update.lowSeq << " Stream: " << stream
-                   << " Data count: " << test.difference);
+      //      NDN_LOG_INFO("Manifest ID on update: "
+      //                   << update.lowSeq << " Stream: " << stream
+      //                   << " Data count: " << test.difference);
 
       // send anchor interest
       if (flag == 0) {
@@ -184,14 +181,15 @@ private:
       switch (contentType) {
 
       case MainData: {
-        NDN_LOG_INFO("got Manifest");
+        //        NDN_LOG_INFO("got Manifest");
         auto manifestNames = extractNamesFromData(data);
 
-        NDN_LOG_INFO(
-            "Number of manifest names received: " << manifestNames.size());
+        //        NDN_LOG_INFO(
+        //            "Number of manifest names received: " <<
+        //            manifestNames.size());
 
         for (const auto &manifestName : manifestNames) {
-          NDN_LOG_INFO("Processing manifest name " << manifestName);
+          //          NDN_LOG_INFO("Processing manifest name " << manifestName);
           std::string interestUri = interest.getName().toUri();
 
           m_interestDeque.push(manifestName); // Add name to cc updates
@@ -220,9 +218,12 @@ private:
           auto sequenceNumbers = seqNum.first;
           auto firstSequenceNumber = sequenceNumbers.first;
           auto secondSequenceNumber = sequenceNumbers.second;
-          NDN_LOG_INFO("First sequence number: " << firstSequenceNumber
-                                                 << ", second sequence number: "
-                                                 << secondSequenceNumber);
+          //          NDN_LOG_INFO("First sequence number: " <<
+          //          firstSequenceNumber
+          //                                                 << ", second
+          //                                                 sequence number: "
+          //                                                 <<
+          //                                                 secondSequenceNumber);
           // check the manifest and the stream
           if (firstSequenceNumber <= dataCount &&
               secondSequenceNumber == manifestStreamCount) {
@@ -234,7 +235,7 @@ private:
         m_updatesAck[std::pair(key, manifestStreamCount)].dataCount++;
         if (m_updatesAck[std::pair(key, manifestStreamCount)].dataCount ==
             m_updatesAck[std::pair(key, manifestStreamCount)].difference) {
-          NDN_LOG_INFO(
+          NDN_LOG_DEBUG(
               "All data in the manifest received: "
               << key << "Data in manifest: "
               << m_updatesAck[std::pair(key, manifestStreamCount)].difference
@@ -258,7 +259,7 @@ private:
       ndn::Name frame =
           m_segmentToFrame[interest.getName().toUri()]; // get manifest name of
                                                         // this data
-      NDN_LOG_INFO("Frame name: " << frame);
+      //      NDN_LOG_INFO("Frame name: " << frame);
       m_presentData[frame]++;
       m_manifestBlocks[frame].push_back(cont); // store Block of the manifest
       // check the number of data types per manifest
@@ -271,27 +272,27 @@ private:
         std::vector<std::vector<ndn::Block>> splitManifestBlocks;
 
         // grouping manifest data according to type
-        for (int i = 0; i < m_manifestDataTypes.size(); i++) {
+        for (int m_manifestDataType : m_manifestDataTypes) {
           std::vector<ndn::Block> tmp;
-          for (int j = 0; j < m_manifestBlocks[frame].size(); j++) {
-            if (m_manifestBlocks[frame][j].type() == m_manifestDataTypes[i]) {
-              tmp.push_back(m_manifestBlocks[frame][j]);
+          for (auto & j : m_manifestBlocks[frame]) {
+            if (j.type() == m_manifestDataType) {
+              tmp.push_back(j);
             }
           }
           splitManifestBlocks.push_back(tmp);
         }
         Block iceflowBlock;
-        for (int i = 0; i < splitManifestBlocks.size(); i++) {
-          if (splitManifestBlocks[i].size() > 1) { // for frames
+        for (auto & splitManifestBlock : splitManifestBlocks) {
+          if (splitManifestBlock.size() > 1) { // for frames
             // here we have to aggregate
             std::vector<uint8_t> aggregatedData =
-                aggregateSegments(splitManifestBlocks[i]);
+                aggregateSegments(splitManifestBlock);
             ndn::Block binaryBlock = ndn::encoding::makeBinaryBlock(
-                splitManifestBlocks[i][0].type(), aggregatedData);
+                splitManifestBlock[0].type(), aggregatedData);
             iceflowBlock.pushBlock(binaryBlock);
           } else {
             // push the block to Iceblock // for json
-            iceflowBlock.pushBlock(splitManifestBlocks[i][0]);
+            iceflowBlock.pushBlock(splitManifestBlock[0]);
           }
         }
         addBlockToInputQueue(iceflowBlock); // push data to input queue
@@ -299,7 +300,7 @@ private:
         std::string frameSeq = frame.toUri();
 
         // find the manifest that frame seq belongs to.
-        NDN_LOG_INFO("Frame sequence: " << frameSeq);
+        //        NDN_LOG_INFO("Frame sequence: " << frameSeq);
         std::vector<std::string> strs;
         boost::split(strs, frameSeq, boost::is_any_of("/"));
 
@@ -322,11 +323,12 @@ private:
         m_updatesAck[std::pair(key, manifestStreamCount)].dataCount++;
         if (m_updatesAck[std::pair(key, manifestStreamCount)].dataCount ==
             m_updatesAck[std::pair(key, manifestStreamCount)].difference) {
-          NDN_LOG_INFO(
-              "All data in the manifest received: "
-              << key << "Data in manifest: "
-              << m_updatesAck[std::pair(key, manifestStreamCount)].difference
-              << "Stream: " << manifestStreamCount);
+          //          NDN_LOG_INFO(
+          //              "All data in the manifest received: "
+          //              << key << "Data in manifest: "
+          //              << m_updatesAck[std::pair(key,
+          //              manifestStreamCount)].difference
+          //              << "Stream: " << manifestStreamCount);
           sendAckManifest(key, manifestStreamCount);
         }
       }
@@ -338,7 +340,7 @@ private:
 
     if (m_flagData == 0) {
       if (!m_interestDeque.empty()) {
-        NDN_LOG_INFO("Sending data interest");
+        //        NDN_LOG_INFO("Sending data interest");
         if (m_theoreticalWindowSize == 0) {
           m_theoreticalWindowSize++;
           m_step = 0;
@@ -371,13 +373,13 @@ private:
   void sendAckManifest(int seq, int stream) {
     ndn::Name ackNameInterest =
         m_ack + +"/" + std::to_string(stream) + "/" + std::to_string(seq);
-    NDN_LOG_INFO("ACK Name interest: " << ackNameInterest);
+    NDN_LOG_DEBUG("ACK Name interest: " << ackNameInterest);
     sendInterestAck(ackNameInterest);
   }
 
   static std::vector<uint8_t> aggregateSegments(std::vector<ndn::Block> data) {
     std::vector<uint8_t> aggregatedData;
-    NDN_LOG_INFO("aggregate data size: " << data.size());
+    //    NDN_LOG_INFO("aggregate data size: " << data.size());
     for (int i = 0; i < data.size(); i++) {
       aggregatedData.insert(aggregatedData.end(),
                             std::make_move_iterator(data[i].value_begin()),
@@ -390,15 +392,15 @@ private:
     m_inputBlockQueue.push(dataBlock);
   }
 
-  void onNack(const ndn::Interest &, const ndn::lp::Nack &nack) {
-    NDN_LOG_INFO("Received Nack with reason " << nack.getReason());
+  void onNack(const ndn::Interest &interest, const ndn::lp::Nack &nack) {
+    NDN_LOG_DEBUG("Received Nack with reason " << nack.getReason());
     m_scheduler.schedule(ndn::time::milliseconds(200),
                          [this] { sendInterestNew(1); });
-    NDN_LOG_INFO("Sent Again - -  ");
+    NDN_LOG_DEBUG("Retransmission: "<< interest.getName());
   }
 
   void onTimeout(const ndn::Interest &interest) {
-    NDN_LOG_INFO("Timeout " << interest.getName());
+    NDN_LOG_DEBUG("Timeout " << interest.getName());
     m_window.remove(interest.getName());
     addTimeOut(interest.getName());
     m_theoreticalWindowSize = m_theoreticalWindowSize / 2;
@@ -406,7 +408,7 @@ private:
     updateWindow(1);
   }
   void onTimeoutAck(const ndn::Interest &interest) {
-    NDN_LOG_INFO("Timeout Ack" << interest.getName());
+    NDN_LOG_DEBUG("Timeout Ack" << interest.getName());
   }
 
   void addTimeOut(ndn::Name name) {
@@ -420,7 +422,7 @@ private:
     }
   }
   void updateWindow(int i) {
-    NDN_LOG_INFO("update window");
+    //    NDN_LOG_INFO("update window");
     if (m_window.size() > m_theoreticalWindowSize) {
       // wait for ws to decrease
       m_step = 0;
@@ -479,8 +481,8 @@ private:
                 .size()); // send 1 interest if shifting, more if ws increased
       }
     }
-    NDN_LOG_INFO("Input threshold: " << m_inputBlockQueue.size() +
-                                            m_theoreticalWindowSize);
+    //    NDN_LOG_INFO("Input threshold: " << m_inputBlockQueue.size() +
+    //                                            m_theoreticalWindowSize);
   }
 
   void sendInterestNew(int n) {
@@ -488,7 +490,6 @@ private:
     for (int(i) = 0; (i) < n; ++(i)) {
       // retransmissions first
       if (!m_timedoutInterests.empty()) {
-        NDN_LOG_INFO("retransmission");
         itr->second++;
         m_window.push_back(itr->first);
         sendInterest(itr->first);
@@ -503,7 +504,6 @@ private:
 
       } else {
         if (!m_interestDeque.empty()) {
-          NDN_LOG_INFO("transmission");
           m_tmp = m_interestDeque.waitAndPopValue();
           m_window.push_back(m_tmp);
           sendInterest(m_tmp);

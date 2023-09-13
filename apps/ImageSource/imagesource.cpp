@@ -46,16 +46,15 @@ public:
     int computeCounter = 0;
 
     cap.open(videoFilename);
-    NDN_LOG_INFO("Video Frame Rate: " << cap.get(cv::CAP_PROP_FPS));
-    NDN_LOG_INFO("Number of Frames of the input video: "
-                 << cap.get(cv::CAP_PROP_FRAME_COUNT));
+    //    NDN_LOG_INFO("Number of Frames of the input video: "
+    //                 << cap.get(cv::CAP_PROP_FRAME_COUNT));
     NDN_LOG_INFO("Frame Processing Rate : " << frameRate);
     while (cv::waitKey(1) < 0) {
       auto start = std::chrono::system_clock::now();
       msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
-      cap.set(cv::CAP_PROP_POS_FRAMES, frameCounter);
+      //      cap.set(cv::CAP_PROP_POS_FRAMES, frameCounter);
       cap.read(frame);
-      frameCounter += frameRate;
+      //      frameCounter += frameRate;
       if (frame.empty()) {
         cv::waitKey();
         break;
@@ -76,39 +75,39 @@ public:
       msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
       // pass the frame and metaInfo to the producer Queue
 
-      NDN_LOG_INFO(std::to_string(imageJson["frameID"].get<int>()));
+      NDN_LOG_DEBUG(std::to_string(imageJson["frameID"].get<int>()));
 
       auto end = std::chrono::system_clock::now();
       std::chrono::duration<double> elapsedTime = (end - start);
       NDN_LOG_INFO("Image Source Compute Time: " << elapsedTime.count());
 
       cv::waitKey(1000 / frameRate);
-      auto blockingTimeStart = std::chrono::system_clock::now();
+      auto blockingTimeStart =
+          std::chrono::system_clock::now().time_since_epoch();
+      NDN_LOG_INFO("Push Data time: " << blockingTimeStart.count());
       outputQueue->pushData(resultBlock, outputThreshold);
-      NDN_LOG_INFO("Output Queue Size: " << outputQueue->size());
-      auto blockingTimeEnd = std::chrono::system_clock::now();
+      NDN_LOG_DEBUG("Output Queue Size: " << outputQueue->size());
+      auto blockingTimeEnd =
+          std::chrono::system_clock::now().time_since_epoch();
 
       std::chrono::duration<double> elapsedBlockingTime =
           (blockingTimeEnd - blockingTimeStart);
 
-      NDN_LOG_INFO("Blocking Time: " << elapsedBlockingTime.count());
-      NDN_LOG_INFO("Absolute Compute time for Frame "
-                   << imageJson["frameID"] << ":"
-                   << (elapsedTime - elapsedBlockingTime).count());
+      //      NDN_LOG_INFO("Blocking Time: " << elapsedBlockingTime.count());
 
       // ##### MEASUREMENT #####
       msCmp->setField(std::to_string(imageJson["frameID"].get<int>()), "IS->FD",
                       0);
       msCmp->setField(std::to_string(imageJson["frameID"].get<int>()), "IS->PC",
                       0);
-      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
-                      "IS->PC2", 0);
-      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
-                      "IS->PC3", 0);
-      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
-                      "IS->PC4", 0);
-      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
-                      "IS->AGG", 0);
+      //      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
+      //                      "IS->PC2", 0);
+      //      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
+      //                      "IS->PC3", 0);
+      //      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
+      //                      "IS->PC4", 0);
+      //      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
+      //                      "IS->AGG", 0);
 
       computeCounter++;
     }

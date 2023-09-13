@@ -56,8 +56,8 @@ public:
 
     int computeCounter = 0;
     while (true) {
-      NDN_LOG_INFO("Output size" << output->size());
-      NDN_LOG_INFO("Input size" << input->size());
+      NDN_LOG_DEBUG("Output size" << output->size());
+      NDN_LOG_DEBUG("Input size" << input->size());
       auto start = std::chrono::system_clock::now();
 
       auto inputData = input->waitAndPopValue();
@@ -80,12 +80,12 @@ public:
         int maxIndiceAge = std::distance(
             agePreds.begin(), max_element(agePreds.begin(), agePreds.end()));
         std::string age = ageList[maxIndiceAge];
-        NDN_LOG_INFO("Age: " << age);
+        //        NDN_LOG_INFO("Age: " << age);
 
-        jsonInput["Age"] = std::stoi(age);
+        jsonInput["Age"] = age;
 
         m_jsonOutput.setJson(jsonInput);
-        NDN_LOG_INFO("Renewed JSON: " << m_jsonOutput.getJson());
+        NDN_LOG_DEBUG("Renewed JSON: " << m_jsonOutput.getJson());
         iceflow::Block resultBlock;
         resultBlock.pushJson(m_jsonOutput);
 
@@ -97,12 +97,13 @@ public:
 
         auto blockingTimeStart = std::chrono::system_clock::now();
         output->pushData(resultBlock, outputThreshold);
-        NDN_LOG_INFO("Output Queue Size: " << output->size());
+        NDN_LOG_DEBUG("Output Queue Size: " << output->size());
         auto blockingTimeEnd = std::chrono::system_clock::now();
 
         std::chrono::duration<double> elapsedBlockingTime =
             (blockingTimeEnd - blockingTimeStart);
-        NDN_LOG_INFO("Blocking Time: " << elapsedBlockingTime.count());
+        //        NDN_LOG_INFO("Blocking Time: " <<
+        //        elapsedBlockingTime.count());
         NDN_LOG_INFO("Absolute Compute time: "
                      << (elapsedTime - elapsedBlockingTime).count());
 

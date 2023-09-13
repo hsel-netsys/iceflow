@@ -72,7 +72,7 @@ public:
   explicit Data(const ndn::Name &name, ndn::Block dataContent, uint32_t type)
       : ndn::Data(name) {
     setContentType(type);
-    NDN_LOG_INFO("Data-------: " << dataContent.type());
+    NDN_LOG_DEBUG("Data-------: " << dataContent.type());
     ndn::Block binaryBlock = ndn::encoding::makeBinaryBlock(
         ndn::tlv::Content, dataContent.value_begin(), dataContent.value_end());
     setContent(binaryBlock);
