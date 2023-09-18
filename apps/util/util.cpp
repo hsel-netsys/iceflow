@@ -42,18 +42,18 @@ cv::Mat pullFrame(iceflow::Block block) {
   // test type here instead of the first element
   if (resultSubElements.size() > 0) {
     NDN_LOG_INFO("pullFrame Manifest data");
-    for (int i = 0; i < resultSubElements.size(); i++) {
-      if (resultSubElements[i].type() ==
+    for (auto resultSubElement : resultSubElements) {
+      if (resultSubElement.type() ==
           iceflow::ContentTypeValue::SegmentManifest) {
-        std::vector<uint8_t> frameBuffer(resultSubElements[i].value_begin(),
-                                         resultSubElements[i].value_end());
+        std::vector<uint8_t> frameBuffer(resultSubElement.value_begin(),
+                                         resultSubElement.value_end());
         return imdecode(cv::Mat(frameBuffer), 1);
       }
     }
-  } else {
-    NDN_LOG_INFO("pullFrame Main data");
-    auto data = block.getData();
-    std::vector<uint8_t> frameBuffer(data.value_begin(), data.value_end());
-    return imdecode(cv::Mat(frameBuffer), 1);
   }
+
+  NDN_LOG_INFO("pullFrame Main data");
+  auto data = block.getData();
+  std::vector<uint8_t> frameBuffer(data.value_begin(), data.value_end());
+  return imdecode(cv::Mat(frameBuffer), 1);
 }
