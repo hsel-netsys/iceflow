@@ -21,7 +21,7 @@
 # format`. To only check whether the codebase is properly formatted, run `make
 # check-format` instead.
 
-set(FORMATTING_SOURCES apps/**/*.cpp tests/*.cpp include/**/*.hpp)
+set(FORMATTING_SOURCES apps/**/*.cpp  apps/**/*.hpp tests/*.cpp include/**/*.hpp)
 
 add_custom_target(format)
 add_custom_command(
