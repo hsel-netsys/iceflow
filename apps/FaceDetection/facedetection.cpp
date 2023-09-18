@@ -25,6 +25,8 @@
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer-tlv.hpp"
 
+#include "util.hpp"
+
 // ###### MEASUREMENT ######
 iceflow::Measurement *msCmp;
 
@@ -60,7 +62,7 @@ public:
       std::chrono::duration<double> popping_time =
           (std::chrono::system_clock::now().time_since_epoch());
 
-      auto frameData = inputData.pullFrame();
+      auto frameData = pullFrame(inputData);
       auto jsonData = inputData.pullJson();
       nlohmann::json inputJson = jsonData.getJson();
       NDN_LOG_INFO("Frame ID: " << inputJson["frameID"].get<int>());
@@ -81,7 +83,7 @@ public:
           NDN_LOG_DEBUG("Output Queue Size: " << output->size());
           iceflow::Block resultBlock;
           resultBlock.pushJson(jsonData);
-          resultBlock.pushFrame(face);
+          pushFrame(resultBlock, face);
           auto end = std::chrono::system_clock::now();
           std::chrono::duration<double> elapsedTime = (end - start);
           NDN_LOG_INFO("Face Detection Compute Time: " << elapsedTime.count());

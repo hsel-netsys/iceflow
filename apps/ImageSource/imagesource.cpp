@@ -25,6 +25,8 @@
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer-tlv.hpp"
 
+#include "util.hpp"
+
 iceflow::Measurement *msCmp;
 
 void signalCallbackHandler(int signum) {
@@ -69,7 +71,7 @@ public:
       result.second = grayFrame;
 
       resultBlock.pushJson(m_jsonOutput);
-      resultBlock.pushFrameCompress(grayFrame);
+      pushFrameCompress(resultBlock, grayFrame);
       msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
       // pass the frame and metaInfo to the producer Queue
 

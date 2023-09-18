@@ -21,7 +21,6 @@
 
 #include "ndn-cxx/data.hpp"
 #include "nlohmann/json.hpp"
-#include "opencv2/opencv.hpp" // TODO: Remove this dependency
 
 #include "content-type-value.hpp"
 #include "logger.hpp"
@@ -62,43 +61,7 @@ public:
     return outputJson;
   }
 
-  void pushFrame(cv::Mat frame) {
-    std::vector<uchar> buffer;
-    cv::imencode(".jpeg", frame, buffer);
-    pushSegmentManifestBlock(buffer);
-  }
-
-  void pushFrameCompress(cv::Mat frame) {
-    std::vector<uchar> buffer;
-    std::vector<int> param(2);
-    param[0] = cv::IMWRITE_JPEG_QUALITY;
-    param[1] = 10; // default(95) 0-100
-    cv::imencode(".jpeg", frame, buffer, param);
-    pushSegmentManifestBlock(buffer);
-  }
-
-  cv::Mat pullFrame() {
-    std::vector<ndn::Block> resultSubElements = m_data.elements();
-
-    // test type here instead of the first element
-    if (resultSubElements.size() > 0) {
-      for (int i = 0; i < resultSubElements.size(); i++) {
-        if (resultSubElements[i].type() == ContentTypeValue::SegmentManifest) {
-          std::vector<uint8_t> frameBuffer(resultSubElements[i].value_begin(),
-                                           resultSubElements[i].value_end());
-          return imdecode(cv::Mat(frameBuffer), 1);
-        }
-      }
-    } else {
-      std::vector<uint8_t> frameBuffer(m_data.value_begin(),
-                                       m_data.value_end());
-      return imdecode(cv::Mat(frameBuffer), 1);
-    }
-  }
-
-  void pushSegmentManifestBlock(std::vector<uchar> &buffer) {
-    std::vector<uint8_t> &frameBuffer =
-        reinterpret_cast<std::vector<uint8_t> &>(buffer);
+  void pushSegmentManifestBlock(std::vector<uint8_t> &buffer) {
     ndn::Block frameContent = ndn::encoding::makeBinaryBlock(
         ContentTypeValue::SegmentManifest, buffer);
     pushBlock(frameContent);
