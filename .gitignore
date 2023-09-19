@@ -96,6 +96,9 @@ install_manifest.txt
 #.cmake files
 .cmake
 
+#.cbp files
+*.cbp
+
 # Documentation folder
 docs/
 
