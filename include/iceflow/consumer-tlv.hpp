@@ -185,26 +185,22 @@ private:
 
       case MainData: {
         NDN_LOG_INFO("got Manifest");
-        const auto &content = data.getContent();
-        content.parse();
-        std::vector<ndn::Name> manifestNames;
-        // TODO: Refactor with function like std::copy_if
-        for (const auto &del : content.elements()) {
-          if (del.type() == ndn::tlv::Name) {
-            manifestNames.emplace_back(del);
-          }
-        }
+        auto manifestNames = extractNamesFromData(data);
 
-        NDN_LOG_INFO("Manifest size: " << manifestNames.size());
-        for (int i = 0; i < manifestNames.size(); ++i) {
-          NDN_LOG_INFO("Manifest names: " << manifestNames[i]);
-          m_interestDeque.push(manifestNames[i]); // Add name to cc updates
-          m_segmentToFrame[manifestNames[i]] =
-              interest.getName().toUri(); // save manifest name per segment --
-                                          // change name later
-          m_names[interest.getName().toUri()].push_back(
-              manifestNames[i]); // save total frame list (manifests with the
-                                 // list of names)
+        NDN_LOG_INFO(
+            "Number of manifest names received: " << manifestNames.size());
+
+        for (const auto &manifestName : manifestNames) {
+          NDN_LOG_INFO("Processing manifest name " << manifestName);
+          std::string interestUri = interest.getName().toUri();
+
+          m_interestDeque.push(manifestName); // Add name to cc updates
+
+          // save manifest name per segment -- change name later
+          m_segmentToFrame[manifestName] = interestUri;
+
+          // save total frame list (manifests with the list of names)
+          m_names[interestUri].push_back(manifestName);
         }
       } break;
       case Json: {
@@ -351,6 +347,25 @@ private:
         m_flagData++;
       }
     }
+  }
+
+  /**
+   * Filters out the blocks in an ndn::Data object that represent NDN names and
+   * returns them as a vector.
+   */
+  std::vector<ndn::Name> extractNamesFromData(const ndn::Data &data) {
+    const auto &content = data.getContent();
+    content.parse();
+
+    std::vector<ndn::Name> manifestNames;
+    // TODO: Refactor with function like std::copy_if
+    for (const auto &block : content.elements()) {
+      if (block.type() == ndn::tlv::Name) {
+        manifestNames.emplace_back(block);
+      }
+    }
+
+    return manifestNames;
   }
 
   void sendAckManifest(int seq, int stream) {

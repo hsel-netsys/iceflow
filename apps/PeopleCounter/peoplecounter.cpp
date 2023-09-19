@@ -127,14 +127,15 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
   }
 }
 
-void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
-              std::string &subPrefixDataMain, std::string &subPrefixAck,
-              int inputThreshold, std::string &pubSyncPrefix,
-              std::string &userPrefixDataMain,
-              const std::string &userPrefixDataManifest,
-              const std::string &userPrefixAck, int nDataStreams,
-              int publishInterval, int publishIntervalNew, int namesInManifest,
-              int outputThreshold, int mapThreshold, int computeThreads) {
+void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
+                     std::string &subPrefixDataMain, std::string &subPrefixAck,
+                     int inputThreshold, std::string &pubSyncPrefix,
+                     std::string &userPrefixDataMain,
+                     const std::string &userPrefixDataManifest,
+                     const std::string &userPrefixAck, int nDataStreams,
+                     int publishInterval, int publishIntervalNew,
+                     int namesInManifest, int outputThreshold, int mapThreshold,
+                     int computeThreads) {
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   auto *simpleProducer = new iceflow::ProducerTlv(
@@ -145,37 +146,28 @@ void DataFlow(std::string &subSyncPrefix, std::vector<int> sub,
       subSyncPrefix, subPrefixDataMain, subPrefixAck, sub, inputThreshold);
 
   auto *compute = new PeopleCounter();
-  std::vector<std::thread> ThreadCollector;
   inputs.push_back(simpleConsumer->getInputBlockQueue());
 
-  // Data
-  std::thread th1(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer);
+  threads.emplace_back(&fusion, &inputs, &totalInput, inputThreshold);
 
-  std::thread th2(&fusion, &inputs, &totalInput, inputThreshold);
   for (int i = 0; i < computeThreads; ++i) {
-
-    ThreadCollector.emplace_back([&]() {
+    threads.emplace_back([&]() {
       compute->compute(&totalInput, &simpleProducer->outputQueueBlock,
                        outputThreshold);
     });
   }
+  threads.emplace_back(&iceflow::ProducerTlv::runPro, simpleProducer);
 
-  // Data
-  std::thread th3(&iceflow::ProducerTlv::runPro, simpleProducer);
-
-  ThreadCollector.push_back(std::move(th1));
-  NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-  ThreadCollector.push_back(std::move(th2));
-  NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-  ThreadCollector.push_back(std::move(th3));
-  NDN_LOG_INFO("Thread " << ThreadCollector.size() << " Started");
-
-  for (auto &t : ThreadCollector) {
-    t.join();
+  int threadCounter = 0;
+  for (auto &thread : threads) {
+    thread.join();
+    NDN_LOG_INFO("Thread " << threadCounter++ << " started");
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
 
   if (argc != 3) {
     std::cout << "usage: " << argv[0] << " "
@@ -184,38 +176,41 @@ int main(int argc, char *argv[]) {
   }
 
   YAML::Node config = YAML::LoadFile(argv[1]);
+  auto consumerConfig = config["Consumer"];
+  auto producerConfig = config["Producer"];
+  auto measurementConfig = config["Measurement"];
 
   // ----------------------- Consumer------------------------------------------
-  auto subSyncPrefix = config["Consumer"]["subSyncPrefix"].as<std::string>();
+  auto subSyncPrefix = consumerConfig["subSyncPrefix"].as<std::string>();
   auto subPrefixDataMain =
-      config["Consumer"]["subPrefixDataMain"].as<std::string>();
+      consumerConfig["subPrefixDataMain"].as<std::string>();
   auto subPrefixDataManifest =
-      config["Consumer"]["subPrefixDataManifest"].as<std::string>();
-  auto subPrefixAck = config["Consumer"]["subPrefixAck"].as<std::string>();
-  auto nSub = config["Consumer"]["nSub"].as<std::vector<int>>();
-  int inputThreshold = config["Consumer"]["inputThreshold"].as<int>();
+      consumerConfig["subPrefixDataManifest"].as<std::string>();
+  auto subPrefixAck = consumerConfig["subPrefixAck"].as<std::string>();
+  auto nSub = consumerConfig["nSub"].as<std::vector<int>>();
+  int inputThreshold = consumerConfig["inputThreshold"].as<int>();
 
   // ----------------------- Producer -----------------------------------------
 
-  auto pubSyncPrefix = config["Producer"]["pubSyncPrefix"].as<std::string>();
+  auto pubSyncPrefix = producerConfig["pubSyncPrefix"].as<std::string>();
   auto userPrefixDataMain =
-      config["Producer"]["userPrefixDataMain"].as<std::string>();
+      producerConfig["userPrefixDataMain"].as<std::string>();
   auto userPrefixDataManifest =
-      config["Producer"]["userPrefixDataManifest"].as<std::string>();
-  auto userPrefixAck = config["Producer"]["userPrefixAck"].as<std::string>();
-  int nDataStreams = config["Producer"]["nDataStreams"].as<int>();
-  int publishInterval = config["Producer"]["publishInterval"].as<int>();
-  int publishIntervalNew = config["Producer"]["publishIntervalNew"].as<int>();
-  int outputThreshold = config["Producer"]["outputThreshold"].as<int>();
-  int namesInManifest = config["Producer"]["namesInManifest"].as<int>();
-  int mapThreshold = config["Producer"]["mapThreshold"].as<int>();
-  int computeThreads = config["Producer"]["computeThreads"].as<int>();
+      producerConfig["userPrefixDataManifest"].as<std::string>();
+  auto userPrefixAck = producerConfig["userPrefixAck"].as<std::string>();
+  int nDataStreams = producerConfig["nDataStreams"].as<int>();
+  int publishInterval = producerConfig["publishInterval"].as<int>();
+  int publishIntervalNew = producerConfig["publishIntervalNew"].as<int>();
+  int outputThreshold = producerConfig["outputThreshold"].as<int>();
+  int namesInManifest = producerConfig["namesInManifest"].as<int>();
+  int mapThreshold = producerConfig["mapThreshold"].as<int>();
+  int computeThreads = producerConfig["computeThreads"].as<int>();
 
   // --------------------------------------------------------------------------
   // ##### MEASUREMENT #####
 
-  std::string nodeName = config["Measurement"]["nodeName"].as<std::string>();
-  int saveInterval = config["Measurement"]["saveInterval"].as<int>();
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
   std::string measurementName = argv[2];
 
   ::signal(SIGINT, signalCallbackHandler);
@@ -223,11 +218,11 @@ int main(int argc, char *argv[]) {
       new iceflow::Measurement(measurementName, nodeName, saveInterval, "A");
 
   try {
-    DataFlow(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
-             inputThreshold, pubSyncPrefix, userPrefixDataMain,
-             userPrefixDataManifest, userPrefixAck, nDataStreams,
-             publishInterval, publishIntervalNew, namesInManifest,
-             outputThreshold, mapThreshold, computeThreads);
+    startProcessing(subSyncPrefix, nSub, subPrefixDataMain, subPrefixAck,
+                    inputThreshold, pubSyncPrefix, userPrefixDataMain,
+                    userPrefixDataManifest, userPrefixAck, nDataStreams,
+                    publishInterval, publishIntervalNew, namesInManifest,
+                    outputThreshold, mapThreshold, computeThreads);
   }
 
   catch (const std::exception &e) {

@@ -14,13 +14,14 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-cmake_minimum_required(VERSION 3.21)
+cmake_minimum_required(VERSION 3.18)
 project(
   IceFlow
   VERSION 0.1.0
   DESCRIPTION "NDN-based stream processing library written in C++.")
 set(CMAKE_CXX_STANDARD 20)
 
+include(cmake/docs.cmake)
 include(cmake/format.cmake)
 include(cmake/lint.cmake)
 
