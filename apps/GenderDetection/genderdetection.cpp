@@ -109,7 +109,6 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
   }
 }
 
-
 void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
                      std::string &subPrefixDataMain, std::string &subPrefixAck,
                      int inputThreshold, std::string &pubSyncPrefix,
