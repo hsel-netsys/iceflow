@@ -274,8 +274,8 @@ private:
         // grouping manifest data according to type
         for (int m_manifestDataType : m_manifestDataTypes) {
           std::vector<ndn::Block> tmp;
-          for (auto &j : m_manifestBlocks[frame]) {
-            if (j.type() == m_manifestDataType) {
+          for (auto &manifestBlock : m_manifestBlocks[frame]) {
+            if (manifestBlock.type() == m_manifestDataType) {
               tmp.push_back(j);
             }
           }
