@@ -117,12 +117,13 @@ public:
         std::vector<ndn::Name> resultNameList;
         std::string interestNameDataMain;
 
-        // extract the sub-blocks
-        // test block types and values
-        // if value>ndn packet size split and create manifest and add names
-        // producer should not know the data type
-        // add block type to the data packet (onInterest) ??
-        // two prefixes - one for main data and manifest data
+        /* extract the sub-blocks
+         * test block types and values
+         * if value>ndn packet size split and create manifest and add names
+         * producer should not know the data type
+         * add block type to the data packet (onInterest) ??
+         * two prefixes - one for main data and manifest data
+         */
 
         std::vector<ndn::Block> resultSubElements =
             m_resultBlock.getSubElements();
@@ -171,7 +172,7 @@ public:
            * create block from the manifest and store it
            */
 
-		  // TO-DO - Simplify the implementation.
+          // TO-DO - Simplify the implementation.
           interestNameDataMain =
               m_userPrefixDataMain + "/" + std::to_string(m_stream) + "/" +
               std::to_string(m_dataMainCountStream[m_stream]);
