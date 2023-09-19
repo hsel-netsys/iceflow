@@ -164,12 +164,12 @@ public:
               m_dataManifestCountStream[m_stream]++;
             }
           }
-		  /**
-		  * add the manifest to manifest storage
-          * store the manifest holding names of one result manifest prefix
-          * serialize the manifest and place it in the update storage
-          * create block from the manifest and store it
-          */
+          /**
+           * add the manifest to manifest storage
+           * store the manifest holding names of one result manifest prefix
+           * serialize the manifest and place it in the update storage
+           * create block from the manifest and store it
+           */
           interestNameDataMain =
               m_userPrefixDataMain + "/" + std::to_string(m_stream) + "/" +
               std::to_string(m_dataMainCountStream[m_stream]);
