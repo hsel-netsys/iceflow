@@ -164,7 +164,7 @@ public:
               m_dataManifestCountStream[m_stream]++;
             }
           }
-          /**
+          /*
            * add the manifest to manifest storage
            * store the manifest holding names of one result manifest prefix
            * serialize the manifest and place it in the update storage
