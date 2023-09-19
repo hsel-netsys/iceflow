@@ -106,8 +106,8 @@ public:
       //                      "IS->PC3", 0);
       //      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
       //                      "IS->PC4", 0);
-      //      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
-      //                      "IS->AGG", 0);
+      msCmp->setField(std::to_string(imageJson["frameID"].get<int>()),
+                      "IS->AGG", 0);
 
       computeCounter++;
     }

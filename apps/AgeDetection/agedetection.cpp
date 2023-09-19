@@ -80,7 +80,7 @@ public:
         int maxIndiceAge = std::distance(
             agePreds.begin(), max_element(agePreds.begin(), agePreds.end()));
         std::string age = ageList[maxIndiceAge];
-        //        NDN_LOG_INFO("Age: " << age);
+        NDN_LOG_INFO("Age: " << age);
 
         jsonInput["Age"] = age;
 
