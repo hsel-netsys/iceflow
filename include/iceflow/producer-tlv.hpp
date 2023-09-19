@@ -170,6 +170,8 @@ public:
            * serialize the manifest and place it in the update storage
            * create block from the manifest and store it
            */
+
+		  // TO-DO - Simplify the implementation.
           interestNameDataMain =
               m_userPrefixDataMain + "/" + std::to_string(m_stream) + "/" +
               std::to_string(m_dataMainCountStream[m_stream]);
