@@ -74,11 +74,11 @@ public:
       int maxIndiceGender = std::distance(
           gendPreds.begin(), max_element(gendPreds.begin(), gendPreds.end()));
       std::string gender = genderList[maxIndiceGender];
-      NDN_LOG_INFO("gender: " << gender);
+      //      NDN_LOG_INFO("gender: " << gender);
 
       jsonInput["Gender"] = gender;
       m_jsonOutput.setJson(jsonInput);
-      NDN_LOG_INFO("Renewed JSON: " << m_jsonOutput.getJson());
+      NDN_LOG_DEBUG("Renewed JSON: " << m_jsonOutput.getJson());
 
       iceflow::Block resultBlock;
       resultBlock.pushJson(m_jsonOutput);
@@ -102,7 +102,7 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
     if (!inputs->empty() && totalInput->size() < inputThreshold) {
       for (auto &input : *inputs) {
         auto frameFg = input->waitAndPopValue();
-        frameFg.printInfo();
+
         totalInput->push(frameFg);
       }
     }

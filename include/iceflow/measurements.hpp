@@ -49,8 +49,8 @@ public:
   ~Measurement() {}
   void setField(const std::string &interestName, const std::string &entryName,
                 int dataSize) {
-    NDN_LOG_INFO("################# SETTING FIELD "
-                 << interestName << " - " << entryName << "#################");
+    NDN_LOG_DEBUG("################# SETTING FIELD "
+                  << interestName << " - " << entryName << "#################");
     Entry entry;
     entry.interest = interestName;
     entry.entryname = entryName;
@@ -67,7 +67,7 @@ public:
   }
 
   void recordToFile() {
-    NDN_LOG_INFO("################# RECORDING TO FILE #################");
+    NDN_LOG_DEBUG("################# RECORDING TO FILE #################");
     m_fileName = "measurements/" + m_measurementId + "_" + m_nodeName + "_" +
                  m_observedObject + "_part_" + std::to_string(++m_fileCount) +
                  ".csv";
@@ -90,8 +90,8 @@ public:
     m_ofstream.close();
     m_entries.clear();
     m_entries.shrink_to_fit();
-    NDN_LOG_INFO("Saved to file and cleared the vector: " +
-                 std::to_string(m_fileCount));
+    NDN_LOG_DEBUG("Saved to file and cleared the vector: " +
+                  std::to_string(m_fileCount));
   }
 
 private:
