@@ -125,7 +125,6 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
     if (!inputs->empty() && totalInput->size() < inputThreshold) {
       for (auto &input : *inputs) {
         auto frameFg = input->waitAndPopValue();
-        frameFg.printInfo();
         totalInput->push(frameFg);
       }
     }
