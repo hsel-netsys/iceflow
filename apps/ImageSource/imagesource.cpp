@@ -46,8 +46,6 @@ public:
     int computeCounter = 0;
 
     cap.open(videoFilename);
-    //    NDN_LOG_INFO("Number of Frames of the input video: "
-    //                 << cap.get(cv::CAP_PROP_FRAME_COUNT));
     NDN_LOG_INFO("Frame Processing Rate : " << frameRate);
     while (cv::waitKey(1) < 0) {
       auto start = std::chrono::system_clock::now();

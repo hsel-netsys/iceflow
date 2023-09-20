@@ -93,10 +93,8 @@ public:
         m_updatesAckManifestNew[std::make_pair(manifestId, manifestStream)] =
             dataLength;
         m_updatesAckManifest[manifestId] = dataLength;
-        //					NDN_LOG_TRACE("manifest ID: " <<
-        // manifestId
-        //					                             <<
-        //" number of data: " << dataLength);
+        NDN_LOG_DEBUG("manifest ID: " << manifestId
+                                      << " number of data: " << dataLength);
         ndn::Name updateName = m_userPrefixDataMain + "/" + std::to_string(i);
         m_producer.publishName(updateName, m_updateSeq[i]);
         m_seqNo = m_producer.getSeqNo(updateName).value();
@@ -172,7 +170,7 @@ public:
            * create block from the manifest and store it
            */
 
-          // TO-DO - Simplify the implementation.
+          // TODO: Simplify the implementation.
           interestNameDataMain =
               m_userPrefixDataMain + "/" + std::to_string(m_stream) + "/" +
               std::to_string(m_dataMainCountStream[m_stream]);
@@ -376,22 +374,18 @@ private:
     if (varNewTest2 != m_updatesAckManifestNew.end()) {
       std::string framePrefix = m_userPrefixDataMain + "/" +
                                 std::to_string(varNewTest2->first.second) + "/";
-      NDN_LOG_INFO("Manifest id from ACK:"
-                   << varNewTest2->first.first
-                   << " Stream count: " << varNewTest2->first.second
-                   << " Data count: " << varNewTest2->second);
+      NDN_LOG_DEBUG("Manifest id from ACK:"
+                    << varNewTest2->first.first
+                    << " Stream count: " << varNewTest2->first.second
+                    << " Data count: " << varNewTest2->second);
       // delete all frames belonging to a manifest
       for (int i = 0; i < varNewTest2->second; i++) {
         std::string frameName =
             framePrefix + std::to_string(varNewTest2->first.first + i);
-        //					NDN_LOG_INFO("Frame to delete: "
-        //<< frameName);
         auto var_new = m_dataMainStorage.find(frameName);
         if (var_new != m_dataMainStorage.end()) {
           m_dataMainStorageBackup.insert(
               make_pair(frameName, m_dataMainStorage[frameName]));
-          //						NDN_LOG_INFO("Type: " <<
-          // m_dataMainStorage[frameName].type());
 
           // manifest data to be emptied
           if (m_dataMainStorage[frameName].type() ==

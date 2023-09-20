@@ -55,7 +55,6 @@ public:
       convertedJson = nlohmann::json::parse(resultSubElements[0].value_begin(),
                                             resultSubElements[0].value_end());
     } else {
-      //      NDN_LOG_INFO("pullJson Main data");
       convertedJson =
           nlohmann::json::parse(m_data.value_begin(), m_data.value_end());
     }
@@ -83,7 +82,6 @@ public:
 
     // test type here instead of the first element
     if (resultSubElements.size() > 0) {
-      //      NDN_LOG_INFO("pullFrame Manifest data");
       for (int i = 0; i < resultSubElements.size(); i++) {
         if (resultSubElements[i].type() == ContentTypeValue::SegmentManifest) {
           std::vector<uint8_t> frameBuffer(resultSubElements[i].value_begin(),
@@ -92,7 +90,6 @@ public:
         }
       }
     } else {
-      //      NDN_LOG_INFO("pullFrame Main data");
       std::vector<uint8_t> frameBuffer(m_data.value_begin(),
                                        m_data.value_end());
       return imdecode(cv::Mat(frameBuffer), 1);
@@ -113,18 +110,6 @@ public:
   void iceFlowBlockParse() { m_data.parse(); }
 
   std::vector<ndn::Block> getSubElements() { return m_data.elements(); }
-
-  void printInfo() {
-    //    NDN_LOG_INFO("data type: " << m_data.type());
-    auto test = getSubElements();
-    if (test.size() > 0) {
-      //      NDN_LOG_INFO("pullFrame Main data");
-      //      NDN_LOG_INFO("test size: " << test.size());
-      //      for (int i = 0; i < test.size(); i++) {
-      //        NDN_LOG_INFO("Block type: " << test[i].type());
-      //      }
-    }
-  }
 
 private:
   ndn::Block m_data;

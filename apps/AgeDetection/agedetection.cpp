@@ -102,8 +102,7 @@ public:
 
         std::chrono::duration<double> elapsedBlockingTime =
             (blockingTimeEnd - blockingTimeStart);
-        //        NDN_LOG_INFO("Blocking Time: " <<
-        //        elapsedBlockingTime.count());
+        NDN_LOG_INFO("Blocking Time: " << elapsedBlockingTime.count());
         NDN_LOG_INFO("Absolute Compute time: "
                      << (elapsedTime - elapsedBlockingTime).count());
 
