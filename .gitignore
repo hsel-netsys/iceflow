@@ -93,6 +93,9 @@ install_manifest.txt
 #idea files
 .idea
 
+#.cmake files
+.cmake
+
 # Documentation folder
 docs/
 

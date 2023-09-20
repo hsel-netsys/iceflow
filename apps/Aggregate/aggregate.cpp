@@ -64,7 +64,7 @@ public:
                         "AD->AGG", 0);
         m_analysisStore.insert(
             std::make_pair(std::to_string(jsonInput["frameID"].get<int>()),
-                           std::to_string(jsonInput.at("Age").get<int>())));
+                           jsonInput.at("Age")));
       } else if (jsonInput.contains("Gender")) {
         msCmp->setField(std::to_string(jsonInput["frameID"].get<int>()),
                         "GD->AGG", 0);

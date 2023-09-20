@@ -49,12 +49,12 @@ public:
       if (input->size() > 0) {
 
         // To DO - Only Mat needed - provide grey_cam_image
-        NDN_LOG_INFO("Compute Input Queue Size: " << input->size());
+        NDN_LOG_DEBUG("Compute Input Queue Size: " << input->size());
         auto inputData = input->waitAndPopValue();
         auto start = std::chrono::system_clock::now();
         auto frameData = inputData.pullFrame();
         auto jsonData = inputData.pullJson();
-        NDN_LOG_INFO("Input Json: " << jsonData.getJson());
+        NDN_LOG_DEBUG("Input Json: " << jsonData.getJson());
 
         nlohmann::json jsonInput = jsonData.getJson();
         // ##### MEASUREMENT #####
@@ -68,7 +68,7 @@ public:
 
         jsonInput["People"] = std::to_string(numPeople);
         m_jsonOutput.setJson(jsonInput);
-        NDN_LOG_INFO("Renewed JSON: " << m_jsonOutput.getJson());
+        NDN_LOG_DEBUG("Renewed JSON: " << m_jsonOutput.getJson());
         msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
         iceflow::Block resultBlock;
         resultBlock.pushJson(m_jsonOutput);
@@ -79,7 +79,7 @@ public:
         NDN_LOG_INFO("Compute time: " << elapsedTime.count());
         output->pushData(resultBlock, outputThreshold);
 
-        NDN_LOG_INFO("Output Queue Size: " << output->size());
+        NDN_LOG_DEBUG("Output Queue Size: " << output->size());
 
         // ##### MEASUREMENT #####
         msCmp->setField(std::to_string(jsonInput["frameID"].get<int>()),
@@ -119,7 +119,6 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
       for (int i = 0; i < inputs->size(); i++) {
         if (inputs->at(i)->size() > 0) {
           auto frameFg = inputs->at(i)->waitAndPopValue();
-          NDN_LOG_INFO("FUSION:  ");
           totalInput->push(frameFg);
         }
       }

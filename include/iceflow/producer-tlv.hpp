@@ -93,8 +93,8 @@ public:
         m_updatesAckManifestNew[std::make_pair(manifestId, manifestStream)] =
             dataLength;
         m_updatesAckManifest[manifestId] = dataLength;
-        NDN_LOG_INFO("manifest ID: " << manifestId
-                                     << " number of data: " << dataLength);
+        NDN_LOG_DEBUG("manifest ID: " << manifestId
+                                      << " number of data: " << dataLength);
         ndn::Name updateName = m_userPrefixDataMain + "/" + std::to_string(i);
         m_producer.publishName(updateName, m_updateSeq[i]);
         m_seqNo = m_producer.getSeqNo(updateName).value();
@@ -115,12 +115,13 @@ public:
         std::vector<ndn::Name> resultNameList;
         std::string interestNameDataMain;
 
-        // extract the sub-blocks
-        // test block types and values
-        // if value>ndn packet size split and create manifest and add names
-        // producer should not know the data type
-        // add block type to the data packet (onInterest) ??
-        // two prefixes - one for main data and manifest data
+        /* extract the sub-blocks
+         * test block types and values
+         * if value>ndn packet size split and create manifest and add names
+         * producer should not know the data type
+         * add block type to the data packet (onInterest) ??
+         * two prefixes - one for main data and manifest data
+         */
 
         std::vector<ndn::Block> resultSubElements =
             m_resultBlock.getSubElements();
@@ -162,15 +163,18 @@ public:
               m_dataManifestCountStream[m_stream]++;
             }
           }
-          // add the manifest to manifest storage
-          // store the manifest holding names of one result
-          // manifest prefix
-          // serialize the manifest and place it in the update storage
-          // create block from the manifest and store it
+          /*
+           * add the manifest to manifest storage
+           * store the manifest holding names of one result manifest prefix
+           * serialize the manifest and place it in the update storage
+           * create block from the manifest and store it
+           */
+
+          // TODO: Simplify the implementation.
           interestNameDataMain =
               m_userPrefixDataMain + "/" + std::to_string(m_stream) + "/" +
               std::to_string(m_dataMainCountStream[m_stream]);
-          NDN_LOG_INFO("Interest main: " << interestNameDataMain);
+          NDN_LOG_DEBUG("Interest main: " << interestNameDataMain);
           m_frameNames.emplace(std::pair(interestNameDataMain, resultNameList));
           ndn::Block manifestBlock =
               makeNestedBlock(ContentTypeValue::MainData,
@@ -184,7 +188,6 @@ public:
         else {
           if (resultSubElements[0].value_size() >
               ndn::MAX_NDN_PACKET_SIZE * 0.7) {
-            NDN_LOG_INFO("need to split");
             std::vector<uint8_t> blockValue(resultSubElements[0].value_begin(),
                                             resultSubElements[0].value_end());
             // split buffer
@@ -265,10 +268,9 @@ public:
 private:
   void onInterestMainData(const ndn::InterestFilter &,
                           const ndn::Interest &interest) {
-    NDN_LOG_INFO(">> Got  InterestMainData: " << interest.getName());
+    NDN_LOG_DEBUG(">> Got  InterestMainData: " << interest.getName());
     auto var = m_dataMainStorage.find(interest.getName().toUri());
     if (var != m_dataMainStorage.end()) {
-      NDN_LOG_INFO("Sending from origin");
       ndn::Block mainDataBlock = m_dataMainStorage[interest.getName().toUri()];
       auto mainDataPacket =
           Data(interest.getName(), mainDataBlock, mainDataBlock.type());
@@ -284,7 +286,6 @@ private:
     else {
       auto varBackup = m_dataMainStorageBackup.find(interest.getName().toUri());
       if (varBackup != m_dataMainStorageBackup.end()) {
-        NDN_LOG_INFO("Sending from backup");
         ndn::Block mainDataBlockBackup =
             m_dataMainStorageBackup[interest.getName().toUri()];
         auto mainDataPacketBackup =
@@ -302,10 +303,9 @@ private:
   }
   void onInterestManifestData(const ndn::InterestFilter &,
                               const ndn::Interest &interest) {
-    NDN_LOG_INFO(">> Got  InterestManifestData: " << interest.getName());
+    NDN_LOG_DEBUG(">> Got  InterestManifestData: " << interest.getName());
     auto var = m_dataManifestStorage.find(interest.getName().toUri());
     if (var != m_dataManifestStorage.end()) {
-      NDN_LOG_INFO("Sending from origin");
 
       ndn::Block manifestDataBlock =
           m_dataManifestStorage[interest.getName().toUri()];
@@ -357,7 +357,7 @@ private:
 
   void onInterestAck(const ndn::InterestFilter &,
                      const ndn::Interest &interest) {
-    NDN_LOG_INFO(">> Got  ACK onInterest: " << interest.getName());
+    NDN_LOG_DEBUG(">> Got ACK : " << interest.getName());
 
     // get manifest id and stream number
     std::string s = interest.getName().toUri();
@@ -374,28 +374,22 @@ private:
     if (varNewTest2 != m_updatesAckManifestNew.end()) {
       std::string framePrefix = m_userPrefixDataMain + "/" +
                                 std::to_string(varNewTest2->first.second) + "/";
-      NDN_LOG_INFO("Manifest id from ACK:"
-                   << varNewTest2->first.first
-                   << " Stream count: " << varNewTest2->first.second
-                   << " Data count: " << varNewTest2->second);
+      NDN_LOG_DEBUG("Manifest id from ACK:"
+                    << varNewTest2->first.first
+                    << " Stream count: " << varNewTest2->first.second
+                    << " Data count: " << varNewTest2->second);
       // delete all frames belonging to a manifest
       for (int i = 0; i < varNewTest2->second; i++) {
         std::string frameName =
             framePrefix + std::to_string(varNewTest2->first.first + i);
-        NDN_LOG_INFO("Frame to delete: " << frameName);
         auto var_new = m_dataMainStorage.find(frameName);
         if (var_new != m_dataMainStorage.end()) {
           m_dataMainStorageBackup.insert(
               make_pair(frameName, m_dataMainStorage[frameName]));
-          NDN_LOG_INFO("Type: " << m_dataMainStorage[frameName].type());
 
           // manifest data to be emptied
           if (m_dataMainStorage[frameName].type() ==
               ContentTypeValue::MainData) {
-            // get the list of names, delete from manifest storage, add to
-            // manifest storage backup
-            NDN_LOG_INFO("List of names in a manifest: "
-                         << m_frameNames[frameName].size());
             for (int j = 0; j < m_frameNames[frameName].size(); j++) {
               auto var = m_dataManifestStorage.find(
                   m_frameNames[frameName][j].toUri());
@@ -436,10 +430,11 @@ private:
   int m_mapThreshold;
 
   Block m_resultBlock;
-  std::map<std::string, std::vector<ndn::Name>>
-      m_frameNames; // for the manifest (or frame) -- here we store the
-                    // manifests that contain the names of seg & mI
-
+  /**
+   *  for the manifest (or frame) -- here we store the
+   *  manifests that contain the names of segments & meta info
+   */
+  std::map<std::string, std::vector<ndn::Name>> m_frameNames;
   std::map<std::string, ndn::Block> m_dataMainStorageBackup;
   std::map<std::string, ndn::Block> m_dataMainStorage;
   std::map<std::string, ndn::Block> m_dataManifestStorage;

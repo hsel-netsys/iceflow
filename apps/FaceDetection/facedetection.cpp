@@ -55,13 +55,16 @@ public:
 
       auto start = std::chrono::system_clock::now();
 
-      NDN_LOG_INFO("Input Queue Size: " << input->size());
+      NDN_LOG_DEBUG("Input Queue Size: " << input->size());
       auto inputData = input->waitAndPopValue();
+      std::chrono::duration<double> popping_time =
+          (std::chrono::system_clock::now().time_since_epoch());
+
       auto frameData = inputData.pullFrame();
       auto jsonData = inputData.pullJson();
-      NDN_LOG_INFO("Compute json: " << jsonData.getJson());
       nlohmann::json inputJson = jsonData.getJson();
-
+      NDN_LOG_INFO("Frame ID: " << inputJson["frameID"].get<int>());
+      NDN_LOG_INFO("popping time: " << popping_time.count());
       msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
       if (!frameData.empty()) {
         // ##### MEASUREMENT #####
@@ -75,7 +78,7 @@ public:
                        it->at(3) - it->at(1) + 2 * padding);
           cv::Mat face = frameData(rec); // take the ROI of box on the frame
           msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
-          NDN_LOG_INFO("Output Queue Size: " << output->size());
+          NDN_LOG_DEBUG("Output Queue Size: " << output->size());
           iceflow::Block resultBlock;
           resultBlock.pushJson(jsonData);
           resultBlock.pushFrame(face);
@@ -85,7 +88,6 @@ public:
 
           auto blockingTimeStart = std::chrono::system_clock::now();
           output->pushData(resultBlock, outputThreshold);
-          NDN_LOG_INFO("Output Queue Size: " << output->size());
           auto blockingTimeEnd = std::chrono::system_clock::now();
 
           std::chrono::duration<double> elapsedBlockingTime =
@@ -158,7 +160,6 @@ fusion(std::vector<iceflow::RingBuffer<iceflow::Block> *> *inputs,
     if (!inputs->empty() && totalInput->size() < 5) {
       for (auto &input : *inputs) {
         auto frameFg = input->waitAndPopValue();
-        frameFg.printInfo();
         totalInput->push(frameFg);
       }
     }
