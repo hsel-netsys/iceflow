@@ -119,6 +119,7 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
                      int namesInManifest, int outputThreshold, int mapThreshold,
                      const std::string &protobufBinaryFileName,
                      const std::string &mlModelFileName) {
+
   std::vector<iceflow::RingBuffer<iceflow::Block> *> inputs;
   iceflow::RingBuffer<iceflow::Block> totalInput;
   // Data
