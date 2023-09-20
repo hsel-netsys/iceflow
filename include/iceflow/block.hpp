@@ -74,6 +74,8 @@ public:
 
   std::vector<ndn::Block> getSubElements() { return m_data.elements(); }
 
+  ndn::Block getData() { return m_data; }
+
 private:
   ndn::Block m_data;
 };
