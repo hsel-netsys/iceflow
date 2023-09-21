@@ -15,11 +15,11 @@ set(SOURCES
 foreach(SOURCE_FILE ${SOURCES})
   get_filename_component(EXECUTABLE_NAME ${SOURCE_FILE} NAME_WE)
   get_filename_component(EXECUTABLE_PATH ${SOURCE_FILE} DIRECTORY)
-  add_executable(${EXECUTABLE_NAME} ${SOURCE_FILE})
+  add_executable(${EXECUTABLE_NAME} ${SOURCE_FILE} util/util.cpp)
   set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                       ../build)
   target_include_directories(
-    ${EXECUTABLE_NAME} PRIVATE ../include ${NDN_CXX_INCLUDE_DIRS}
+    ${EXECUTABLE_NAME} PRIVATE ../include include ${NDN_CXX_INCLUDE_DIRS}
                                ${PSYNC_INCLUDE_DIRS} ${YAML_INCLUDE_DIRS})
   target_compile_options(${EXECUTABLE_NAME} PRIVATE -D_GNU_SOURCE
                                                     -DBOOST_LOG_DYN_LINK)

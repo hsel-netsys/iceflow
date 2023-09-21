@@ -26,6 +26,8 @@
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer-tlv.hpp"
 
+#include "util.hpp"
+
 // ###### MEASUREMENT ######
 
 iceflow::Measurement *msCmp;
@@ -52,7 +54,7 @@ public:
         NDN_LOG_DEBUG("Compute Input Queue Size: " << input->size());
         auto inputData = input->waitAndPopValue();
         auto start = std::chrono::system_clock::now();
-        auto frameData = inputData.pullFrame();
+        auto frameData = pullFrame(inputData);
         auto jsonData = inputData.pullJson();
         NDN_LOG_DEBUG("Input Json: " << jsonData.getJson());
 

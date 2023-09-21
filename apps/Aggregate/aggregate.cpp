@@ -24,6 +24,8 @@
 #include "iceflow/consumer-tlv.hpp"
 #include "iceflow/measurements.hpp"
 
+#include "util.hpp"
+
 // ###### MEASUREMENT ######
 
 iceflow::Measurement *msCmp;

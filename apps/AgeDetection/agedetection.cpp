@@ -26,6 +26,8 @@
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer-tlv.hpp"
 
+#include "util.hpp"
+
 // ###### MEASUREMENT ######
 
 iceflow::Measurement *msCmp;
@@ -61,7 +63,7 @@ public:
       auto start = std::chrono::system_clock::now();
 
       auto inputData = input->waitAndPopValue();
-      auto frameData = inputData.pullFrame();
+      auto frameData = pullFrame(inputData);
       auto jsonData = inputData.pullJson();
       nlohmann::json jsonInput = jsonData.getJson();
 

@@ -25,6 +25,8 @@
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer-tlv.hpp"
 
+#include "util.hpp"
+
 // ###### MEASUREMENT ######
 iceflow::Measurement *msCmp;
 
@@ -55,7 +57,7 @@ public:
     while (true) {
 
       auto inputData = input->waitAndPopValue();
-      auto frameData = inputData.pullFrame();
+      auto frameData = pullFrame(inputData);
       auto jsonData = inputData.pullJson();
 
       nlohmann::json jsonInput = jsonData.getJson();
