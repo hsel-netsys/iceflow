@@ -35,8 +35,9 @@ void pushFrameCompress(iceflow::Block block, cv::Mat frame) {
   cv::imencode(".jpeg", frame, buffer, param);
   block.pushSegmentManifestBlock(buffer);
 }
-
-cv::Mat pullFrame(iceflow::Block block) {
+template <typename T>
+//T pullFrame(iceflow::Block block, T fn(std::vector<uint8_t) decode) {
+cv::Mat pullFrame(iceflow::Block block){
   std::vector<ndn::Block> resultSubElements = block.getSubElements();
 
   // test type here instead of the first element
@@ -47,6 +48,7 @@ cv::Mat pullFrame(iceflow::Block block) {
           iceflow::ContentTypeValue::SegmentManifest) {
         std::vector<uint8_t> frameBuffer(resultSubElement.value_begin(),
                                          resultSubElement.value_end());
+//		return decode(frameBuffer);
         return imdecode(cv::Mat(frameBuffer), 1);
       }
     }
