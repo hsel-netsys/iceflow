@@ -89,23 +89,24 @@ public:
   RingBuffer<Block> *getInputBlockQueue() { return &m_inputBlockQueue; }
 
 private:
-	/**
-	 * Hello Sync Interest reply carries available stream names
-	 * Finds out the desired stream name and subscribe to the stream
-	 * sends Sync Interest to that individual stream
-	 * @param streamNames contains the streams available in a sync group
-	 */
-	// After setting the subscription list, send the sync interest
-	// The sync interest contains the subscription list
-	// When new data is received for any subscribed prefix, processSyncUpdate
-	// is called
+  /**
+   * Hello Sync Interest reply carries available stream names
+   * Finds out the desired stream name and subscribe to the stream
+   * sends Sync Interest to that individual stream
+   * @param streamNames contains the streams available in a sync group
+   */
+  // After setting the subscription list, send the sync interest
+  // The sync interest contains the subscription list
+  // When new data is received for any subscribed prefix, processSyncUpdate
+  // is called
   void afterReceiveHelloData(const std::map<ndn::Name, uint64_t> &streamNames) {
     std::vector<ndn::Name> streamCollector;
-		streamCollector.reserve(streamNames.size());
-    NDN_LOG_DEBUG("Number of Streams: " << streamNames.size()); // Need to discuss
+    streamCollector.reserve(streamNames.size());
+    NDN_LOG_DEBUG(
+        "Number of Streams: " << streamNames.size()); // Need to discuss
 
     for (const auto &it : streamNames) {
-	    streamCollector.insert(streamCollector.end(), it.first);
+      streamCollector.insert(streamCollector.end(), it.first);
       NDN_LOG_DEBUG("Available Streams: " << it.first);
     }
 
@@ -123,16 +124,17 @@ private:
   }
 
   /**
-   * Sync Interest reply carries the newly produced sequence number of the data objects of the stream
-   * Push the interest names to m_interestQueue -> Interest Storage
-   * Start the interest sending -> Anchor Interest
-   * @param updates sequence number of the data objects of the stream(prefix, high seq, low seq, incoming face)
+   * Sync Interest reply carries the newly produced sequence number of the data
+   * objects of the stream Push the interest names to m_interestQueue ->
+   * Interest Storage Start the interest sending -> Anchor Interest
+   * @param updates sequence number of the data objects of the stream(prefix,
+   * high seq, low seq, incoming face)
    */
   void processSyncUpdate(const std::vector<psync::MissingDataInfo> &updates) {
 
     for (const auto &update : updates) {
 
-      auto  availableNewData = update.highSeq - update.lowSeq;
+      auto availableNewData = update.highSeq - update.lowSeq;
 
       AckCount ack;
       for (uint64_t i = 0; i <= availableNewData; i++) {
@@ -141,7 +143,7 @@ private:
                              std::to_string(update.lowSeq + i));
         NDN_LOG_DEBUG("Update: " << update.prefix << "/"
                                  << (std::to_string(update.lowSeq + i)));
-	      ack.difference++;
+        ack.difference++;
       }
 
       std::size_t stream_number = update.prefix.toUri().find_last_of("/\\");
@@ -164,10 +166,11 @@ private:
     }
   }
 
-/**
- * Sends the 1st interest - Anchor
- * Anchor Interest - Either 1st Interest or restarting the pipelines after a pause of a DataFlow.
- */
+  /**
+   * Sends the 1st interest - Anchor
+   * Anchor Interest - Either 1st Interest or restarting the pipelines after a
+   * pause of a DataFlow.
+   */
 
   void sendAnchor() {
     if ((m_inputBlockQueue.size() < m_inputQueueThreshold) && !m_flagNew &&
@@ -194,13 +197,14 @@ private:
    * @param data actual data objects
    */
   void onData(const ndn::Interest &interest, const ndn::Data &data) {
-//    ndn::Block cont;
-	ndn::Block cont;
+    //    ndn::Block cont;
+    ndn::Block cont;
     uint32_t contentType = data.getContentType();
     if (data.hasContent()) {
 
       switch (contentType) {
-	  // Main Data here was the Manifest. Manifest is the collection of names of the data objects
+        // Main Data here was the Manifest. Manifest is the collection of names
+        // of the data objects
       case Manifest: {
 
         auto manifestNames = extractNamesFromData(data);
@@ -208,7 +212,7 @@ private:
         for (const auto &manifestName : manifestNames) {
           NDN_LOG_DEBUG("Processing manifest name " << manifestName);
           std::string interestUri = interest.getName().toUri();
-		  m_interestQueue.push(manifestName); // Add name to cc updates
+          m_interestQueue.push(manifestName); // Add name to cc updates
 
           // save manifest name per segment -- change name later
           m_segmentToFrame[manifestName] = interestUri;
@@ -217,12 +221,13 @@ private:
           m_names[interestUri].push_back(manifestName);
         }
       } break;
-	  // JSON carries the analyzed results of the compute function of the upstreams.
+        // JSON carries the analyzed results of the compute function of the
+        // upstreams.
       case Json: {
         std::vector<std::string> strs;
         boost::split(strs, interest.getName().toUri(), boost::is_any_of("/"));
 
-		//Pushing the Json Data to the input queue of the consumer
+        // Pushing the Json Data to the input queue of the consumer
         addBlockToInputQueue(Block(data.getContent(), data.getContentType()));
         // need to update a manifest of json names and not only one data item
         /////////////////////////////////////////////////
@@ -231,12 +236,14 @@ private:
         // data sequence
         int dataCount = stoi(strs[strs.size() - 1]);
         // key is the manifest id a data object belongs to
-		// whenever this case has been triggered then the keyy value is getting 0. Not getting why wit is here
+        // whenever this case has been triggered then the keyy value is getting
+        // 0. Not getting why wit is here
         int key = 0;
 
         for (const auto &seqNum : m_updatesAck) {
-          auto sequenceNumbers = seqNum.first; // pair(lower seq Num, Stream Number)
-          auto firstSequenceNumber = sequenceNumbers.first; // lower seq Num
+          auto sequenceNumbers =
+              seqNum.first; // pair(lower seq Num, Stream Number)
+          auto firstSequenceNumber = sequenceNumbers.first;   // lower seq Num
           auto secondSequenceNumber = sequenceNumbers.second; // Stream Number
           NDN_LOG_DEBUG("First sequence number: "
                         << firstSequenceNumber << ", second sequence number: "
@@ -261,7 +268,7 @@ private:
         }
         ////////////////////////////////////////////////
       } break;
-	  
+
       case ManifestData:
       case SegmentManifest: {
         cont = ndn::encoding::makeBinaryBlock(contentType,
@@ -280,8 +287,9 @@ private:
       m_presentData[frame]++;
       m_manifestBlocks[frame].push_back(cont); // store Block of the manifest
       // check the number of data types per manifest
-	  //Discuss - m_manifestDataTypes -> this is an empty vector IMO. This is being used here for the first time and
-	  // find operation has been called. I am :O
+      // Discuss - m_manifestDataTypes -> this is an empty vector IMO. This is
+      // being used here for the first time and
+      // find operation has been called. I am :O
       if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
                     contentType) == m_manifestDataTypes.end()) {
         m_manifestDataTypes.push_back(contentType);
@@ -495,16 +503,16 @@ private:
     for (int i = 0; i < n; ++i) {
       // retransmissions first
       if (!m_timedoutInterests.empty()) {
-	      timeout->second++;
+        timeout->second++;
         m_window.push_back(timeout->first);
         sendInterest(timeout->first);
         if (timeout->second >= m_maxRetransmission) {
           m_timedoutInterests.erase(timeout++);
         } else {
-	        timeout++;
+          timeout++;
         }
         if (timeout == m_timedoutInterests.end()) {
-	        timeout = m_timedoutInterests.begin();
+          timeout = m_timedoutInterests.begin();
         }
 
       } else {
