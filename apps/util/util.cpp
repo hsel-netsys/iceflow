@@ -19,21 +19,21 @@
 #include "util.hpp"
 #include "iceflow/content-type-value.hpp"
 
-void pushFrame(iceflow::Block block, cv::Mat frame) {
+void pushFrame(iceflow::Block *block, cv::Mat frame) {
   std::vector<uchar> buffer;
   cv::imencode(".jpeg", frame, buffer);
   std::vector<uint8_t> &frameBuffer =
       reinterpret_cast<std::vector<uint8_t> &>(buffer);
-  block.pushSegmentManifestBlock(frameBuffer);
+  block->pushSegmentManifestBlock(frameBuffer);
 }
 
-void pushFrameCompress(iceflow::Block block, cv::Mat frame) {
+void pushFrameCompress(iceflow::Block *block, cv::Mat frame) {
   std::vector<uchar> buffer;
   std::vector<int> param(2);
   param[0] = cv::IMWRITE_JPEG_QUALITY;
   param[1] = 10; // default(95) 0-100
   cv::imencode(".jpeg", frame, buffer, param);
-  block.pushSegmentManifestBlock(buffer);
+  block->pushSegmentManifestBlock(buffer);
 }
 template <typename T>
 // T pullFrame(iceflow::Block block, T fn(std::vector<uint8_t) decode) {
