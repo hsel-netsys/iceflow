@@ -22,9 +22,9 @@
 #include "iceflow/block.hpp"
 #include "opencv2/opencv.hpp"
 
-void pushFrame(iceflow::Block block, cv::Mat frame);
+void pushFrame(iceflow::Block *block, cv::Mat frame);
 
-void pushFrameCompress(iceflow::Block block, cv::Mat frame);
+void pushFrameCompress(iceflow::Block *block, cv::Mat frame);
 
 cv::Mat pullFrame(iceflow::Block block);
 

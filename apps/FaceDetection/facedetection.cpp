@@ -83,7 +83,7 @@ public:
           NDN_LOG_DEBUG("Output Queue Size: " << output->size());
           iceflow::Block resultBlock;
           resultBlock.pushJson(jsonData);
-          pushFrame(resultBlock, face);
+          pushFrame(&resultBlock, face);
           auto end = std::chrono::system_clock::now();
           std::chrono::duration<double> elapsedTime = (end - start);
           NDN_LOG_INFO("Face Detection Compute Time: " << elapsedTime.count());
