@@ -1,2 +1,4 @@
 # Ignore output binary
 imagesource
+#ignore video source file
+*.mp4
