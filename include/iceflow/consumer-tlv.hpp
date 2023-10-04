@@ -20,11 +20,13 @@
 #define ICEFLOW_CORE_CONSUMER_TLV_HPP
 
 #include "PSync/consumer.hpp"
+#include "block.hpp"
 #include "boost/algorithm/string.hpp"
 #include "ndn-cxx/face.hpp"
-
-#include "block.hpp"
 #include "ringbuffer.hpp"
+
+#include "iostream"
+#include "util.hpp"
 
 namespace iceflow {
 
@@ -145,7 +147,7 @@ private:
                                  << (std::to_string(update.lowSeq + i)));
         ack.difference++;
       }
-
+		ack.dataCount = 0;
       std::size_t stream_number = update.prefix.toUri().find_last_of("/\\");
       int stream = stoi(update.prefix.toUri().substr(stream_number + 1));
 
@@ -197,14 +199,13 @@ private:
    * @param data actual data objects
    */
   void onData(const ndn::Interest &interest, const ndn::Data &data) {
-    //    ndn::Block cont;
     ndn::Block cont;
     uint32_t contentType = data.getContentType();
+	std::cout<< "Data received: "<<contentType<<std::endl;
     if (data.hasContent()) {
 
       switch (contentType) {
-        // Main Data here was the Manifest. Manifest is the collection of names
-        // of the data objects
+
       case Manifest: {
 
         auto manifestNames = extractNamesFromData(data);
@@ -236,9 +237,8 @@ private:
         // data sequence
         int dataCount = stoi(strs[strs.size() - 1]);
         // key is the manifest id a data object belongs to
-        // whenever this case has been triggered then the keyy value is getting
-        // 0. Not getting why wit is here
-        int key = 0;
+        // TODO: Change the "key" word
+        int lowestSequenceNumber = 0;
 
         for (const auto &seqNum : m_updatesAck) {
           auto sequenceNumbers =
@@ -251,20 +251,24 @@ private:
           //           check the manifest and the stream
           if (firstSequenceNumber <= dataCount &&
               secondSequenceNumber == manifestStreamCount) {
-            if (key < firstSequenceNumber) {
-              key = firstSequenceNumber;
+            if (lowestSequenceNumber < firstSequenceNumber) {
+              lowestSequenceNumber = firstSequenceNumber;
             }
           }
         }
-        m_updatesAck[std::pair(key, manifestStreamCount)].dataCount++;
-        if (m_updatesAck[std::pair(key, manifestStreamCount)].dataCount ==
-            m_updatesAck[std::pair(key, manifestStreamCount)].difference) {
-          NDN_LOG_DEBUG(
-              "All data in the manifest received: "
-              << key << "Data in manifest: "
-              << m_updatesAck[std::pair(key, manifestStreamCount)].difference
-              << "Stream: " << manifestStreamCount);
-          sendAckManifest(key, manifestStreamCount);
+        m_updatesAck[std::pair(lowestSequenceNumber, manifestStreamCount)]
+            .dataCount++;
+        if (m_updatesAck[std::pair(lowestSequenceNumber, manifestStreamCount)]
+                .dataCount ==
+            m_updatesAck[std::pair(lowestSequenceNumber, manifestStreamCount)]
+                .difference) {
+          NDN_LOG_DEBUG("All data in the manifest received: "
+                        << lowestSequenceNumber << "Data in manifest: "
+                        << m_updatesAck[std::pair(lowestSequenceNumber,
+                                                  manifestStreamCount)]
+                               .difference
+                        << "Stream: " << manifestStreamCount);
+          sendAckManifest(lowestSequenceNumber, manifestStreamCount);
         }
         ////////////////////////////////////////////////
       } break;
@@ -290,8 +294,10 @@ private:
       // Discuss - m_manifestDataTypes -> this is an empty vector IMO. This is
       // being used here for the first time and
       // find operation has been called. I am :O
+      std::cout << "Data Type Vector Size: " << m_manifestDataTypes.size() << std::endl;
       if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
                     contentType) == m_manifestDataTypes.end()) {
+
         m_manifestDataTypes.push_back(contentType);
       }
       if (m_presentData[frame] ==
@@ -405,6 +411,8 @@ private:
   }
 
   void addBlockToInputQueue(Block dataBlock) {
+	 auto image = pullFrame(dataBlock);
+	 int count = 0;
     m_inputBlockQueue.push(dataBlock);
   }
 

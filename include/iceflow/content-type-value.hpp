@@ -32,9 +32,9 @@ namespace iceflow {
 enum ContentTypeValue : uint32_t {
   UpdateManifest = 128,
   FrameManifest = 129,
-  //  MainData = 130,        ///< Main data
-  Manifest = 130,
-  Json = 131,            ///< First layer json to be stored directly
+  Manifest = 130, ///<  Manifest is the collection of names of the data objects
+                  ///<  (previously Main Data)
+  Json = 131,     ///< First layer json to be stored directly
   ManifestData = 141,    ///< JSON Manifest
   SegmentManifest = 142, ///< Segment Manifest
 };

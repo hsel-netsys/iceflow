@@ -64,7 +64,7 @@ public:
   // Content=segment object as tlv to be nested
   explicit Data(const ndn::Name &name, std::vector<uint8_t> segmentContent)
       : ndn::Data(name) {
-    setContentType(ContentTypeValue::MainData);
+    setContentType(ContentTypeValue::Manifest);
     ndn::Block segContent =
         ndn::encoding::makeBinaryBlock(ndn::tlv::Content, segmentContent);
     setContent(segContent);
