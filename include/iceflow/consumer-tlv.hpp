@@ -554,7 +554,7 @@ private:
 
   void sendInterestNew(int n) {
     auto timeout = m_timedoutInterests.begin();
-    for (int i = 0; i < n; ++i) {
+    for (int i = 0; i < n; i++) {
       // retransmissions first
       if (!m_timedoutInterests.empty()) {
         timeout->second++;
