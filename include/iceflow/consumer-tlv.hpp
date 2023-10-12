@@ -148,8 +148,8 @@ private:
         ack.difference++;
       }
 		ack.dataCount = 0;
-      std::size_t stream_number = update.prefix.toUri().find_last_of("/\\");
-      int stream = stoi(update.prefix.toUri().substr(stream_number + 1));
+      std::size_t streamNumber = update.prefix.toUri().find_last_of("/\\");
+      int stream = stoi(update.prefix.toUri().substr(streamNumber + 1));
 
       std::pair<int, int> key = std::make_pair(update.lowSeq, stream);
       m_updatesAck[key] = ack;
@@ -173,7 +173,6 @@ private:
    * Anchor Interest - Either 1st Interest or restarting the pipelines after a
    * pause of a DataFlow.
    */
-
   void sendAnchor() {
     if ((m_inputBlockQueue.size() < m_inputQueueThreshold) && !m_flagNew &&
         m_theoreticalWindowSize == 0) {
@@ -201,7 +200,6 @@ private:
   void onData(const ndn::Interest &interest, const ndn::Data &data) {
     ndn::Block cont;
     uint32_t contentType = data.getContentType();
-	std::cout<< "Data received: "<<contentType<<std::endl;
     if (data.hasContent()) {
 
       switch (contentType) {
@@ -228,8 +226,8 @@ private:
         std::vector<std::string> strs;
         boost::split(strs, interest.getName().toUri(), boost::is_any_of("/"));
 
-        // Pushing the Json Data to the input queue of the consumer
-        addBlockToInputQueue(Block(data.getContent(), data.getContentType()));
+        auto jsonData = Block(data.getContent(), data.getContentType());
+        addBlockToInputQueue(jsonData);
         // need to update a manifest of json names and not only one data item
         /////////////////////////////////////////////////
         // stream number
@@ -242,9 +240,9 @@ private:
 
         for (const auto &seqNum : m_updatesAck) {
           auto sequenceNumbers =
-              seqNum.first; // pair(lower seq Num, Stream Number)
-          auto firstSequenceNumber = sequenceNumbers.first;   // lower seq Num
-          auto secondSequenceNumber = sequenceNumbers.second; // Stream Number
+              seqNum.first;
+          auto lowerSequenceNumber = sequenceNumbers.first;
+          auto streamNumber = sequenceNumbers.second;
           NDN_LOG_DEBUG("First sequence number: "
                         << firstSequenceNumber << ", second sequence number: "
                         << secondSequenceNumber);
