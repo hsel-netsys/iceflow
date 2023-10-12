@@ -202,7 +202,6 @@ private:
    * Handles ndn::Data from upstream producers
    *
    * Pushes the data to the Input Queue of the Consumer
-   *
    * then gradually increases the data fetching/Interest sending rate
    * using Additive Increase Multiplicative Decrease(AIMD) Congestion Control.
    *
