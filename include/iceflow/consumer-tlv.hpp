@@ -251,7 +251,6 @@ private:
         // data sequence
         int dataCount = stoi(jsonStorage[jsonStorage.size() - 1]);
 
-        //
         int manifestID = 0;
 
         for (const auto &seqNum : m_updatesAck) {
