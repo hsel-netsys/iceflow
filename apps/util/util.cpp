@@ -47,7 +47,6 @@ cv::Mat pullFrame(iceflow::Block block) {
           iceflow::ContentTypeValue::SegmentsInManifest) {
         std::vector<uint8_t> frameBuffer(resultSubElement.value_begin(),
                                          resultSubElement.value_end());
-        //		return decode(frameBuffer);
         return imdecode(cv::Mat(frameBuffer), 1);
       }
     }

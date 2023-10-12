@@ -153,6 +153,7 @@ private:
                                  << (std::to_string(update.lowSeq + i)));
         ackCount.difference++;
       }
+
       ackCount.dataCount = 0;
       std::size_t stream_number = update.prefix.toUri().find_last_of("/\\");
       int stream = stoi(update.prefix.toUri().substr(stream_number + 1));
@@ -180,7 +181,6 @@ private:
    *  An Anchor Interest is also sent when a restart of the
    *  pipelines after a pause of a DataFlow occurs.
    */
-
   void sendAnchor() {
     if ((m_inputBlockQueue.size() < m_inputQueueThreshold) && !m_flagNew &&
         m_theoreticalWindowSize == 0) {
@@ -241,8 +241,8 @@ private:
         boost::split(jsonStorage, interest.getName().toUri(),
                      boost::is_any_of("/"));
 
-        // Pushing the Json Data to the input queue of the consumer
-        addBlockToInputQueue(Block(data.getContent(), data.getContentType()));
+        auto jsonData = Block(data.getContent(), data.getContentType());
+        addBlockToInputQueue(jsonData);
 
         // need to update a manifest of json names and not only one data item
         /////////////////////////////////////////////////
@@ -256,15 +256,17 @@ private:
         int manifestID = 0;
 
         for (const auto &seqNum : m_updatesAck) {
+
           auto sequenceNumbers = seqNum.first;
-          auto lowerSequenceNumber = sequenceNumbers.first;   // lower seq Num
-          auto higherSequenceNumber = sequenceNumbers.second; // Stream Number
+          auto lowerSequenceNumber = sequenceNumbers.first;
+          auto streamNumber = sequenceNumbers.second;
+
           NDN_LOG_DEBUG("First sequence number: "
-                        << lowerSequenceNumber << ", second sequence number: "
-                        << higherSequenceNumber);
+                        << lowerSequenceNumber
+                        << ", second sequence number: " << streamNumber);
           //           check the manifest and the stream
           if (lowerSequenceNumber <= dataCount &&
-              higherSequenceNumber == manifestStreamCount) {
+              streamNumber == manifestStreamCount) {
             if (manifestID < lowerSequenceNumber) {
               manifestID = lowerSequenceNumber;
             }
