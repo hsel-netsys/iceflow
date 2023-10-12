@@ -538,7 +538,6 @@ private:
       // if shifting (or increase) and IQ starts to increase, need to decrease
       // ws to stay under threshold
       resetWindow();
-      return;
     }
     // when both windows = 0
     if (m_theoreticalWindowSize == m_window.size() &&
