@@ -245,7 +245,6 @@ private:
 
         // need to update a manifest of json names and not only one data item
         /////////////////////////////////////////////////
-        // Manifest Stream Count
         int manifestStreamCount = stoi(jsonStorage[jsonStorage.size() - 2]);
 
         // data sequence
