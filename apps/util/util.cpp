@@ -36,7 +36,6 @@ void pushFrameCompress(iceflow::Block *block, cv::Mat frame) {
   block->pushSegmentManifestBlock(buffer);
 }
 
-
 cv::Mat pullFrame(iceflow::Block block) {
   std::vector<ndn::Block> resultSubElements = block.getSubElements();
 
@@ -45,7 +44,7 @@ cv::Mat pullFrame(iceflow::Block block) {
     NDN_LOG_INFO("pullFrame Manifest data");
     for (auto resultSubElement : resultSubElements) {
       if (resultSubElement.type() ==
-          iceflow::ContentTypeValue::SegmentManifest) {
+          iceflow::ContentTypeValue::SegmentsInManifest) {
         std::vector<uint8_t> frameBuffer(resultSubElement.value_begin(),
                                          resultSubElement.value_end());
         //		return decode(frameBuffer);

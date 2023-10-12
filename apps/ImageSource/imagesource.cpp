@@ -52,7 +52,7 @@ public:
     while (cv::waitKey(1) < 0) {
       auto start = std::chrono::system_clock::now();
       msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
-		cap.read(frame);
+      cap.read(frame);
       if (frame.empty()) {
         cv::waitKey();
         break;

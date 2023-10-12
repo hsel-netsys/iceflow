@@ -63,7 +63,7 @@ public:
 
   void pushSegmentManifestBlock(std::vector<uint8_t> &buffer) {
     ndn::Block frameContent = ndn::encoding::makeBinaryBlock(
-        ContentTypeValue::SegmentManifest, buffer);
+        ContentTypeValue::SegmentsInManifest, buffer);
     pushBlock(frameContent);
   }
 

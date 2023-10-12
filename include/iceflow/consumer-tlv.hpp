@@ -25,9 +25,6 @@
 #include "ndn-cxx/face.hpp"
 #include "ringbuffer.hpp"
 
-#include "iostream"
-#include "util.hpp"
-
 namespace iceflow {
 
 class ConsumerTlv {
@@ -53,9 +50,9 @@ public:
                    m_subscriptionList.size(), 0.001, ndn::time::seconds(1),
                    ndn::time::milliseconds(1000)) {
 
-    // This starts the consumer.o side by sending a hello interest to the
-    // producer When the producer responds with hello data,
-    // afterReceiveHelloData is called
+    /**
+     * Sends Hello Interest
+     */
     m_consumer.sendHelloInterest();
   }
 
@@ -92,15 +89,16 @@ public:
 
 private:
   /**
+   * Learns available upstreams and subscribes to desired stream
+   *
    * Hello Sync Interest reply carries available stream names
+   *
    * Finds out the desired stream name and subscribe to the stream
-   * sends Sync Interest to that individual stream
+   * Sends Sync Interest to the individual stream
+   *
    * @param streamNames contains the streams available in a sync group
    */
-  // After setting the subscription list, send the sync interest
-  // The sync interest contains the subscription list
-  // When new data is received for any subscribed prefix, processSyncUpdate
-  // is called
+
   void afterReceiveHelloData(const std::map<ndn::Name, uint64_t> &streamNames) {
     std::vector<ndn::Name> streamCollector;
     streamCollector.reserve(streamNames.size());
@@ -126,9 +124,17 @@ private:
   }
 
   /**
-   * Sync Interest reply carries the newly produced sequence number of the data
-   * objects of the stream Push the interest names to m_interestQueue ->
-   * Interest Storage Start the interest sending -> Anchor Interest
+   * Handles updates of the new Data object names and initiates Interests
+   * sending
+   *
+   * Sync reply carries the newly produced sequence number of the data
+   * objects of a stream
+   *
+   * Push the interest names to m_interestQueue (Interest Queue to maintain
+   * FIFO)
+   *
+   * Starts interest sending -> 1st Interest (Anchor) / Interests
+   *
    * @param updates sequence number of the data objects of the stream(prefix,
    * high seq, low seq, incoming face)
    */
@@ -138,21 +144,21 @@ private:
 
       auto availableNewData = update.highSeq - update.lowSeq;
 
-      AckCount ack;
+      AckCount ackCount;
       for (uint64_t i = 0; i <= availableNewData; i++) {
         // Data can now be fetched using the prefix and sequence
         m_interestQueue.push(update.prefix.toUri() + "/" +
                              std::to_string(update.lowSeq + i));
         NDN_LOG_DEBUG("Update: " << update.prefix << "/"
                                  << (std::to_string(update.lowSeq + i)));
-        ack.difference++;
+        ackCount.difference++;
       }
-		ack.dataCount = 0;
+      ackCount.dataCount = 0;
       std::size_t stream_number = update.prefix.toUri().find_last_of("/\\");
       int stream = stoi(update.prefix.toUri().substr(stream_number + 1));
 
       std::pair<int, int> key = std::make_pair(update.lowSeq, stream);
-      m_updatesAck[key] = ack;
+      m_updatesAck[key] = ackCount;
 
       // send anchor interest
       if (flag == 0) {
@@ -169,9 +175,10 @@ private:
   }
 
   /**
-   * Sends the 1st interest - Anchor
-   * Anchor Interest - Either 1st Interest or restarting the pipelines after a
-   * pause of a DataFlow.
+   * Sends the 1st interest, also known as the Anchor Interest.
+   *
+   *  An Anchor Interest is also sent when a restart of the
+   *  pipelines after a pause of a DataFlow occurs.
    */
 
   void sendAnchor() {
@@ -192,16 +199,22 @@ private:
   }
 
   /**
-   * Receives the data from upstreams
+   * Handles ndn::Data from upstream producers
+   *
    * Pushes the data to the Input Queue of the Consumer
-   * Increase the data fetching/Interest sending rate - AIMD Congestion Control
+   *
+   * then gradually increases the data fetching/Interest sending rate
+   * using Additive Increase Multiplicative Decrease(AIMD) Congestion Control.
+   *
+   * Manifest: Collection of segmented data objects name
+   *     JSON: carries the analyzed results of the compute function of
+   * 			upstreams.
    * @param interest named data interest
    * @param data actual data objects
    */
   void onData(const ndn::Interest &interest, const ndn::Data &data) {
     ndn::Block cont;
     uint32_t contentType = data.getContentType();
-	std::cout<< "Data received: "<<contentType<<std::endl;
     if (data.hasContent()) {
 
       switch (contentType) {
@@ -213,7 +226,7 @@ private:
         for (const auto &manifestName : manifestNames) {
           NDN_LOG_DEBUG("Processing manifest name " << manifestName);
           std::string interestUri = interest.getName().toUri();
-          m_interestQueue.push(manifestName); // Add name to cc updates
+          m_interestQueue.push(manifestName);
 
           // save manifest name per segment -- change name later
           m_segmentToFrame[manifestName] = interestUri;
@@ -222,59 +235,59 @@ private:
           m_names[interestUri].push_back(manifestName);
         }
       } break;
-        // JSON carries the analyzed results of the compute function of the
-        // upstreams.
+
       case Json: {
-        std::vector<std::string> strs;
-        boost::split(strs, interest.getName().toUri(), boost::is_any_of("/"));
+        std::vector<std::string> jsonStorage;
+        boost::split(jsonStorage, interest.getName().toUri(),
+                     boost::is_any_of("/"));
 
         // Pushing the Json Data to the input queue of the consumer
         addBlockToInputQueue(Block(data.getContent(), data.getContentType()));
+
         // need to update a manifest of json names and not only one data item
         /////////////////////////////////////////////////
-        // stream number
-        int manifestStreamCount = stoi(strs[strs.size() - 2]);
+        // Manifest Stream Count
+        int manifestStreamCount = stoi(jsonStorage[jsonStorage.size() - 2]);
+
         // data sequence
-        int dataCount = stoi(strs[strs.size() - 1]);
-        // key is the manifest id a data object belongs to
-        // TODO: Change the "key" word
-        int lowestSequenceNumber = 0;
+        int dataCount = stoi(jsonStorage[jsonStorage.size() - 1]);
+
+        //
+        int manifestID = 0;
 
         for (const auto &seqNum : m_updatesAck) {
-          auto sequenceNumbers =
-              seqNum.first; // pair(lower seq Num, Stream Number)
-          auto firstSequenceNumber = sequenceNumbers.first;   // lower seq Num
-          auto secondSequenceNumber = sequenceNumbers.second; // Stream Number
+          auto sequenceNumbers = seqNum.first;
+          auto lowerSequenceNumber = sequenceNumbers.first;   // lower seq Num
+          auto higherSequenceNumber = sequenceNumbers.second; // Stream Number
           NDN_LOG_DEBUG("First sequence number: "
-                        << firstSequenceNumber << ", second sequence number: "
-                        << secondSequenceNumber);
+                        << lowerSequenceNumber << ", second sequence number: "
+                        << higherSequenceNumber);
           //           check the manifest and the stream
-          if (firstSequenceNumber <= dataCount &&
-              secondSequenceNumber == manifestStreamCount) {
-            if (lowestSequenceNumber < firstSequenceNumber) {
-              lowestSequenceNumber = firstSequenceNumber;
+          if (lowerSequenceNumber <= dataCount &&
+              higherSequenceNumber == manifestStreamCount) {
+            if (manifestID < lowerSequenceNumber) {
+              manifestID = lowerSequenceNumber;
             }
           }
         }
-        m_updatesAck[std::pair(lowestSequenceNumber, manifestStreamCount)]
-            .dataCount++;
-        if (m_updatesAck[std::pair(lowestSequenceNumber, manifestStreamCount)]
+        m_updatesAck[std::pair(manifestID, manifestStreamCount)].dataCount++;
+        if (m_updatesAck[std::pair(manifestID, manifestStreamCount)]
                 .dataCount ==
-            m_updatesAck[std::pair(lowestSequenceNumber, manifestStreamCount)]
+            m_updatesAck[std::pair(manifestID, manifestStreamCount)]
                 .difference) {
-          NDN_LOG_DEBUG("All data in the manifest received: "
-                        << lowestSequenceNumber << "Data in manifest: "
-                        << m_updatesAck[std::pair(lowestSequenceNumber,
-                                                  manifestStreamCount)]
-                               .difference
-                        << "Stream: " << manifestStreamCount);
-          sendAckManifest(lowestSequenceNumber, manifestStreamCount);
+          NDN_LOG_DEBUG(
+              "All data in the manifest received: "
+              << manifestID << "Data in manifest: "
+              << m_updatesAck[std::pair(manifestID, manifestStreamCount)]
+                     .difference
+              << "Stream: " << manifestStreamCount);
+          sendAckManifest(manifestID, manifestStreamCount);
         }
         ////////////////////////////////////////////////
       } break;
 
-      case ManifestData:
-      case SegmentManifest: {
+      case JsonManifest:
+      case SegmentsInManifest: {
         cont = ndn::encoding::makeBinaryBlock(contentType,
                                               data.getContent().value_begin(),
                                               data.getContent().value_end());
@@ -284,17 +297,14 @@ private:
     }
 
     // TODO: Should the following code also be executed for SegmentManifests?
-    if (contentType == ManifestData || contentType == SegmentManifest) {
+    if (contentType == JsonManifest || contentType == SegmentsInManifest) {
       ndn::Name frame =
           m_segmentToFrame[interest.getName().toUri()]; // get manifest name of
                                                         // this data
       m_presentData[frame]++;
       m_manifestBlocks[frame].push_back(cont); // store Block of the manifest
       // check the number of data types per manifest
-      // Discuss - m_manifestDataTypes -> this is an empty vector IMO. This is
-      // being used here for the first time and
-      // find operation has been called. I am :O
-      std::cout << "Data Type Vector Size: " << m_manifestDataTypes.size() << std::endl;
+
       if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
                     contentType) == m_manifestDataTypes.end()) {
 
@@ -393,13 +403,25 @@ private:
     return manifestNames;
   }
 
-  void sendAckManifest(int seq, int stream) {
-    ndn::Name ackNameInterest =
-        m_ack + +"/" + std::to_string(stream) + "/" + std::to_string(seq);
-    NDN_LOG_DEBUG("ACK Name interest: " << ackNameInterest);
-    sendInterestAck(ackNameInterest);
+  /**
+   * Sends Manifest Acknowledgment Interests to Producers
+   *
+   * @param seq
+   * @param stream
+   */
+  void sendAckManifest(int sequence, int streamNumber) {
+    ndn::Name ackInterest = m_ack + +"/" + std::to_string(streamNumber) + "/" +
+                            std::to_string(sequence);
+    NDN_LOG_DEBUG("ACK Name interest: " << ackInterest);
+    sendInterestAck(ackInterest);
   }
 
+  /**
+   * Handles the merge of the segments of a Data
+   *
+   * @param data
+   * @return
+   */
   static std::vector<uint8_t> aggregateSegments(std::vector<ndn::Block> data) {
     std::vector<uint8_t> aggregatedData;
     for (int i = 0; i < data.size(); i++) {
@@ -410,19 +432,34 @@ private:
     return aggregatedData;
   }
 
+  /**
+   * Pushes the ndn::Data to Input Queue
+   * @param dataBlock
+   */
   void addBlockToInputQueue(Block dataBlock) {
-	 auto image = pullFrame(dataBlock);
-	 int count = 0;
     m_inputBlockQueue.push(dataBlock);
   }
 
+  /**
+   * Handles negative ACK Interests
+   * Triggers Interest retransmission
+   * @param interest interest name that could not retrieve data
+   * @param nack Network-level NACK packets
+   */
   void onNack(const ndn::Interest &interest, const ndn::lp::Nack &nack) {
     NDN_LOG_DEBUG("Received Nack with reason " << nack.getReason());
     m_scheduler.schedule(ndn::time::milliseconds(200),
                          [this] { sendInterestNew(1); });
     NDN_LOG_DEBUG("Retransmission: " << interest.getName());
   }
-
+  /**
+   * Handles timed out Interest packets
+   *
+   * Triggers retransmission
+   *
+   * Updates Interest sending Window
+   * @param interest timed out Interest Name
+   */
   void onTimeout(const ndn::Interest &interest) {
     NDN_LOG_DEBUG("Timeout " << interest.getName());
     m_window.remove(interest.getName());
@@ -431,10 +468,19 @@ private:
     m_step = 0;
     updateWindow(1);
   }
+
+  /**
+   * Handles Timed Out Ack Interest being sent to upstreams
+   * @param interest timed out ACK Interest Name
+   */
   void onTimeoutAck(const ndn::Interest &interest) {
     NDN_LOG_DEBUG("Timeout Ack" << interest.getName());
   }
 
+  /**
+   * Handles the addition of the Timed Out Interest to Interest Window
+   * @param name timed out Interest Names
+   */
   void addTimeOut(ndn::Name name) {
     // check if the interest timedout before
     if (m_timedoutInterests.find(name) == m_timedoutInterests.end()) {
@@ -445,64 +491,66 @@ private:
       m_timedoutInterests[name]++;
     }
   }
+
+  void resetWindow() {
+    m_step = 0;
+    if (m_inputQueueThreshold >= m_inputBlockQueue.size()) {
+      m_theoreticalWindowSize =
+          m_inputQueueThreshold - m_inputBlockQueue.size();
+    } else {
+      m_theoreticalWindowSize = 0;
+    }
+    m_flagNew = false;
+    sendAnchor();
+  }
+
+  /**
+   * Handles the Windowing for sending Interests
+   * @param i
+   */
+
+  // TODO: Separate the Congestion Control Mechanism to another file
   void updateWindow(int i) {
     if (m_window.size() > m_theoreticalWindowSize) {
       // wait for ws to decrease
       m_step = 0;
-    } else {
-      if (i == 0) {
-        m_step++;
-        if (m_step == m_theoreticalWindowSize) {
-          // shifting
-          m_step = 0;
-          m_flagNew = true;
-          if ((m_inputBlockQueue.size() + m_theoreticalWindowSize) <
-              m_inputQueueThreshold) {
-            // increase
-            m_theoreticalWindowSize++;
-          }
-          // if IQ increased -- keep it under threshold
-          else if ((m_inputBlockQueue.size() + m_theoreticalWindowSize) >
-                   m_inputQueueThreshold) {
-            m_step = 0;
-            if (m_inputQueueThreshold >= m_inputBlockQueue.size()) {
-              m_theoreticalWindowSize =
-                  m_inputQueueThreshold - m_inputBlockQueue.size();
-            } else {
-              m_theoreticalWindowSize = 0;
-            }
-            m_flagNew = false;
-            sendAnchor();
-          }
+      return;
+    }
 
-        }
-        // if shifting (or increase) and IQ starts to increase, need to decrease
-        // ws to stay under threshold
-        else {
-          m_step = 0;
-          if (m_inputQueueThreshold >= m_inputBlockQueue.size()) {
-            m_theoreticalWindowSize =
-                m_inputQueueThreshold - m_inputBlockQueue.size();
-          } else {
-            m_theoreticalWindowSize = 0;
-          }
-          m_flagNew = false;
-          sendAnchor();
-        }
-      }
-      // when both windows = 0
-      if (m_theoreticalWindowSize == m_window.size() &&
-          m_theoreticalWindowSize == 0 && m_flagNew) {
-        m_theoreticalWindowSize++;
+    if (i == 0) {
+      m_step++;
+      if (m_step == m_theoreticalWindowSize) {
+        // shifting
         m_step = 0;
-        sendInterestNew(1);
-
-      } else {
-        sendInterestNew(
-            m_theoreticalWindowSize -
-            m_window
-                .size()); // send 1 interest if shifting, more if ws increased
+        m_flagNew = true;
+        if ((m_inputBlockQueue.size() + m_theoreticalWindowSize) <
+            m_inputQueueThreshold) {
+          // increase
+          m_theoreticalWindowSize++;
+        }
+        // if IQ increased -- keep it under threshold
+        else if ((m_inputBlockQueue.size() + m_theoreticalWindowSize) >
+                 m_inputQueueThreshold) {
+          resetWindow();
+        }
+        return;
       }
+      // if shifting (or increase) and IQ starts to increase, need to decrease
+      // ws to stay under threshold
+      resetWindow();
+      return;
+    }
+    // when both windows = 0
+    if (m_theoreticalWindowSize == m_window.size() &&
+        m_theoreticalWindowSize == 0 && m_flagNew) {
+      m_theoreticalWindowSize++;
+      m_step = 0;
+      sendInterestNew(1);
+
+    } else {
+      sendInterestNew(
+          m_theoreticalWindowSize -
+          m_window.size()); // send 1 interest if shifting, more if ws increased
     }
   }
 
@@ -567,7 +615,11 @@ private:
     int difference = 0;
     int dataCount = 0;
   };
-  // lower Seq Num, stream, diff,  data count
+
+  /**
+   * Maps pairs of lower sequence numbers and stream numbers to
+   * data counts.
+   */
   std::map<std::pair<int, int>, AckCount> m_updatesAck;
 };
 

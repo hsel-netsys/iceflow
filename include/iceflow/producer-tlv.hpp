@@ -314,7 +314,7 @@ private:
       Data manifestDataPacket;
       if (manifestDataBlock.type() == ContentTypeValue::Json) {
         manifestDataPacket = Data(interest.getName(), manifestDataBlock,
-                                  ContentTypeValue::ManifestData);
+                                  ContentTypeValue::JsonManifest);
       } else {
         manifestDataPacket = Data(interest.getName(), manifestDataBlock,
                                   manifestDataBlock.type());
@@ -339,7 +339,7 @@ private:
         Data manifestDataPacket;
         if (manifestDataBlock.type() == ContentTypeValue::Json) {
           manifestDataPacket = Data(interest.getName(), manifestDataBlock,
-                                    ContentTypeValue::ManifestData);
+                                    ContentTypeValue::JsonManifest);
         } else {
           manifestDataPacket = Data(interest.getName(), manifestDataBlock,
                                     manifestDataBlock.type());
