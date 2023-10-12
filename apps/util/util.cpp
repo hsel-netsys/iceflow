@@ -44,7 +44,7 @@ cv::Mat pullFrame(iceflow::Block block) {
     NDN_LOG_INFO("pullFrame Manifest data");
     for (auto resultSubElement : resultSubElements) {
       if (resultSubElement.type() ==
-          iceflow::ContentTypeValue::SegmentManifest) {
+          iceflow::ContentTypeValue::SegmentsInManifest) {
         std::vector<uint8_t> frameBuffer(resultSubElement.value_begin(),
                                          resultSubElement.value_end());
         return imdecode(cv::Mat(frameBuffer), 1);

@@ -177,7 +177,7 @@ public:
           NDN_LOG_DEBUG("Interest main: " << interestNameDataMain);
           m_frameNames.emplace(std::pair(interestNameDataMain, resultNameList));
           ndn::Block manifestBlock =
-              makeNestedBlock(ContentTypeValue::MainData,
+              makeNestedBlock(ContentTypeValue::Manifest,
                               resultNameList.begin(), resultNameList.end());
           m_dataMainStorage.emplace(
               std::pair(interestNameDataMain, manifestBlock));
@@ -211,7 +211,7 @@ public:
             m_frameNames.emplace(
                 std::pair(interestNameDataMain, resultNameList));
             ndn::Block manifestBlock =
-                makeNestedBlock(ContentTypeValue::MainData,
+                makeNestedBlock(ContentTypeValue::Manifest,
                                 resultNameList.begin(), resultNameList.end());
             m_dataMainStorage.emplace(
                 std::pair(interestNameDataMain, manifestBlock));
@@ -314,7 +314,7 @@ private:
       Data manifestDataPacket;
       if (manifestDataBlock.type() == ContentTypeValue::Json) {
         manifestDataPacket = Data(interest.getName(), manifestDataBlock,
-                                  ContentTypeValue::ManifestData);
+                                  ContentTypeValue::JsonManifest);
       } else {
         manifestDataPacket = Data(interest.getName(), manifestDataBlock,
                                   manifestDataBlock.type());
@@ -339,7 +339,7 @@ private:
         Data manifestDataPacket;
         if (manifestDataBlock.type() == ContentTypeValue::Json) {
           manifestDataPacket = Data(interest.getName(), manifestDataBlock,
-                                    ContentTypeValue::ManifestData);
+                                    ContentTypeValue::JsonManifest);
         } else {
           manifestDataPacket = Data(interest.getName(), manifestDataBlock,
                                     manifestDataBlock.type());
@@ -389,7 +389,7 @@ private:
 
           // manifest data to be emptied
           if (m_dataMainStorage[frameName].type() ==
-              ContentTypeValue::MainData) {
+              ContentTypeValue::Manifest) {
             for (int j = 0; j < m_frameNames[frameName].size(); j++) {
               auto var = m_dataManifestStorage.find(
                   m_frameNames[frameName][j].toUri());
