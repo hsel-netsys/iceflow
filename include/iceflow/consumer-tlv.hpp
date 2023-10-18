@@ -198,6 +198,104 @@ private:
     m_scheduler.schedule(duration, [this] { sendAnchor(); });
   }
 
+  void handleContentBlock(uint32_t contentType, const ndn::Interest &interest,
+                          const ndn::Data &data) {
+    auto content = data.getContent();
+    ndn::Block contentBlock = ndn::encoding::makeBinaryBlock(
+        contentType, content.value_begin(), content.value_end());
+    ndn::Name manifestName = m_segmentToFrame[interest.getName().toUri()];
+    int frameNumber = ++m_presentData[manifestName];
+    auto manifestBlocks = m_manifestBlocks[manifestName];
+    manifestBlocks.push_back(contentBlock); // store Block of the manifest
+    // check the number of data types per manifest
+
+    if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
+                  contentType) == m_manifestDataTypes.end()) {
+
+      m_manifestDataTypes.push_back(contentType);
+    }
+
+    // if we get all data belonging to one frame
+    if (frameNumber == m_names[manifestName].size()) {
+      std::vector<std::vector<ndn::Block>> splitManifestBlocks;
+
+      // grouping manifest data according to type
+      for (int manifestDataType : m_manifestDataTypes) {
+        std::vector<ndn::Block> tmp;
+        for (auto &manifestBlock : manifestBlocks) {
+          if (manifestBlock.type() == manifestDataType) {
+            tmp.push_back(manifestBlock);
+          }
+        }
+        splitManifestBlocks.push_back(tmp);
+      }
+      Block iceflowBlock;
+      for (auto &splitManifestBlock : splitManifestBlocks) {
+        auto firstBlock = splitManifestBlock[0];
+
+        if (splitManifestBlock.size() <= 1) {
+          // push the block to Iceblock // for json
+          iceflowBlock.pushBlock(firstBlock);
+          continue;
+        }
+
+        // for frames
+        // here we have to aggregate
+        std::vector<uint8_t> aggregatedData =
+            aggregateSegments(splitManifestBlock);
+        ndn::Block binaryBlock =
+            ndn::encoding::makeBinaryBlock(firstBlock.type(), aggregatedData);
+        iceflowBlock.pushBlock(binaryBlock);
+      }
+      addBlockToInputQueue(iceflowBlock); // push data to input queue
+
+      std::string frameSeq = manifestName.toUri();
+      std::vector<std::string> manifestBlockNames;
+      boost::split(manifestBlockNames, frameSeq, boost::is_any_of("/"));
+
+      size_t manifestBlockNamesSize = manifestBlockNames.size();
+      int manifestStreamCount =
+          stoi(manifestBlockNames[manifestBlockNamesSize - 2]);
+      // data sequence
+      int dataCount = stoi(manifestBlockNames[manifestBlockNamesSize - 1]);
+      // key is the manifest id a data object belongs to
+      int highestLowerSequenceNumber = 0;
+
+      for (const auto &acknowledgement : m_updatesAck) {
+        int lowerSequenceNumber = acknowledgement.first.first;
+        int streamNumber = acknowledgement.first.second;
+        if (lowerSequenceNumber <= dataCount &&
+            streamNumber == manifestStreamCount) {
+          if (highestLowerSequenceNumber < lowerSequenceNumber) {
+            highestLowerSequenceNumber = lowerSequenceNumber;
+          }
+        }
+      }
+
+      auto foo = m_updatesAck[std::pair(highestLowerSequenceNumber,
+                                        manifestStreamCount)];
+      foo.dataCount++;
+
+      if (foo.dataCount == foo.difference) {
+        sendAckManifest(highestLowerSequenceNumber, manifestStreamCount);
+      }
+    }
+
+    auto interestName = interest.getName();
+    m_window.remove(interestName);
+    m_timedoutInterests.erase(interestName);
+    updateWindow(0);
+
+    if (m_flagData == 0 && !m_interestQueue.empty()) {
+      if (m_theoreticalWindowSize == 0) {
+        m_theoreticalWindowSize++;
+        m_step = 0;
+      }
+      sendNewInterest(1);
+      m_flagData++;
+    }
+  }
+
   /**
    * Handles ndn::Data from upstream producers
    *
@@ -212,7 +310,7 @@ private:
    * @param data actual data objects
    */
   void onData(const ndn::Interest &interest, const ndn::Data &data) {
-    ndn::Block cont;
+    ndn::Block contentBlock;
     uint32_t contentType = data.getContentType();
     if (data.hasContent()) {
 
@@ -287,98 +385,9 @@ private:
 
       case JsonManifest:
       case SegmentsInManifest: {
-        cont = ndn::encoding::makeBinaryBlock(contentType,
-                                              data.getContent().value_begin(),
-                                              data.getContent().value_end());
-
-      } break;
+        handleContentBlock(contentType, interest, data);
+        break;
       }
-    }
-
-    // TODO: Should the following code also be executed for SegmentManifests?
-    if (contentType == JsonManifest || contentType == SegmentsInManifest) {
-      ndn::Name frame =
-          m_segmentToFrame[interest.getName().toUri()]; // get manifest name of
-                                                        // this data
-      m_presentData[frame]++;
-      m_manifestBlocks[frame].push_back(cont); // store Block of the manifest
-      // check the number of data types per manifest
-
-      if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
-                    contentType) == m_manifestDataTypes.end()) {
-
-        m_manifestDataTypes.push_back(contentType);
-      }
-      if (m_presentData[frame] ==
-          m_names[frame].size()) { // if we get all data belonging to one frame
-        std::vector<std::vector<ndn::Block>> splitManifestBlocks;
-
-        // grouping manifest data according to type
-        for (int manifestDataType : m_manifestDataTypes) {
-          std::vector<ndn::Block> tmp;
-          for (auto &manifestBlock : m_manifestBlocks[frame]) {
-            if (manifestBlock.type() == manifestDataType) {
-              tmp.push_back(manifestBlock);
-            }
-          }
-          splitManifestBlocks.push_back(tmp);
-        }
-        Block iceflowBlock;
-        for (auto &splitManifestBlock : splitManifestBlocks) {
-          if (splitManifestBlock.size() > 1) { // for frames
-            // here we have to aggregate
-            std::vector<uint8_t> aggregatedData =
-                aggregateSegments(splitManifestBlock);
-            ndn::Block binaryBlock = ndn::encoding::makeBinaryBlock(
-                splitManifestBlock[0].type(), aggregatedData);
-            iceflowBlock.pushBlock(binaryBlock);
-          } else {
-            // push the block to Iceblock // for json
-            iceflowBlock.pushBlock(splitManifestBlock[0]);
-          }
-        }
-        addBlockToInputQueue(iceflowBlock); // push data to input queue
-
-        std::string frameSeq = frame.toUri();
-        std::vector<std::string> strs;
-        boost::split(strs, frameSeq, boost::is_any_of("/"));
-
-        // stream
-        int manifestStreamCount = stoi(strs[strs.size() - 2]);
-        // data sequence
-        int dataCount = stoi(strs[strs.size() - 1]);
-        // key is the manifest id a data object belongs to
-        int key = 0;
-
-        for (const auto &seqNum : m_updatesAck) {
-          // check the manifest and the stream
-          if (seqNum.first.first <= dataCount &&
-              seqNum.first.second == manifestStreamCount) {
-            if (key < seqNum.first.first) {
-              key = seqNum.first.first;
-            }
-          }
-        }
-        m_updatesAck[std::pair(key, manifestStreamCount)].dataCount++;
-        if (m_updatesAck[std::pair(key, manifestStreamCount)].dataCount ==
-            m_updatesAck[std::pair(key, manifestStreamCount)].difference) {
-          sendAckManifest(key, manifestStreamCount);
-        }
-      }
-    }
-
-    m_window.remove(interest.getName());
-    m_timedoutInterests.erase(interest.getName());
-    updateWindow(0);
-
-    if (m_flagData == 0) {
-      if (!m_interestQueue.empty()) {
-        if (m_theoreticalWindowSize == 0) {
-          m_theoreticalWindowSize++;
-          m_step = 0;
-        }
-        sendNewInterest(1);
-        m_flagData++;
       }
     }
   }
@@ -611,11 +620,14 @@ private:
     int dataCount = 0;
   };
 
+  typedef int lowerSequenceNumber;
+  typedef int streamNumber;
+
   /**
    * Maps pairs of lower sequence numbers and stream numbers to
    * data counts.
    */
-  std::map<std::pair<int, int>, AckCount> m_updatesAck;
+  std::map<std::pair<lowerSequenceNumber, streamNumber>, AckCount> m_updatesAck;
 };
 
 } // namespace iceflow
