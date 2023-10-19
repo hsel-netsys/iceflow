@@ -200,7 +200,7 @@ private:
 
   void storeContentBlock(ndn::Name manifestName, ndn::Block contentBlock) {
     auto manifestBlocks = m_manifestBlocks[manifestName];
-    manifestBlocks.push_back(contentBlock); // store Block of the manifest
+    manifestBlocks.push_back(contentBlock);
   }
 
   void groupManifestDataByType(
@@ -244,11 +244,23 @@ private:
     return stoi(manifestBlockNames[manifestBlockNames.size() - 2]);
   }
 
-  void determineManifestBlockNames(std::vector<std::string> *manifestBlockNames,
+  /**
+   *
+   */
+  void determineManifestBlockNames(std::vector<std::string> manifestBlockNames,
                                    ndn::Name manifestName) {
     std::string frameSeq = manifestName.toUri();
 
     boost::split(manifestBlockNames, frameSeq, boost::is_any_of("/"));
+  }
+
+  void acknowledge(std::pair<int, int> manifestIndices) {
+    auto updateAcknowledgment = m_updatesAck[manifestIndices];
+    updateAcknowledgment.dataCount++;
+
+    if (updateAcknowledgment.dataCount == updateAcknowledgment.difference) {
+      sendAckManifest(manifestIndices);
+    }
   }
 
   void handleFrameDataCompletion(ndn::Name manifestName) {
@@ -259,19 +271,8 @@ private:
     groupManifestDataByType(&splitManifestBlocks, manifestName);
     aggregateManifestBlocks(&iceflowBlock, splitManifestBlocks);
     addBlockToInputQueue(iceflowBlock);
-    determineManifestBlockNames(&manifestBlockNames, manifestName);
-
+    determineManifestBlockNames(manifestBlockNames, manifestName);
     auto manifestIndices = determineManifestIndices(manifestBlockNames);
-
-    int highestLowerSequenceNumber = manifestIndices.first;
-    int manifestStreamCount = manifestIndices.second;
-
-    auto updateAcknowledgment = m_updatesAck[manifestIndices];
-    updateAcknowledgment.dataCount++;
-
-    if (updateAcknowledgment.dataCount == updateAcknowledgment.difference) {
-      sendAckManifest(highestLowerSequenceNumber, manifestStreamCount);
-    }
   }
 
   /**
@@ -320,6 +321,11 @@ private:
     }
   }
 
+  bool contentTypeNotInManifest(uint32_t contentType) {
+    return std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
+                  contentType) == m_manifestDataTypes.end();
+  }
+
   void handleContentBlock(uint32_t contentType, const ndn::Interest &interest,
                           const ndn::Data &data) {
     auto content = data.getContent();
@@ -327,18 +333,15 @@ private:
         contentType, content.value_begin(), content.value_end());
     auto interestName = interest.getName();
     auto interestUri = interestName.toUri();
-
     ndn::Name manifestName = m_segmentToFrame[interestUri];
-    int frameNumber = ++m_presentData[manifestName];
+
     storeContentBlock(manifestName, contentBlock);
-    // check the number of data types per manifest
 
-    if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
-                  contentType) == m_manifestDataTypes.end()) {
-
+    if (contentTypeNotInManifest(contentType)) {
       m_manifestDataTypes.push_back(contentType);
     }
 
+    int frameNumber = ++m_presentData[manifestName];
     bool frameDataComplete = frameNumber == m_names[manifestName].size();
     if (frameDataComplete) {
       handleFrameDataCompletion(manifestName);
@@ -420,18 +423,17 @@ private:
             }
           }
         }
-        m_updatesAck[std::pair(manifestID, manifestStreamCount)].dataCount++;
-        if (m_updatesAck[std::pair(manifestID, manifestStreamCount)]
-                .dataCount ==
-            m_updatesAck[std::pair(manifestID, manifestStreamCount)]
-                .difference) {
-          NDN_LOG_DEBUG(
-              "All data in the manifest received: "
-              << manifestID << "Data in manifest: "
-              << m_updatesAck[std::pair(manifestID, manifestStreamCount)]
-                     .difference
-              << "Stream: " << manifestStreamCount);
-          sendAckManifest(manifestID, manifestStreamCount);
+
+        auto manifestIndices = std::pair(manifestID, manifestStreamCount);
+
+        m_updatesAck[manifestIndices].dataCount++;
+        if (m_updatesAck[manifestIndices].dataCount ==
+            m_updatesAck[manifestIndices].difference) {
+          NDN_LOG_DEBUG("All data in the manifest received: "
+                        << manifestID << "Data in manifest: "
+                        << m_updatesAck[manifestIndices].difference
+                        << "Stream: " << manifestStreamCount);
+          sendAckManifest(manifestIndices);
         }
         ////////////////////////////////////////////////
       } break;
@@ -470,9 +472,12 @@ private:
    * @param seq
    * @param stream
    */
-  void sendAckManifest(int sequence, int streamNumber) {
-    ndn::Name ackInterest = m_ack + +"/" + std::to_string(streamNumber) + "/" +
-                            std::to_string(sequence);
+  void sendAckManifest(std::pair<int, int> foo) {
+    int lowerSequenceNumber = foo.first;
+    int manifestStreamCount = foo.second;
+
+    ndn::Name ackInterest = m_ack + +"/" + std::to_string(manifestStreamCount) +
+                            "/" + std::to_string(lowerSequenceNumber);
     NDN_LOG_DEBUG("ACK Name interest: " << ackInterest);
     sendInterestAck(ackInterest);
   }
