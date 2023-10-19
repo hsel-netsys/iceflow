@@ -74,7 +74,7 @@ public:
                         "IS->FD", 0);
         tie(frameFace, bboxes) = getFaceBox(faceNet, frameData, 0.7);
 
-        for (auto it = begin(bboxes); it != end(bboxes); ++it) {
+        for (auto it = begin(bboxes); it != end(bboxes); it++) {
           cv::Rect rec(it->at(0) - padding, it->at(1) - padding,
                        it->at(2) - it->at(0) + 2 * padding,
                        it->at(3) - it->at(1) + 2 * padding);
