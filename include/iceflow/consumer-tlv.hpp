@@ -245,7 +245,8 @@ private:
   }
 
   /**
-   *
+   * Splits the elements of the given manifest NDN name into individual name
+   * components.
    */
   void determineManifestBlockNames(std::vector<std::string> manifestBlockNames,
                                    ndn::Name manifestName) {
@@ -323,7 +324,7 @@ private:
 
   bool contentTypeNotInManifest(uint32_t contentType) {
     return std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
-                  contentType) == m_manifestDataTypes.end();
+                     contentType) == m_manifestDataTypes.end();
   }
 
   void handleContentBlock(uint32_t contentType, const ndn::Interest &interest,
