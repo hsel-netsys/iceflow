@@ -256,9 +256,9 @@ private:
 
   void acknowledge(std::pair<int, int> manifestIndices) {
     auto updateAcknowledgment = m_updatesAck[manifestIndices];
-    updateAcknowledgment.dataCount++;
+    int dataCount = ++updateAcknowledgment.dataCount;
 
-    if (updateAcknowledgment.dataCount == updateAcknowledgment.difference) {
+    if (dataCount == updateAcknowledgment.difference) {
       sendAckManifest(manifestIndices);
     }
   }
@@ -391,51 +391,21 @@ private:
 
       case Json: {
         std::vector<std::string> jsonStorage;
-        boost::split(jsonStorage, interest.getName().toUri(),
-                     boost::is_any_of("/"));
+        determineManifestBlockNames(jsonStorage, interest.getName());
 
         auto jsonData = Block(data.getContent(), data.getContentType());
         addBlockToInputQueue(jsonData);
+        auto manifestIndices = determineManifestIndices(jsonStorage);
+        AckCount ackowledgementCount = m_updatesAck[manifestIndices];
 
-        // need to update a manifest of json names and not only one data item
-        /////////////////////////////////////////////////
-        int manifestStreamCount = stoi(jsonStorage[jsonStorage.size() - 2]);
-
-        // data sequence
-        int dataCount = stoi(jsonStorage[jsonStorage.size() - 1]);
-
-        int manifestID = 0;
-
-        for (const auto &seqNum : m_updatesAck) {
-
-          auto sequenceNumbers = seqNum.first;
-          auto lowerSequenceNumber = sequenceNumbers.first;
-          auto streamNumber = sequenceNumbers.second;
-
-          NDN_LOG_DEBUG("First sequence number: "
-                        << lowerSequenceNumber
-                        << ", second sequence number: " << streamNumber);
-          //           check the manifest and the stream
-          if (lowerSequenceNumber <= dataCount &&
-              streamNumber == manifestStreamCount) {
-            if (manifestID < lowerSequenceNumber) {
-              manifestID = lowerSequenceNumber;
-            }
-          }
-        }
-
-        auto manifestIndices = std::pair(manifestID, manifestStreamCount);
-
-        m_updatesAck[manifestIndices].dataCount++;
-        if (m_updatesAck[manifestIndices].dataCount ==
-            m_updatesAck[manifestIndices].difference) {
+        int dataCount = ++ackowledgementCount.dataCount;
+        if (dataCount == m_updatesAck[manifestIndices].difference) {
           NDN_LOG_DEBUG("All data in the manifest received: "
-                        << manifestID << "Data in manifest: "
-                        << m_updatesAck[manifestIndices].difference
-                        << "Stream: " << manifestStreamCount);
+                        << manifestIndices.first << "Data in manifest: "
+                        << ackowledgementCount.difference
+                        << "Stream: " << manifestIndices.second);
           sendAckManifest(manifestIndices);
         }
-        ////////////////////////////////////////////////
       } break;
 
       case JsonManifest:
