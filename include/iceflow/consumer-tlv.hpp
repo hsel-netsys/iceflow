@@ -226,7 +226,6 @@ private:
       auto firstBlock = splitManifestBlock[0];
 
       if (splitManifestBlock.size() <= 1) {
-        // push the block to Iceblock // for json
         iceflowBlock->pushBlock(firstBlock);
         continue;
       }
