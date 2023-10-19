@@ -198,94 +198,118 @@ private:
     m_scheduler.schedule(duration, [this] { sendAnchor(); });
   }
 
-  void handleContentBlock(uint32_t contentType, const ndn::Interest &interest,
-                          const ndn::Data &data) {
-    auto content = data.getContent();
-    ndn::Block contentBlock = ndn::encoding::makeBinaryBlock(
-        contentType, content.value_begin(), content.value_end());
-    ndn::Name manifestName = m_segmentToFrame[interest.getName().toUri()];
-    int frameNumber = ++m_presentData[manifestName];
+  void storeContentBlock(ndn::Name manifestName, ndn::Block contentBlock) {
     auto manifestBlocks = m_manifestBlocks[manifestName];
     manifestBlocks.push_back(contentBlock); // store Block of the manifest
-    // check the number of data types per manifest
+  }
 
-    if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
-                  contentType) == m_manifestDataTypes.end()) {
+  void groupManifestDataByType(
+      std::vector<std::vector<ndn::Block>> *splitManifestBlocks,
+      ndn::Name manifestName) {
+    auto manifestBlocks = m_manifestBlocks[manifestName];
 
-      m_manifestDataTypes.push_back(contentType);
+    for (int manifestDataType : m_manifestDataTypes) {
+      std::vector<ndn::Block> tmp;
+      for (auto &manifestBlock : manifestBlocks) {
+        if (manifestBlock.type() == manifestDataType) {
+          tmp.push_back(manifestBlock);
+        }
+      }
+      splitManifestBlocks->push_back(tmp);
+    }
+  }
+
+  void aggregateManifestBlocks(
+      Block *iceflowBlock,
+      std::vector<std::vector<ndn::Block>> splitManifestBlocks) {
+    for (auto &splitManifestBlock : splitManifestBlocks) {
+      auto firstBlock = splitManifestBlock[0];
+
+      if (splitManifestBlock.size() <= 1) {
+        // push the block to Iceblock // for json
+        iceflowBlock->pushBlock(firstBlock);
+        continue;
+      }
+
+      std::vector<uint8_t> aggregatedData =
+          aggregateSegments(splitManifestBlock);
+      ndn::Block binaryBlock =
+          ndn::encoding::makeBinaryBlock(firstBlock.type(), aggregatedData);
+      iceflowBlock->pushBlock(binaryBlock);
+    }
+  }
+
+  int determineManifestStreamCount(
+      std::vector<std::string> manifestBlockNames) {
+    return stoi(manifestBlockNames[manifestBlockNames.size() - 2]);
+  }
+
+  void determineManifestBlockNames(std::vector<std::string> *manifestBlockNames,
+                                   ndn::Name manifestName) {
+    std::string frameSeq = manifestName.toUri();
+
+    boost::split(manifestBlockNames, frameSeq, boost::is_any_of("/"));
+  }
+
+  void handleFrameDataCompletion(ndn::Name manifestName) {
+    Block iceflowBlock;
+    std::vector<std::vector<ndn::Block>> splitManifestBlocks;
+    std::vector<std::string> manifestBlockNames;
+
+    groupManifestDataByType(&splitManifestBlocks, manifestName);
+    aggregateManifestBlocks(&iceflowBlock, splitManifestBlocks);
+    addBlockToInputQueue(iceflowBlock);
+    determineManifestBlockNames(&manifestBlockNames, manifestName);
+
+    auto manifestIndices = determineManifestIndices(manifestBlockNames);
+
+    int highestLowerSequenceNumber = manifestIndices.first;
+    int manifestStreamCount = manifestIndices.second;
+
+    auto updateAcknowledgment = m_updatesAck[manifestIndices];
+    updateAcknowledgment.dataCount++;
+
+    if (updateAcknowledgment.dataCount == updateAcknowledgment.difference) {
+      sendAckManifest(highestLowerSequenceNumber, manifestStreamCount);
+    }
+  }
+
+  /**
+   * Calculates the highest lower sequence number and the manifest stream count
+   * from the vector of manifest block names given.
+   *
+   * @param manifestBlockNames The block names to process.
+   * @returns A tuple containing the highest lower sequence number and the
+   * manifest stream count.
+   */
+  std::pair<int, int>
+  determineManifestIndices(std::vector<std::string> manifestBlockNames) {
+    size_t manifestBlockNamesSize = manifestBlockNames.size();
+    int manifestStreamCount = determineManifestStreamCount(manifestBlockNames);
+    int dataCount = stoi(manifestBlockNames[manifestBlockNamesSize - 1]);
+    int highestLowerSequenceNumber = 0;
+
+    for (const auto &acknowledgement : m_updatesAck) {
+      int lowerSequenceNumber = acknowledgement.first.first;
+      int streamNumber = acknowledgement.first.second;
+      if (lowerSequenceNumber <= dataCount &&
+          streamNumber == manifestStreamCount &&
+          highestLowerSequenceNumber < lowerSequenceNumber) {
+        highestLowerSequenceNumber = lowerSequenceNumber;
+      }
     }
 
-    // if we get all data belonging to one frame
-    if (frameNumber == m_names[manifestName].size()) {
-      std::vector<std::vector<ndn::Block>> splitManifestBlocks;
+    return std::pair<int, int>(highestLowerSequenceNumber, manifestStreamCount);
+  }
 
-      // grouping manifest data according to type
-      for (int manifestDataType : m_manifestDataTypes) {
-        std::vector<ndn::Block> tmp;
-        for (auto &manifestBlock : manifestBlocks) {
-          if (manifestBlock.type() == manifestDataType) {
-            tmp.push_back(manifestBlock);
-          }
-        }
-        splitManifestBlocks.push_back(tmp);
-      }
-      Block iceflowBlock;
-      for (auto &splitManifestBlock : splitManifestBlocks) {
-        auto firstBlock = splitManifestBlock[0];
-
-        if (splitManifestBlock.size() <= 1) {
-          // push the block to Iceblock // for json
-          iceflowBlock.pushBlock(firstBlock);
-          continue;
-        }
-
-        // for frames
-        // here we have to aggregate
-        std::vector<uint8_t> aggregatedData =
-            aggregateSegments(splitManifestBlock);
-        ndn::Block binaryBlock =
-            ndn::encoding::makeBinaryBlock(firstBlock.type(), aggregatedData);
-        iceflowBlock.pushBlock(binaryBlock);
-      }
-      addBlockToInputQueue(iceflowBlock); // push data to input queue
-
-      std::string frameSeq = manifestName.toUri();
-      std::vector<std::string> manifestBlockNames;
-      boost::split(manifestBlockNames, frameSeq, boost::is_any_of("/"));
-
-      size_t manifestBlockNamesSize = manifestBlockNames.size();
-      int manifestStreamCount =
-          stoi(manifestBlockNames[manifestBlockNamesSize - 2]);
-      // data sequence
-      int dataCount = stoi(manifestBlockNames[manifestBlockNamesSize - 1]);
-      // key is the manifest id a data object belongs to
-      int highestLowerSequenceNumber = 0;
-
-      for (const auto &acknowledgement : m_updatesAck) {
-        int lowerSequenceNumber = acknowledgement.first.first;
-        int streamNumber = acknowledgement.first.second;
-        if (lowerSequenceNumber <= dataCount &&
-            streamNumber == manifestStreamCount) {
-          if (highestLowerSequenceNumber < lowerSequenceNumber) {
-            highestLowerSequenceNumber = lowerSequenceNumber;
-          }
-        }
-      }
-
-      auto foo = m_updatesAck[std::pair(highestLowerSequenceNumber,
-                                        manifestStreamCount)];
-      foo.dataCount++;
-
-      if (foo.dataCount == foo.difference) {
-        sendAckManifest(highestLowerSequenceNumber, manifestStreamCount);
-      }
-    }
-
+  // TODO: Revisit naming
+  void clearWindow(const ndn::Interest &interest) {
     auto interestName = interest.getName();
     m_window.remove(interestName);
     m_timedoutInterests.erase(interestName);
-    updateWindow(0);
+  }
 
+  void sendNextWindowInterest() {
     if (m_flagData == 0 && !m_interestQueue.empty()) {
       if (m_theoreticalWindowSize == 0) {
         m_theoreticalWindowSize++;
@@ -294,6 +318,35 @@ private:
       sendNewInterest(1);
       m_flagData++;
     }
+  }
+
+  void handleContentBlock(uint32_t contentType, const ndn::Interest &interest,
+                          const ndn::Data &data) {
+    auto content = data.getContent();
+    ndn::Block contentBlock = ndn::encoding::makeBinaryBlock(
+        contentType, content.value_begin(), content.value_end());
+    auto interestName = interest.getName();
+    auto interestUri = interestName.toUri();
+
+    ndn::Name manifestName = m_segmentToFrame[interestUri];
+    int frameNumber = ++m_presentData[manifestName];
+    storeContentBlock(manifestName, contentBlock);
+    // check the number of data types per manifest
+
+    if (std::find(m_manifestDataTypes.begin(), m_manifestDataTypes.end(),
+                  contentType) == m_manifestDataTypes.end()) {
+
+      m_manifestDataTypes.push_back(contentType);
+    }
+
+    bool frameDataComplete = frameNumber == m_names[manifestName].size();
+    if (frameDataComplete) {
+      handleFrameDataCompletion(manifestName);
+    }
+
+    clearWindow(interest);
+    updateWindow(0);
+    sendNextWindowInterest();
   }
 
   /**
