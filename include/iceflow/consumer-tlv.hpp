@@ -366,7 +366,6 @@ private:
    * @param data actual data objects
    */
   void onData(const ndn::Interest &interest, const ndn::Data &data) {
-    ndn::Block contentBlock;
     uint32_t contentType = data.getContentType();
     if (data.hasContent()) {
 
