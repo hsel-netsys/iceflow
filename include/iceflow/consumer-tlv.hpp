@@ -575,8 +575,9 @@ private:
       resetWindow();
     }
     // when both windows = 0
-    if (m_theoreticalWindowSize == m_window.size() &&
-        m_theoreticalWindowSize == 0 && m_flagNew) {
+    bool bothWindowsEmpty = m_theoreticalWindowSize == m_window.size() &&
+        m_theoreticalWindowSize == 0 && m_flagNew;
+    if (bothWindowsEmpty) {
       m_theoreticalWindowSize++;
       m_step = 0;
       sendNewInterest(1);
