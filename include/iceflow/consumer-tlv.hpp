@@ -576,7 +576,7 @@ private:
     }
     // when both windows = 0
     bool bothWindowsEmpty = m_theoreticalWindowSize == m_window.size() &&
-        m_theoreticalWindowSize == 0 && m_flagNew;
+                            m_theoreticalWindowSize == 0 && m_flagNew;
     if (bothWindowsEmpty) {
       m_theoreticalWindowSize++;
       m_step = 0;
