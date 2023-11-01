@@ -153,7 +153,7 @@ void startProcessing(std::string &subSyncPrefix, std::vector<int> sub,
   threads.emplace_back(&iceflow::ConsumerTlv::runCon, simpleConsumer);
   threads.emplace_back(&fusion, &inputs, &totalInput, inputThreshold);
 
-  for (int i = 0; i < computeThreads; ++i) {
+  for (int i = 0; i < computeThreads; i++) {
     threads.emplace_back([&]() {
       compute->compute(&totalInput, &simpleProducer->outputQueueBlock,
                        outputThreshold);

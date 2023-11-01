@@ -162,14 +162,14 @@ private:
       m_updatesAck[key] = ackCount;
 
       // send anchor interest
-      if (flag == 0) {
+      if (m_flag == 0) {
         if (!m_interestQueue.empty()) {
           if (m_theoreticalWindowSize == 0) {
             m_theoreticalWindowSize++;
             m_step = 0;
           }
-          sendInterestNew(1);
-          flag++;
+          sendNewInterest(1);
+          m_flag++;
         }
       }
     }
@@ -189,7 +189,7 @@ private:
           m_theoreticalWindowSize++;
           m_step = 0;
         }
-        sendInterestNew(1);
+        sendNewInterest(1);
       }
     }
 
@@ -198,6 +198,19 @@ private:
     m_scheduler.schedule(duration, [this] { sendAnchor(); });
   }
 
+  /**
+   * Handles ndn::Data from upstream producers
+   *
+   * Pushes the data to the Input Queue of the Consumer
+   * then gradually increases the data fetching/Interest sending rate
+   * using Additive Increase Multiplicative Decrease(AIMD) Congestion Control.
+   *
+   * Manifest: Collection of segmented data objects name
+   *     JSON: carries the analyzed results of the compute function of
+   * 			upstreams.
+   * @param interest named data interest
+   * @param data actual data objects
+   */
   /**
    * Handles ndn::Data from upstream producers
    *
@@ -246,13 +259,11 @@ private:
 
         // need to update a manifest of json names and not only one data item
         /////////////////////////////////////////////////
-        // Manifest Stream Count
         int manifestStreamCount = stoi(jsonStorage[jsonStorage.size() - 2]);
 
         // data sequence
         int dataCount = stoi(jsonStorage[jsonStorage.size() - 1]);
 
-        //
         int manifestID = 0;
 
         for (const auto &seqNum : m_updatesAck) {
@@ -380,7 +391,7 @@ private:
           m_theoreticalWindowSize++;
           m_step = 0;
         }
-        sendInterestNew(1);
+        sendNewInterest(1);
         m_flagData++;
       }
     }
@@ -451,7 +462,7 @@ private:
   void onNack(const ndn::Interest &interest, const ndn::lp::Nack &nack) {
     NDN_LOG_DEBUG("Received Nack with reason " << nack.getReason());
     m_scheduler.schedule(ndn::time::milliseconds(200),
-                         [this] { sendInterestNew(1); });
+                         [this] { sendNewInterest(1); });
     NDN_LOG_DEBUG("Retransmission: " << interest.getName());
   }
   /**
@@ -540,48 +551,45 @@ private:
       // if shifting (or increase) and IQ starts to increase, need to decrease
       // ws to stay under threshold
       resetWindow();
-      return;
     }
     // when both windows = 0
     if (m_theoreticalWindowSize == m_window.size() &&
         m_theoreticalWindowSize == 0 && m_flagNew) {
       m_theoreticalWindowSize++;
       m_step = 0;
-      sendInterestNew(1);
+      sendNewInterest(1);
 
     } else {
-      sendInterestNew(
+      sendNewInterest(
           m_theoreticalWindowSize -
           m_window.size()); // send 1 interest if shifting, more if ws increased
     }
   }
 
-  void sendInterestNew(int n) {
-    auto timeout = m_timedoutInterests.begin();
-    for (int i = 0; i < n; ++i) {
-      // retransmissions first
-      if (!m_timedoutInterests.empty()) {
-        timeout->second++;
-        m_window.push_back(timeout->first);
-        sendInterest(timeout->first);
-        if (timeout->second >= m_maxRetransmission) {
-          m_timedoutInterests.erase(timeout++);
-        } else {
-          timeout++;
-        }
-        if (timeout == m_timedoutInterests.end()) {
-          timeout = m_timedoutInterests.begin();
-        }
-
-      } else {
-        if (!m_interestQueue.empty()) {
-          m_tmp = m_interestQueue.waitAndPopValue();
-          m_window.push_back(m_tmp);
-          sendInterest(m_tmp);
-        } else {
-          flag = 0;
-        }
+  void retransmitTimedOutInterests() {
+    for (auto timedOutInterest : m_timedoutInterests) {
+      const ndn::Name name = timedOutInterest.first;
+      int timeOutCounter = ++timedOutInterest.second;
+      m_window.push_back(name);
+      sendInterest(name);
+      if (timeOutCounter >= m_maxRetransmission) {
+        m_timedoutInterests.erase(name);
       }
+    }
+  }
+
+  void sendNewInterest(int windowSize) {
+    retransmitTimedOutInterests();
+
+    for (int i = 0; i < windowSize; i++) {
+      if (m_interestQueue.empty()) {
+        m_flag = 0;
+        break;
+      }
+
+      ndn::Name interestName = m_interestQueue.waitAndPopValue();
+      m_window.push_back(interestName);
+      sendInterest(interestName);
     }
   }
 
@@ -601,8 +609,7 @@ private:
   std::list<ndn::Name> m_window;
   int m_theoreticalWindowSize = 0;
   int m_step = 0;
-  ndn::Name m_tmp;
-  int flag = 0;
+  int m_flag = 0;
   int m_flagData = 0;
   bool m_flagNew = true;
   int m_maxRetransmission = 2;
