@@ -215,7 +215,6 @@ private:
    * Handles ndn::Data from upstream producers
    *
    * Pushes the data to the Input Queue of the Consumer
-   *
    * then gradually increases the data fetching/Interest sending rate
    * using Additive Increase Multiplicative Decrease(AIMD) Congestion Control.
    *
@@ -225,6 +224,7 @@ private:
    * @param interest named data interest
    * @param data actual data objects
    */
+
   void onData(const ndn::Interest &interest, const ndn::Data &data) {
     ndn::Block cont;
     uint32_t contentType = data.getContentType();
