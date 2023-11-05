@@ -51,7 +51,6 @@ jobs:
 
   build-macos:
     runs-on: macos-latest
-    needs: build-ubuntu
 
     steps:
       - uses: actions/checkout@v3
