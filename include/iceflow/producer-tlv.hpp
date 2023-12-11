@@ -245,6 +245,7 @@ public:
   }
 
   std::vector<std::vector<uint8_t>>
+
   splitVector(std::vector<uint8_t> inputVector, unsigned segmentSize) {
     auto start = inputVector.begin();
     auto end = inputVector.end();

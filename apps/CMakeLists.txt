@@ -6,11 +6,12 @@ find_package(Boost)
 find_package(PkgConfig)
 pkg_check_modules(NDN_CXX REQUIRED libndn-cxx)
 pkg_check_modules(PSYNC REQUIRED PSync)
+pkg_check_modules(SVS REQUIRED ndn-svs)
 
 set(SOURCES
     ImageSource/imagesource.cpp PeopleCounter/peoplecounter.cpp
     FaceDetection/facedetection.cpp AgeDetection/agedetection.cpp
-    GenderDetection/genderdetection.cpp Aggregate/aggregate.cpp)
+    GenderDetection/genderdetection.cpp Aggregate/aggregate.cpp JsonSampleApp/functionA.cpp)
 
 foreach(SOURCE_FILE ${SOURCES})
   get_filename_component(EXECUTABLE_NAME ${SOURCE_FILE} NAME_WE)
@@ -31,6 +32,7 @@ foreach(SOURCE_FILE ${SOURCES})
       -lpthread
       -lPSync
       -lndn-cxx
+      -lndn-svs
       ${OpenCV_LIBS}
       -lboost_log-mt
       -lboost_chrono-mt
@@ -43,6 +45,7 @@ foreach(SOURCE_FILE ${SOURCES})
       -lboost_system
       -lpthread
       -lndn-cxx
+      -lndn-svs
       -lPSync
       ${OpenCV_LIBS}
       ${YAML_CPP_LIBRARIES})

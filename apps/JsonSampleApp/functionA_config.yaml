@@ -1,0 +1,5 @@
+Producer:
+  pub_syncPrefix             : /SampleJson/functionA
+  userPrefix_data_main       : /functionA/dataMain
+  nDataStreams               : [1,2,3]
+
