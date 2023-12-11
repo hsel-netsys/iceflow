@@ -19,7 +19,9 @@
 #ifndef ICEFLOW_CORE_MEASUREMENTS_H
 #define ICEFLOW_CORE_MEASUREMENTS_H
 
+#include <filesystem>
 #include <fstream>
+#include <iostream>
 
 #include "logger.hpp"
 
@@ -45,8 +47,32 @@ public:
     m_lastSaveToFile = duration_cast<std::chrono::milliseconds>(
                            std::chrono::system_clock::now().time_since_epoch())
                            .count();
+    createMeasurementFolder();
   }
-  ~Measurement() {}
+  ~Measurement(){};
+
+  void createMeasurementFolder() {
+    std::string folderName = "measurements";
+
+    // Combine the current working directory with the folder name
+    std::filesystem::path folderPath =
+        std::filesystem::current_path() / folderName;
+
+    // Check if the folder already exists
+    if (!std::filesystem::exists(folderPath)) {
+      // Create the folder
+      if (std::filesystem::create_directory(folderPath)) {
+        std::cout << "Folder created successfully in the current directory."
+                  << std::endl;
+      } else {
+        std::cerr << "Error creating folder." << std::endl;
+      }
+    } else {
+      std::cout << "Folder already exists in the current directory."
+                << std::endl;
+    }
+  }
+
   void setField(const std::string &interestName, const std::string &entryName,
                 int dataSize) {
     NDN_LOG_DEBUG("################# SETTING FIELD "
