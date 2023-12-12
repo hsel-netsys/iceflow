@@ -43,8 +43,8 @@ public:
 
     // Do not fetch publications older than 10 seconds
     ndn::svs::SVSPubSubOptions opts;
-    opts.UseTimestamp = true;
-    opts.MaxPubAge = ndn::time::milliseconds(10000);
+    opts.useTimestamp = true;
+    opts.maxPubAge = ndn::time::milliseconds(10000);
 
     m_svsps = std::make_shared<ndn::svs::SVSPubSub>(
         ndn::Name(syncPrefix), ndn::Name(topic), ndnInterFace,
