@@ -6,7 +6,7 @@ find_package(Boost)
 find_package(PkgConfig)
 pkg_check_modules(NDN_CXX REQUIRED libndn-cxx)
 pkg_check_modules(PSYNC REQUIRED PSync)
-pkg_check_modules(SVS REQUIRED ndn-svs)
+pkg_check_modules(SVS REQUIRED libndn-svs)
 
 set(SOURCES
     ImageSource/imagesource.cpp PeopleCounter/peoplecounter.cpp
