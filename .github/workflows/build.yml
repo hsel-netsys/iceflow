@@ -76,6 +76,15 @@ jobs:
           sudo ./waf install
           cd ..
 
+      - name: Install ndn-svs
+        run: |
+          git clone https://github.com/named-data/ndn-svs.git
+          cd ndn-svs
+          ./waf configure
+          ./waf
+          sudo ./waf install
+          cd ..
+
       - name: Generate CMake Build Files
         run: cmake -DBUILD_TESTS=ON .
 
