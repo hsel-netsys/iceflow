@@ -61,7 +61,8 @@ public:
       run();
     }
   }
-	virtual ~IceFlowPubSub() = default;
+  virtual ~IceFlowPubSub() = default;
+
 public:
   RingBuffer<std::string> outputQueue;
   RingBuffer<std::string> inputQueue;
@@ -136,8 +137,8 @@ public:
   }
 
   void storeFromQueue(ndn::Name namedData, std::string data) {
-//    dataStorage.emplace(std::pair(namedData, data));
-	  dataStorage.insert(std::pair(namedData, data));
+    //    dataStorage.emplace(std::pair(namedData, data));
+    dataStorage.insert(std::pair(namedData, data));
   }
 
   void sendInterest(const ndn::Name &prefix) {

@@ -21,16 +21,16 @@
 #include "IceFlowPubSubBase.hpp"
 #include <string>
 namespace iceflow {
-	class Consumer {
-	public:
-		Consumer(const std::string &syncPrefix, const std::string &topic,
-		         const std::vector<int> &nTopic)
-				: baseConsumer(syncPrefix, topic, nTopic) {}
+class Consumer {
+public:
+  Consumer(const std::string &syncPrefix, const std::string &topic,
+           const std::vector<int> &nTopic)
+      : baseConsumer(syncPrefix, topic, nTopic) {}
 
-		void receive() { baseConsumer.inputQueue.waitAndPopValue(); }
+  void receive() { baseConsumer.inputQueue.waitAndPopValue(); }
 
-	private:
-		iceflow::IceFlowPubSub baseConsumer;
-	};
-}
+private:
+  iceflow::IceFlowPubSub baseConsumer;
+};
+} // namespace iceflow
 #endif // ICEFLOW_CONSUMER_HPP

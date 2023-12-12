@@ -20,19 +20,18 @@
 
 #include <string>
 namespace iceflow {
-	class Producer {
+class Producer {
 
-	public:
-		Producer(const std::string &syncPrefix, const std::string &topic,
-		         const std::vector<int> &nTopic) : baseProducer(syncPrefix, topic, nTopic) {}
+public:
+  Producer(const std::string &syncPrefix, const std::string &topic,
+           const std::vector<int> &nTopic)
+      : baseProducer(syncPrefix, topic, nTopic) {}
 
-		virtual ~Producer() = default;
+  virtual ~Producer() = default;
 
-		void push(std::string data) {
-			baseProducer.outputQueue.push(data);
-		}
+  void push(std::string data) { baseProducer.outputQueue.push(data); }
 
-	private:
-		iceflow::IceFlowPubSub baseProducer;
-	};
-}
+private:
+  iceflow::IceFlowPubSub baseProducer;
+};
+} // namespace iceflow
