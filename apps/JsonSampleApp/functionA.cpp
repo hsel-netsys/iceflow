@@ -1,33 +1,35 @@
-// #include <utility>
-// #include "fstream"
 #include "iceflow/Producer.hpp"
-#include "thread"
-#include "yaml-cpp/yaml.h"
+#include <iostream>
+#include <thread>
+#include <vector>
+#include <yaml-cpp/yaml.h>
 
 class Compute {
-
 public:
-  void compute(std::string &pub_syncPrefix, std::string &userPrefix_data_main,
-               std::vector<int> nDataStreams) {
-    auto producer = new iceflow::Producer(pub_syncPrefix, userPrefix_data_main,
-                                          nDataStreams);
-    int i = 0;
-    while (true) {
-      std::string data = "Hello" + std::to_string(i);
-      std::cout << "Data: " << data << std::endl;
+  void compute(std::function<void(std::string)> push) {
+    int i = 1;
+    while (i < 5000) {
+      std::string data = std::to_string(i) + "Hello ";
+      std::cout << data << std::endl;
       i++;
-      producer->push(data);
+      push(data);
     }
   }
 };
 
-void DataFlow(std::string &pub_syncPrefix, std::string &userPrefix_data_main,
-              std::vector<int> &nDataStreams) {
-  auto *compute = new Compute();
+void DataFlow(const std::string &pub_syncPrefix,
+              const std::string &userPrefix_data_main,
+              const std::vector<int> &nDataStreams) {
+  Compute compute;
+  ndn::Face interFace;
+  iceflow::Producer producer(pub_syncPrefix, userPrefix_data_main, nDataStreams,
+                             interFace);
+
   std::vector<std::thread> ProducerThreads;
-  ProducerThreads.emplace_back(
-      &Compute::compute, compute, std::ref(pub_syncPrefix),
-      std::ref(userPrefix_data_main), std::ref(nDataStreams));
+  ProducerThreads.emplace_back(&iceflow::Producer::run, &producer);
+  ProducerThreads.emplace_back([&compute, &producer]() {
+    compute.compute([&producer](std::string data) { producer.push(data); });
+  });
 
   for (auto &t : ProducerThreads) {
     t.join();
@@ -41,8 +43,6 @@ int main(int argc, char *argv[]) {
     return 1;
   }
 
-  std::vector<std::thread> ProducerThreads;
-
   YAML::Node config = YAML::LoadFile(argv[1]);
 
   auto pub_syncPrefix = config["Producer"]["pub_syncPrefix"].as<std::string>();
@@ -52,8 +52,9 @@ int main(int argc, char *argv[]) {
 
   try {
     DataFlow(pub_syncPrefix, userPrefix_data_main, nDataStreams);
-
   } catch (const std::exception &e) {
-    std::cout << (e.what()) << std::endl;
+    std::cout << e.what() << std::endl;
   }
+
+  return 0;
 }

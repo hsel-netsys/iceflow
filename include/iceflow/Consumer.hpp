@@ -18,19 +18,36 @@
 
 #ifndef ICEFLOW_Consumer_HPP
 #define ICEFLOW_Consumer_HPP
-#include "IceFlowPubSubBase.hpp"
+#include "IceFlowPubBase.hpp"
 #include <string>
+
 namespace iceflow {
 class Consumer {
 public:
   Consumer(const std::string &syncPrefix, const std::string &topic,
-           const std::vector<int> &nTopic)
-      : baseConsumer(syncPrefix, topic, nTopic) {}
+           const std::vector<int> &nTopic, ndn::Face &interFace)
+      : subscribedTopic(topic), ConsumerFace(interFace),
+        baseConsumer(syncPrefix, topic, nTopic, interFace) {}
 
-  void receive() { baseConsumer.inputQueue.waitAndPopValue(); }
+  std::string receive() {
+    auto receivedData = baseConsumer.inputQueue.waitAndPopValue();
+    return receivedData;
+  }
+  void run() {
+    std::vector<std::thread> processing_threads;
+    baseConsumer.subscribe(subscribedTopic);
+    processing_threads.emplace_back([this] { ConsumerFace.processEvents(); });
+    int threadCounter = 0;
+    for (auto &thread : processing_threads) {
+      std::cout << "Thread " << threadCounter++ << " started" << std::endl;
+      thread.join();
+    }
+  }
 
 private:
-  iceflow::IceFlowPubSub baseConsumer;
+  iceflow::IceFlowPub baseConsumer;
+  std::string subscribedTopic;
+  ndn::Face &ConsumerFace;
 };
 } // namespace iceflow
 #endif // ICEFLOW_CONSUMER_HPP

@@ -1,91 +1,36 @@
-//
-// Created by Laura Alwardani on 25.08.22.
-//
-#include "core/consumer_psync.hpp"
-#include "core/consumer_tlv.hpp"
-#include "core/producer_psync.hpp"
-#include "core/producer_tlv.hpp"
-
-#include "yaml-cpp/yaml.h"
-#include <thread>
-
+#include "iceflow/Consumer.hpp"
 #include <iostream>
-#include <iterator>
-#include <tuple>
+#include <thread>
+#include <vector>
+#include <yaml-cpp/yaml.h>
 
 using namespace std;
 
 class Compute {
-
 public:
-  [[noreturn]] void compute(TSQueue<IceFlowBlock> *input,
-                            TSQueue<IceFlowBlock> *output,
-                            int output_threshold) {
-
+  void compute(std::function<std::string()> receive) {
     while (true) {
-      auto input_data = input->waitAndPopValue();
-      auto json_data = input_data.pullJson();
-      cout << "input data: " << json_data.getJson() << endl;
-      usleep(100000);
-
-      IceFlowBlock result_block;
-      result_block.pushJson(json_data);
-      output->pushData(result_block, output_threshold);
+      receive();
     }
   }
-
-private:
 };
 
-[[noreturn]] void fusion(vector<TSQueue<IceFlowBlock> *> *inputs,
-                         TSQueue<IceFlowBlock> *totalInput) {
-  while (!inputs->empty()) {
-    for (auto &input : *inputs) {
-      auto frame_fg = input->waitAndPopValue();
-      totalInput->push(frame_fg);
-    }
-  }
-}
+void DataFlow(const std::string &sub_syncPrefix,
+              const std::string &userPrefix_data_main,
+              const std::vector<int> &nDataStreams) {
+  Compute compute;
+  ndn::Face interFace;
+  iceflow::Consumer consumer(sub_syncPrefix, userPrefix_data_main, nDataStreams,
+                             interFace);
 
-void DataFlow(string &sub_syncPrefix, int sub, string &sub_Prefix_data_main,
-              string &sub_Prefix_ack, int input_threshold,
-              string &pub_syncPrefix, string &userPrefix_data_main,
-              const string &userPrefix_data_manifest,
-              const string &userPrefix_ack, int nDataStreams,
-              int publish_interval, int publish_interval_new,
-              int names_in_manifest, int output_threshold, int map_threshold) {
-  vector<TSQueue<IceFlowBlock> *> inputs;
-  TSQueue<IceFlowBlock> totalInput;
-  // Data
-  auto *simple_producer =
-      new ProducerTLV(pub_syncPrefix, userPrefix_data_main,
-                      userPrefix_data_manifest, userPrefix_ack, nDataStreams,
-                      publish_interval, publish_interval_new, map_threshold);
+  std::vector<std::thread> ConsumerThreads;
+  ConsumerThreads.emplace_back(&iceflow::Consumer::run, &consumer);
+  ConsumerThreads.emplace_back([&compute, &consumer]() {
+    compute.compute(
+        [&consumer]() -> std::string { return consumer.receive(); });
+  });
 
-  auto *simple_consumer = new ConsumerTLV(sub_syncPrefix, sub_Prefix_data_main,
-                                          sub_Prefix_ack, sub, input_threshold);
-
-  auto *compute = new Compute();
-
-  inputs.push_back(&simple_consumer->input_queue_block);
-
-  std::thread th1(&ConsumerTLV::run_con, simple_consumer);
-  std::thread th2(&fusion, &inputs, &totalInput);
-  std::thread th3(&Compute::compute, compute, &totalInput,
-                  &simple_producer->output_queue_block, output_threshold);
-  std::thread th4(&ProducerTLV::run_pro, simple_producer);
-
-  vector<std::thread> ProducerThreads;
-  ProducerThreads.push_back(std::move(th1));
-  //    cout << "Thread " << ProducerThreads.size() << " Started" << endl;
-  ProducerThreads.push_back(std::move(th2));
-  //    cout << "Thread " << ProducerThreads.size() << " Started" << endl;
-  ProducerThreads.push_back(std::move(th3));
-  //    cout << "Thread " << ProducerThreads.size() << " Started" << endl;
-  ProducerThreads.push_back(std::move(th4));
-  //    cout << "Thread " << ProducerThreads.size() << " Started" << endl;
-
-  for (auto &t : ProducerThreads) {
+  for (auto &t : ConsumerThreads) {
     t.join();
   }
 }
@@ -104,36 +49,28 @@ int main(int argc, char *argv[]) {
   auto sub_syncPrefix = config["Consumer"]["sub_syncPrefix"].as<string>();
   auto sub_Prefix_data_main =
       config["Consumer"]["sub_Prefix_data_main"].as<string>();
-  auto sub_Prefix_data_manifest =
-      config["Consumer"]["sub_Prefix_data_manifest"].as<string>();
-  auto sub_prefix_ack = config["Consumer"]["sub_Prefix_ack"].as<string>();
-  int nSub = config["Consumer"]["nSub"].as<int>();
-  int input_threshold = config["Consumer"]["input_threshold"].as<int>();
+  auto nDataStreams = config["Consumer"]["nSub"].as<std::vector<int>>();
 
   // ----------------------- Producer -----------------------------------------
 
-  auto pub_syncPrefix = config["Producer"]["pub_syncPrefix"].as<string>();
-  auto userPrefix_data_main =
-      config["Producer"]["userPrefix_data_main"].as<string>();
-  auto userPrefix_data_manifest =
-      config["Producer"]["userPrefix_data_manifest"].as<string>();
-  auto userPrefix_ack = config["Producer"]["userPrefix_ack"].as<string>();
-  int nDataStreams = config["Producer"]["nDataStreams"].as<int>();
-  int publish_interval = config["Producer"]["publish_interval"].as<int>();
-  int publish_interval_new =
-      config["Producer"]["publish_interval_new"].as<int>();
-  int output_threshold = config["Producer"]["output_threshold"].as<int>();
-  int names_in_manifest = config["Producer"]["names_in_manifest"].as<int>();
-  int map_threshold = config["Producer"]["map_threshold"].as<int>();
+  //  auto pub_syncPrefix = config["Producer"]["pub_syncPrefix"].as<string>();
+  //  auto userPrefix_data_main =
+  //      config["Producer"]["userPrefix_data_main"].as<string>();
+  //  auto userPrefix_data_manifest =
+  //      config["Producer"]["userPrefix_data_manifest"].as<string>();
+  //  auto userPrefix_ack = config["Producer"]["userPrefix_ack"].as<string>();
+  //  int nPub = config["Producer"]["nDataStreams"].as<int>();
+  //  int publish_interval = config["Producer"]["publish_interval"].as<int>();
+  //  int publish_interval_new =
+  //      config["Producer"]["publish_interval_new"].as<int>();
+  //  int output_threshold = config["Producer"]["output_threshold"].as<int>();
+  //  int names_in_manifest = config["Producer"]["names_in_manifest"].as<int>();
+  //  int map_threshold = config["Producer"]["map_threshold"].as<int>();
 
   // --------------------------------------------------------------------------
 
   try {
-    DataFlow(sub_syncPrefix, nSub, sub_Prefix_data_main, sub_prefix_ack,
-             input_threshold, pub_syncPrefix, userPrefix_data_main,
-             userPrefix_data_manifest, userPrefix_ack, nDataStreams,
-             publish_interval, publish_interval_new, names_in_manifest,
-             output_threshold, map_threshold);
+    DataFlow(sub_syncPrefix, sub_Prefix_data_main, nDataStreams);
   }
 
   catch (const std::exception &e) {

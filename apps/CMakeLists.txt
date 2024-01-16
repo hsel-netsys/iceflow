@@ -11,7 +11,7 @@ pkg_check_modules(SVS REQUIRED libndn-svs)
 set(SOURCES
     ImageSource/imagesource.cpp PeopleCounter/peoplecounter.cpp
     FaceDetection/facedetection.cpp AgeDetection/agedetection.cpp
-    GenderDetection/genderdetection.cpp Aggregate/aggregate.cpp JsonSampleApp/functionA.cpp)
+    GenderDetection/genderdetection.cpp Aggregate/aggregate.cpp JsonSampleApp/functionA.cpp JsonSampleApp/functionB.cpp)
 
 foreach(SOURCE_FILE ${SOURCES})
   get_filename_component(EXECUTABLE_NAME ${SOURCE_FILE} NAME_WE)

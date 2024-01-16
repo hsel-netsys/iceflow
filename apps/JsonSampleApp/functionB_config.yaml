@@ -1,9 +1,9 @@
 Consumer:
-  sub_syncPrefix            : /SampleJson/functionA
-  sub_Prefix_data_main      : /functionA/dataMain/0
+  sub_syncPrefix            : /SampleJson
+  sub_Prefix_data_main      : /functionA/dataMain
   sub_Prefix_data_manifest  : /functionA/dataManifest/0
   sub_Prefix_ack            : /functionA/ack
-  nSub                      : 1
+  nSub                      : [1,2,3]
   input_threshold           : 200
 
 Producer:

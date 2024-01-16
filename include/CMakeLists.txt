@@ -1,12 +1,12 @@
 project(${CMAKE_PROJECT_NAME})
 
-add_library(iceflow INTERFACE ${ICEFLOW_INTERFACE_FILES})
+add_library(iceflow INTERFACE ${ICEFLOW_INTERFACE_FILES} iceflow/IceFlowSubBase.hpp)
 
 set(ICEFLOW_INTERFACE_FILES
     iceflow/block.hpp
     iceflow/constants.hpp
     iceflow/consumer-tlv.hpp
-        iceflow/IceFlowPubSubBase.hpp
+        iceflow/IceFlowPubBase.hpp
     iceflow/content-type-value.hpp
     iceflow/data.hpp
     iceflow/logger.hpp

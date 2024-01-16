@@ -16,22 +16,35 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "IceFlowPubSubBase.hpp"
-
+#include "IceFlowPubBase.hpp"
+#include "ndn-cxx/face.hpp"
 #include <string>
 namespace iceflow {
 class Producer {
 
 public:
   Producer(const std::string &syncPrefix, const std::string &topic,
-           const std::vector<int> &nTopic)
-      : baseProducer(syncPrefix, topic, nTopic) {}
+           const std::vector<int> &nTopic, ndn::Face &interFace)
+      : ProducerFace(interFace),
+        baseProducer(syncPrefix, topic, nTopic, interFace) {}
 
   virtual ~Producer() = default;
 
-  void push(std::string data) { baseProducer.outputQueue.push(data); }
+  void push(std::string &data) { baseProducer.outputQueue.push(data); }
+
+  void run() {
+    std::vector<std::thread> processing_threads;
+    processing_threads.emplace_back([this] { baseProducer.publishMsg(); });
+    processing_threads.emplace_back([this] { ProducerFace.processEvents(); });
+    int threadCounter = 0;
+    for (auto &thread : processing_threads) {
+      std::cout << "Thread " << threadCounter++ << " started" << std::endl;
+      thread.join();
+    }
+  }
 
 private:
-  iceflow::IceFlowPubSub baseProducer;
+  iceflow::IceFlowPub baseProducer;
+  ndn::Face &ProducerFace;
 };
 } // namespace iceflow
