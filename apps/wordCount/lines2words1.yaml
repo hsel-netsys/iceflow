@@ -1,0 +1,19 @@
+Consumer:
+  sub_syncPrefix            : /wordcount
+  sub_Prefix_data_main      : /text2lines/dataMain
+  sub_Prefix_data_manifest  : /text2lines/dataManifest/0
+  sub_Prefix_ack            : /text2lines/ack
+  nSub                      : [1,2]
+  input_threshold           : 200
+
+Producer:
+  pub_syncPrefix             : /wordcount
+  pub_Prefix_data_main       : /lines2words/dataMain
+  userPrefix_data_manifest   : /lines2words/dataManifest
+  userPrefix_ack             : /lines2words/ack
+  nDataStreams               : [1,2]
+  publish_interval           : 0
+  publish_interval_new       : 100
+  output_threshold           : 50
+  names_in_manifest          : 200
+  map_threshold              : 200

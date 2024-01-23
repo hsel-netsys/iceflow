@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#ifndef ICEFLOW_IceFlowPub_HPP
+#define ICEFLOW_IceFlowPub_HPP
 #include "constants.hpp"
 #include "data.hpp"
 #include "logger.hpp"
@@ -32,19 +34,27 @@ class IceFlowPub {
 
 public:
   IceFlowPub(const std::string &syncPrefix, const std::string &topic,
-             const std::vector<int> &nTopic, ndn::Face &interFace)
-      : ndnInterFace(interFace), m_scheduler(ndnInterFace.getIoContext()),
-        pubTopic(topic), topicPartition(nTopic) {
-
+             const std::vector<int> &nTopic, ndn::Face &interFace,
+             boost::asio::io_context &ioContext)
+      : ndnInterFace(interFace), m_scheduler(ioContext), pubTopic(topic),
+        topicPartition(nTopic) {
+    //	  std::cout<<"Starting IceFlow Stream Processing - - - - 2"<<std::endl;
     ndn::svs::SecurityOptions secOpts(m_keyChain);
 
     // Do not fetch publications older than 10 seconds
     ndn::svs::SVSPubSubOptions opts;
     //    opts.maxPubAge = ndn::time::milliseconds(10000);
 
-    m_SvSPro = std::make_shared<ndn::svs::SVSPubSub>(
-        ndn::Name(syncPrefix), ndn::Name(pubTopic), ndnInterFace,
-        std::bind(&IceFlowPub::fetchingStateVector, this, _1), opts, secOpts);
+    for (int partitionNr = 0; partitionNr < topicPartition.size();
+         ++partitionNr) {
+      auto svsProd = std::make_shared<ndn::svs::SVSPubSub>(
+          ndn::Name(syncPrefix),
+          ndn::Name(pubTopic + "/" +
+                    std::to_string(topicPartition[partitionNr])),
+          ndnInterFace, std::bind(&IceFlowPub::fetchingStateVector, this, _1),
+          opts, secOpts);
+      m_SvSProds.emplace_back(svsProd);
+    }
   }
 
   virtual ~IceFlowPub() = default;
@@ -52,14 +62,19 @@ public:
 public:
   RingBuffer<std::string> outputQueue;
   RingBuffer<std::string> inputQueue;
-  ndn::Face &ndnInterFace;
 
   void subscribe(std::string subscribeTopic) {
     // Allows consumer to select a particular topic partition
-    auto subscribed = m_SvSPro->subscribe(
-        subscribeTopic,
-        std::bind(&IceFlowPub::subscribeCallBack, this, std::placeholders::_1));
-    std::cout << "Subscribed to: " << subscribed << std::endl;
+    for (int partitionNr = 0; partitionNr < topicPartition.size();
+         ++partitionNr) {
+      auto subscribedTopic =
+          subscribeTopic + "/" + std::to_string(topicPartition[partitionNr]);
+           std::cout << "Subscribed to: " << subscribedTopic << std::endl;
+      auto subscribed = m_SvSProds[partitionNr]->subscribe(
+          subscribedTopic, std::bind(&IceFlowPub::subscribeCallBack, this,
+                                     std::placeholders::_1));
+     
+    }
   }
 
   void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData) {
@@ -70,12 +85,12 @@ public:
                         subData.data.size());
     std::cout << subData.producerPrefix << " [" << subData.seqNo
               << "] : " << subData.name << " : ";
-    if (content.length() > 200) {
-      std::cout << "[LONG] " << content.length() << " bytes"
-                << " [" << std::hash<std::string>{}(content) << "]";
-    } else {
-      std::cout << content;
-    }
+    // if (content.length() > 200) {
+    //   std::cout << "[LONG] " << content.length() << " bytes"
+    //             << " [" << std::hash<std::string>{}(content) << "]";
+    // } else {
+    //   std::cout << content;
+    // }
     std::cout << std::endl;
     inputQueue.push(content);
   }
@@ -106,14 +121,18 @@ public:
     if (!outputQueue.empty()) {
       auto dataID = prepareDataName();
       auto payload = outputQueue.waitAndPopValue();
-      std::cout << "Payload: " << payload << std::endl;
+      std::cout << "dataID: " << dataID << std::endl;
       auto encodedContent = ndn::make_span(
           reinterpret_cast<const uint8_t *>(payload.data()), payload.size());
-      auto sequenceNo = m_SvSPro->publish(pubTopic, encodedContent, ndn::Name(),
-                                          ndn::time::milliseconds(10));
-      std::cout << "Publish: " << pubTopic << "/" << sequenceNo << std::endl;
+
+      for (int producerNr = 0; producerNr < m_SvSProds.size(); ++producerNr) {
+        auto sequenceNo = m_SvSProds[producerNr]->publish(
+            dataID, encodedContent, ndn::Name(), ndn::time::milliseconds(10));
+        std::cout << "Publish: " << dataID << "/" << sequenceNo << std::endl;
+      }
     }
-    m_scheduler.schedule(ndn::time::milliseconds(1), [this] { publishMsg(); });
+    m_scheduler.schedule(ndn::time::milliseconds(100),
+                         [this] { publishMsg(); });
   }
 
   void storeFromQueue(ndn::Name &namedData, ndn::Block &data) {
@@ -140,16 +159,23 @@ public:
   }
 
 private:
-  std::shared_ptr<ndn::svs::SVSPubSub> m_SvSPro;
+  // ndn
   ndn::Scheduler m_scheduler;
   ndn::KeyChain m_keyChain;
+  ndn::Face &ndnInterFace;
+  ndn::Name dataName;
+
+  // SVS
+  std::vector<std::shared_ptr<ndn::svs::SVSPubSub>> m_SvSProds;
   const ndn::svs::UpdateCallback m_onUpdate;
   int partitionCount = 1;
   const std::string pubTopic;
   const std::vector<int> topicPartition;
-  ndn::Name dataName;
+
   int dataCount = 1;
-  std::map<ndn::Name, ndn::Block> dataStorage;
+
+  std::map<ndn::Name, ndn::Block> dataStorage; // Storage
 };
 
 } // namespace iceflow
+#endif // ICEFLOW_ICEFLOWPUB_HPP

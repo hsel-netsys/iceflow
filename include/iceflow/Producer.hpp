@@ -15,7 +15,8 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#ifndef ICEFLOW_Producer_HPP
+#define ICEFLOW_Producer_HPP
 #include "IceFlowPubBase.hpp"
 #include "ndn-cxx/face.hpp"
 #include <string>
@@ -26,7 +27,11 @@ public:
   Producer(const std::string &syncPrefix, const std::string &topic,
            const std::vector<int> &nTopic, ndn::Face &interFace)
       : ProducerFace(interFace),
-        baseProducer(syncPrefix, topic, nTopic, interFace) {}
+
+        baseProducer(syncPrefix, topic, nTopic, interFace,
+                     interFace.getIoContext()) {
+    std::cout << "Starting IceFlow Stream Processing - - - - 4" << std::endl;
+  }
 
   virtual ~Producer() = default;
 
@@ -38,7 +43,8 @@ public:
     processing_threads.emplace_back([this] { ProducerFace.processEvents(); });
     int threadCounter = 0;
     for (auto &thread : processing_threads) {
-      std::cout << "Thread " << threadCounter++ << " started" << std::endl;
+      std::cout << "Producer Thread " << threadCounter++ << " started"
+                << std::endl;
       thread.join();
     }
   }
@@ -48,3 +54,4 @@ private:
   ndn::Face &ProducerFace;
 };
 } // namespace iceflow
+#endif // ICEFLOW_PRODUCER_HPP
