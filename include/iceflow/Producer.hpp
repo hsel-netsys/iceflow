@@ -31,14 +31,30 @@ public:
         baseProducer(syncPrefix, topic, nTopic, interFace,
                      interFace.getIoContext()) {
     std::cout << "Starting IceFlow Producer - - - -" << std::endl;
+    settingUpNFDStrategy(syncPrefix);
   }
 
   virtual ~Producer() = default;
 
-  void push(std::string &data) { baseProducer.outputQueue.push(data); }
+  void push(const std::string &data) { baseProducer.outputQueue.push(data); }
+
+  void settingUpNFDStrategy(const std::string &syncPrefix){
+    std::string command = "nfdc strategy set " +  syncPrefix + " /localhost/nfd/strategy/multicast" ;
+
+    // Execute the command using std::system
+    int result = std::system(command.c_str());
+
+    // Check the result of the command execution
+    if (result == 0) {
+        std::cout << "Multicast Strategy Set -> " << syncPrefix << std::endl;
+    } else {
+        std::cerr << "NFD Strategy Fault - - " << std::endl;
+    }
+  }
 
   void run() {
     std::vector<std::thread> processing_threads;
+    
     processing_threads.emplace_back([this] { ProducerFace.processEvents(); });
     baseProducer.publishMsg();
     int threadCounter = 0;
