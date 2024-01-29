@@ -30,7 +30,7 @@ public:
 
         baseProducer(syncPrefix, topic, nTopic, interFace,
                      interFace.getIoContext()) {
-    std::cout << "Starting IceFlow Stream Processing - - - - 4" << std::endl;
+    std::cout << "Starting IceFlow Producer - - - -" << std::endl;
   }
 
   virtual ~Producer() = default;
@@ -39,8 +39,8 @@ public:
 
   void run() {
     std::vector<std::thread> processing_threads;
-    processing_threads.emplace_back([this] { baseProducer.publishMsg(); });
     processing_threads.emplace_back([this] { ProducerFace.processEvents(); });
+    baseProducer.publishMsg();
     int threadCounter = 0;
     for (auto &thread : processing_threads) {
       std::cout << "Producer Thread " << threadCounter++ << " started"

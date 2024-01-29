@@ -38,7 +38,7 @@ public:
              boost::asio::io_context &ioContext)
       : ndnInterFace(interFace), m_scheduler(ioContext), pubTopic(topic),
         topicPartition(nTopic) {
-    //	  std::cout<<"Starting IceFlow Stream Processing - - - - 2"<<std::endl;
+
     ndn::svs::SecurityOptions secOpts(m_keyChain);
 
     // Do not fetch publications older than 10 seconds
@@ -69,11 +69,10 @@ public:
          ++partitionNr) {
       auto subscribedTopic =
           subscribeTopic + "/" + std::to_string(topicPartition[partitionNr]);
-           std::cout << "Subscribed to: " << subscribedTopic << std::endl;
+      std::cout << "Subscribed to: " << subscribedTopic << std::endl;
       auto subscribed = m_SvSProds[partitionNr]->subscribe(
           subscribedTopic, std::bind(&IceFlowPub::subscribeCallBack, this,
                                      std::placeholders::_1));
-     
     }
   }
 
@@ -98,13 +97,13 @@ public:
   void fetchingStateVector(
       const std::vector<ndn::svs::MissingDataInfo> &missing_data) {
     // Iterate over the entire difference set
-    //    for (const auto &info : missing_data) {
-    //      // Iterate over each new sequence number that we learned
-    //      for (ndn::svs::SeqNo sequence = info.low; sequence <= info.high;
-    //           ++sequence) {
-    //        // Process the missing data info here if needed
-    //      }
-    //    }
+    for (const auto &info : missing_data) {
+      // Iterate over each new sequence number that we learned
+      for (ndn::svs::SeqNo sequence = info.low; sequence <= info.high;
+           ++sequence) {
+        // Process the missing data info here if needed
+      }
+    }
   }
 
   ndn::Name prepareDataName() {
@@ -119,19 +118,19 @@ public:
 
   void publishMsg() {
     if (!outputQueue.empty()) {
-      auto dataID = prepareDataName();
-      auto payload = outputQueue.waitAndPopValue();
-      std::cout << "dataID: " << dataID << std::endl;
-      auto encodedContent = ndn::make_span(
-          reinterpret_cast<const uint8_t *>(payload.data()), payload.size());
 
       for (int producerNr = 0; producerNr < m_SvSProds.size(); ++producerNr) {
+        auto dataID = prepareDataName();
+        auto payload = outputQueue.waitAndPopValue();
+        std::cout << dataID << "/" << std::endl;
+        auto encodedContent = ndn::make_span(
+            reinterpret_cast<const uint8_t *>(payload.data()), payload.size());
         auto sequenceNo = m_SvSProds[producerNr]->publish(
-            dataID, encodedContent, ndn::Name(), ndn::time::milliseconds(10));
-        std::cout << "Publish: " << dataID << "/" << sequenceNo << std::endl;
+            dataID, encodedContent, ndn::Name(), ndn::time::milliseconds(4000));
+        // std::cout << "Publish: " << dataID << "/" << sequenceNo << std::endl;
       }
     }
-    m_scheduler.schedule(ndn::time::milliseconds(100),
+    m_scheduler.schedule(ndn::time::milliseconds(500),
                          [this] { publishMsg(); });
   }
 

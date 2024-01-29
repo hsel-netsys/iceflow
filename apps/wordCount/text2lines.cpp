@@ -7,8 +7,11 @@
 
 class Compute {
 public:
-  void compute(const std::string &filename,
-               std::function<void(std::string)> push) {
+  void text2lines(const std::string &filename,
+                  std::function<void(std::string)> push) {
+    auto application = applicationName();
+    std::cout << "Starting " << application << " Application - - - - "
+              << std::endl;
     std::ifstream file;
     file.open(filename);
 
@@ -22,25 +25,49 @@ public:
       std::cerr << "Error opening file: " << filename << std::endl;
     }
   }
+
+  std::string applicationName() {
+    const char *fullPath = __FILE__;
+    const char *fileNameWithExtension =
+        strrchr(fullPath, '/'); // For Unix-like paths
+    // const char* fileNameWithExtension = strrchr(fullPath, '\\'); // For
+    // Windows paths
+
+    if (fileNameWithExtension == nullptr) {
+      // If no directory separator is found, use the whole path
+      fileNameWithExtension = fullPath;
+    } else {
+      // Move one character ahead to exclude the directory separator
+      fileNameWithExtension++;
+    }
+
+    const char *fileName = strrchr(fileNameWithExtension, '.');
+
+    if (fileName != nullptr) {
+      // If a dot (.) is found, truncate the string at that position
+      size_t length = fileName - fileNameWithExtension;
+      char appName[length + 1];
+      strncpy(appName, fileNameWithExtension, length);
+      appName[length] = '\0';
+      return appName;
+    }
+  }
 };
 
 void DataFlow(const std::string &pub_syncPrefix,
               const std::string &userPrefix_data_main,
               std::vector<int> &nDataStreams, const std::string &filename) {
+  std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
   Compute compute;
   ndn::Face interFace;
 
-  std::cout << "Starting IceFlow Stream Processing - - - - 2 " << pub_syncPrefix
-            << " " << userPrefix_data_main << " " << nDataStreams.size() << " "
-            << filename + " " << std::endl;
   iceflow::Producer producer(pub_syncPrefix, userPrefix_data_main, nDataStreams,
                              interFace);
-  std::cout << "Starting IceFlow Stream Processing - - - - 3" << std::endl;
   std::vector<std::thread> ProducerThreads;
   ProducerThreads.emplace_back(&iceflow::Producer::run, &producer);
   ProducerThreads.emplace_back([&compute, &producer, &filename]() {
-    compute.compute(filename,
-                    [&producer](std::string data) { producer.push(data); });
+    compute.text2lines(filename,
+                       [&producer](std::string data) { producer.push(data); });
   });
 
   for (auto &t : ProducerThreads) {
@@ -57,19 +84,16 @@ int main(int argc, char *argv[]) {
 
   YAML::Node config = YAML::LoadFile(argv[1]);
 
-  auto pub_syncPrefix = config["Producer"]["pub_syncPrefix"].as<std::string>();
-  auto userPrefix_data_main =
-      config["Producer"]["userPrefix_data_main"].as<std::string>();
-  auto nDataStreams = config["Producer"]["nDataStreams"].as<std::vector<int>>();
-  std::cout << nDataStreams.size() << std::endl;
+  auto pubsyncPrefix = config["Producer"]["pubsyncPrefix"].as<std::string>();
+  auto pubPrefixdatamain =
+      config["Producer"]["pubPrefixdatamain"].as<std::string>();
+  auto nPartition = config["Producer"]["nPartition"].as<std::vector<int>>();
+
   std::string filename = argv[2];
 
   try {
-    std::cout << "Starting IceFlow Stream Processing - - - - 1" << std::endl;
-    for (int i = 0; i < nDataStreams.size(); ++i) {
-      std::cout << "Streams: " << nDataStreams[i] << std::endl;
-    }
-    DataFlow(pub_syncPrefix, userPrefix_data_main, nDataStreams, filename);
+
+    DataFlow(pubsyncPrefix, pubPrefixdatamain, nPartition, filename);
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
   }

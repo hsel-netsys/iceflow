@@ -10,14 +10,13 @@
 
 class Compute {
 public:
-  void compute(std::function<std::string()> receive,
-               std::function<void(std::string)> push) {
+  void lines2words(std::function<std::string()> receive,
+                   std::function<void(std::string)> push) {
     while (true) {
       auto line = receive();
       std::stringstream streamedlines(line);
       std::string word;
       while (streamedlines >> word) {
-        //        std::cout << "Word:" << word << std::endl;
         push(word);
       }
     }
@@ -33,7 +32,6 @@ void DataFlow(const std::string &sub_syncPrefix,
   Compute compute;
   ndn::Face consumerInterFace;
   ndn::Face producerInterFace;
-  //  ndn::Face interFace;
   iceflow::Consumer consumer(sub_syncPrefix, sub_Prefix_data_main, nDataStreams,
                              consumerInterFace);
 
@@ -43,8 +41,9 @@ void DataFlow(const std::string &sub_syncPrefix,
   ProConThreads.emplace_back(&iceflow::Consumer::run, &consumer);
   ProConThreads.emplace_back(&iceflow::Producer::run, &producer);
   ProConThreads.emplace_back([&compute, &consumer, &producer]() {
-    compute.compute([&consumer]() -> std::string { return consumer.receive(); },
-                    [&producer](std::string data) { producer.push(data); });
+    compute.lines2words(
+        [&consumer]() -> std::string { return consumer.receive(); },
+        [&producer](std::string data) { producer.push(data); });
   });
 
   for (auto &t : ProConThreads) {
@@ -63,23 +62,24 @@ int main(int argc, char *argv[]) {
   YAML::Node config = YAML::LoadFile(argv[1]);
 
   // ----------------------- Consumer------------------------------------------
-  auto sub_syncPrefix = config["Consumer"]["sub_syncPrefix"].as<std::string>();
-  auto sub_Prefix_data_main =
-      config["Consumer"]["sub_Prefix_data_main"].as<std::string>();
-  auto nDataStreams = config["Consumer"]["nSub"].as<std::vector<int>>();
+  auto subsyncPrefix = config["Consumer"]["subsyncPrefix"].as<std::string>();
+  auto subPrefixdatamain =
+      config["Consumer"]["subPrefixdatamain"].as<std::string>();
+  auto nSubscription =
+      config["Consumer"]["nSubscription"].as<std::vector<int>>();
 
   // ----------------------- Producer -----------------------------------------
 
-  auto pub_syncPrefix = config["Producer"]["pub_syncPrefix"].as<std::string>();
-  auto pub_Prefix_data_main =
-      config["Producer"]["pub_Prefix_data_main"].as<std::string>();
-  auto nPub = config["Producer"]["nDataStreams"].as<std::vector<int>>();
+  auto pubsyncPrefix = config["Producer"]["pubsyncPrefix"].as<std::string>();
+  auto pubPrefixdatamain =
+      config["Producer"]["pubPrefixdatamain"].as<std::string>();
+  auto nPartition = config["Producer"]["nPartition"].as<std::vector<int>>();
 
   // --------------------------------------------------------------------------
 
   try {
-    DataFlow(sub_syncPrefix, sub_Prefix_data_main, nDataStreams, pub_syncPrefix,
-             pub_Prefix_data_main, nPub);
+    DataFlow(subsyncPrefix, subPrefixdatamain, nSubscription, pubsyncPrefix,
+             pubPrefixdatamain, nPartition);
   }
 
   catch (const std::exception &e) {

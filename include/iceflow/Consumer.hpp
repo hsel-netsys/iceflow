@@ -28,10 +28,11 @@ public:
            const std::vector<int> &nTopic, ndn::Face &interFace)
       : subscribeTopic(topic), topicPartition(nTopic), ConsumerFace(interFace),
         baseConsumer(syncPrefix, topic, nTopic, interFace,
-                     interFace.getIoContext()) {}
+                     interFace.getIoContext()) {
+    std::cout << "Starting IceFlow Consumer - - - -" << std::endl;
+  }
 
   std::string receive() {
-    // std::cout<< " Consumer Receive Called"<<std::endl;
     auto receivedData = baseConsumer.inputQueue.waitAndPopValue();
     return receivedData;
   }
@@ -39,7 +40,6 @@ public:
   void run() {
     std::vector<std::thread> processing_threads;
 
-    // std::cout<< " Consumer run Called"<<std::endl;
     processing_threads.emplace_back([this] { ConsumerFace.processEvents(); });
     baseConsumer.subscribe(subscribeTopic);
     int threadCounter = 0;

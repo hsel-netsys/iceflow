@@ -1,5 +1,5 @@
 Producer:
-  pub_syncPrefix             : /wordcount
-  userPrefix_data_main       : /text2lines/dataMain
-  nDataStreams               : [1,2,3]
+  pubsyncPrefix             : /wordcount
+  pubPrefixdatamain         : /text2lines/dataMain
+  nPartition                : [1,2,3]
 

@@ -1,0 +1,4 @@
+Consumer:
+  subsyncPrefix          : /wordcount
+  subPrefixdatamain      : /lines2words/dataMain
+  nSubscription          : [1,2,3]
