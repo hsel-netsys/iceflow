@@ -38,26 +38,27 @@ public:
 
   void push(const std::string &data) { baseProducer.outputQueue.push(data); }
 
-  void settingUpNFDStrategy(const std::string &syncPrefix){
-    std::string command = "nfdc strategy set " +  syncPrefix + " /localhost/nfd/strategy/multicast" ;
+  void settingUpNFDStrategy(const std::string &syncPrefix) {
+    std::string command = "nfdc strategy set " + syncPrefix +
+                          " /localhost/nfd/strategy/multicast";
 
     // Execute the command using std::system
     int result = std::system(command.c_str());
 
     // Check the result of the command execution
     if (result == 0) {
-        std::cout << "Multicast Strategy Set -> " << syncPrefix << std::endl;
+      std::cout << "Multicast Strategy Set -> " << syncPrefix << std::endl;
     } else {
-        std::cerr << "NFD Strategy Fault - - " << std::endl;
+      std::cerr << "NFD Strategy Fault - - " << std::endl;
     }
   }
 
   void run() {
     std::vector<std::thread> processing_threads;
-    
+
     processing_threads.emplace_back([this] { ProducerFace.processEvents(); });
     baseProducer.publishMsg();
-    int threadCounter = 0;
+    int threadCounter = 1;
     for (auto &thread : processing_threads) {
       std::cout << "Producer Thread " << threadCounter++ << " started"
                 << std::endl;

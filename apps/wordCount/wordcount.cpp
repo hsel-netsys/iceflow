@@ -15,6 +15,7 @@ public:
       std::istringstream stream(words);
       std::string word;
       while (stream >> word) {
+        std::cout << "Word occurrences:\n";
         // Convert the word to lowercase to make the counting case-insensitive
         for (char &c : word) {
           c = std::tolower(c);
@@ -27,7 +28,7 @@ public:
     }
   }
   void printOccurances() {
-    std::cout << "Word occurrences:\n";
+
     for (const auto &pair : wordCountMap) {
       std::cout << pair.first << ": " << pair.second << " times\n";
     }

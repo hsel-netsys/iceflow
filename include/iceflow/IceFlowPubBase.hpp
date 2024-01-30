@@ -69,7 +69,7 @@ public:
          ++partitionNr) {
       auto subscribedTopic =
           subscribeTopic + "/" + std::to_string(topicPartition[partitionNr]);
-      NDN_LOG_INFO( "Subscribed to: " << subscribedTopic);
+      NDN_LOG_INFO("Subscribed to: " << subscribedTopic);
       auto subscribed = m_SvSProds[partitionNr]->subscribe(
           subscribedTopic, std::bind(&IceFlowPub::subscribeCallBack, this,
                                      std::placeholders::_1));
@@ -82,8 +82,9 @@ public:
     //	  }
     std::string content(reinterpret_cast<const char *>(subData.data.data()),
                         subData.data.size());
-    NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " [" << subData.seqNo
-              << "] : " << subData.name << " : ");
+    NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
+                                      << subData.seqNo << "] : " << subData.name
+                                      << " : ");
     // if (content.length() > 200) {
     //   std::cout << "[LONG] " << content.length() << " bytes"
     //             << " [" << std::hash<std::string>{}(content) << "]";
@@ -125,7 +126,7 @@ public:
             reinterpret_cast<const uint8_t *>(payload.data()), payload.size());
         auto sequenceNo = m_SvSProds[producerNr]->publish(
             dataID, encodedContent, ndn::Name(), ndn::time::milliseconds(4000));
-        NDN_LOG_INFO( "Publish: " << dataID << "/" << sequenceNo);
+        NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
       }
     }
     // TODO: What should be the Publishing Interval??

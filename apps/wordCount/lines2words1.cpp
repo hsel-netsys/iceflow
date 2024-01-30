@@ -14,6 +14,7 @@ public:
                    std::function<void(std::string)> push) {
     while (true) {
       auto line = receive();
+      // std::cout<<"Lines: "<<line<<std::endl;
       std::stringstream streamedlines(line);
       std::string word;
       while (streamedlines >> word) {
