@@ -17,3 +17,8 @@ Producer:
   outputthreshold           : 50
   namesinmanifest           : 200
   mapthreshold              : 200
+
+Measurement:
+  nodeName: Lines2words2
+  saveInterval: 100
+  

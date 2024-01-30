@@ -1,4 +1,6 @@
 #include "iceflow/Consumer.hpp"
+#include "iceflow/measurements.hpp"
+
 #include <iostream>
 #include <ndn-cxx/face.hpp>
 #include <sstream>
@@ -7,11 +9,23 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
+// ###### MEASUREMENT ######
+iceflow::Measurement *msCmp;
+
+void signalCallbackHandler(int signum) {
+  msCmp->recordToFile();
+  // Terminate program
+  exit(signum);
+}
+
 class Compute {
 public:
   void countWord(std::function<std::string()> receive) {
+    int computeCounter = 0;
     while (true) {
       std::string words = receive();
+      msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
+      msCmp->setField(std::to_string(computeCounter), "text->wordcount", 0);
       std::istringstream stream(words);
       std::string word;
       while (stream >> word) {
@@ -23,6 +37,9 @@ public:
 
         // Increment the count for the word in the map
         wordCountMap[word]++;
+        msCmp->setField(std::to_string(computeCounter), "lines2->wordcount", 0);
+        msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
+        computeCounter++;
         printOccurances();
       }
     }
@@ -61,9 +78,9 @@ void DataFlow(const std::string &sub_syncPrefix,
 
 int main(int argc, char *argv[]) {
 
-  if (argc != 2) {
+  if (argc != 3) {
     std::cout << "usage: " << argv[0] << " "
-              << "<config-file>" << std::endl;
+              << "<config-file><measurement-Name>" << std::endl;
     return 1;
   }
 
@@ -77,6 +94,15 @@ int main(int argc, char *argv[]) {
       config["Consumer"]["nSubscription"].as<std::vector<int>>();
 
   // --------------------------------------------------------------------------
+
+  // ##### MEASUREMENT #####
+  std::string measurementFileName = argv[2];
+  auto measurementConfig = config["Measurement"];
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
+  ::signal(SIGINT, signalCallbackHandler);
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
     DataFlow(subsyncPrefix, subPrefixdatamain, nSubscription);

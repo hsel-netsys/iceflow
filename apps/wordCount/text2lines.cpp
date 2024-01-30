@@ -1,26 +1,45 @@
 #include "iceflow/Producer.hpp"
+#include "iceflow/measurements.hpp"
+
 #include <fstream>
 #include <iostream>
 #include <thread>
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
+// ###### MEASUREMENT ######
+iceflow::Measurement *msCmp;
+
+void signalCallbackHandler(int signum) {
+  msCmp->recordToFile();
+  // Terminate program
+  exit(signum);
+}
+
 class Compute {
 public:
   void text2lines(const std::string &filename,
                   std::function<void(std::string)> push) {
+
     auto application = applicationName();
     std::cout << "Starting " << application << " Application - - - - "
               << std::endl;
+    int computeCounter = 0;
     std::ifstream file;
     file.open(filename);
 
     if (file.is_open()) {
       for (std::string line; getline(file, line);) {
         //				std::cout << line + ";" << std::endl;
+        // ##### MEASUREMENT #####
+        msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
         push(line);
+        msCmp->setField(std::to_string(computeCounter), "text->lines", 0);
+        msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
+        computeCounter++;
       }
       file.close();
+      msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
     } else {
       std::cerr << "Error opening file: " << filename << std::endl;
     }
@@ -76,9 +95,9 @@ void DataFlow(const std::string &pub_syncPrefix,
 }
 
 int main(int argc, char *argv[]) {
-  if (argc != 3) {
+  if (argc != 4) {
     std::cout << "usage: " << argv[0] << " "
-              << "<config-file><text-file>" << std::endl;
+              << "<config-file><text-file><measurement-Name>" << std::endl;
     return 1;
   }
 
@@ -90,6 +109,15 @@ int main(int argc, char *argv[]) {
   auto nPartition = config["Producer"]["nPartition"].as<std::vector<int>>();
 
   std::string filename = argv[2];
+
+  // ##### MEASUREMENT #####
+  std::string measurementFileName = argv[3];
+  auto measurementConfig = config["Measurement"];
+  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+  int saveInterval = measurementConfig["saveInterval"].as<int>();
+  ::signal(SIGINT, signalCallbackHandler);
+  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
+                                   "A");
 
   try {
 
