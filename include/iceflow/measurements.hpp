@@ -19,9 +19,9 @@
 #ifndef ICEFLOW_CORE_MEASUREMENTS_H
 #define ICEFLOW_CORE_MEASUREMENTS_H
 
-#include <iostream>
 #include <filesystem>
 #include <fstream>
+#include <iostream>
 
 #include "logger.hpp"
 
