@@ -32,7 +32,7 @@ public:
       std::string word;
       while (streamedlines >> word) {
         push(word);
-        msCmp->setField(std::to_string(computeCounter), "lines1->words", 0);
+        msCmp->setField(std::to_string(computeCounter), "lines2->words", 0);
         msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
       }
     }

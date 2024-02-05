@@ -34,7 +34,8 @@ public:
         // ##### MEASUREMENT #####
         msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
         push(line);
-        msCmp->setField(std::to_string(computeCounter), "text->lines", 0);
+        msCmp->setField(std::to_string(computeCounter), "text->lines1", 0);
+        msCmp->setField(std::to_string(computeCounter), "text->lines2", 0);
         msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
         computeCounter++;
       }

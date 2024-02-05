@@ -1,4 +1,5 @@
 #include "iceflow/Consumer.hpp"
+#include "iceflow/Producer.hpp"
 #include "iceflow/measurements.hpp"
 
 #include <iostream>
@@ -20,58 +21,48 @@ void signalCallbackHandler(int signum) {
 
 class Compute {
 public:
-  void countWord(std::function<std::string()> receive) {
+  void lines2words(std::function<std::string()> receive,
+                   std::function<void(std::string)> push) {
     int computeCounter = 0;
     while (true) {
-      std::string words = receive();
+      auto line = receive();
       msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
-      msCmp->setField(std::to_string(computeCounter), "text->wordcount", 0);
-      std::istringstream stream(words);
+      // std::cout<<"Lines: "<<line<<std::endl;
+      std::stringstream streamedlines(line);
       std::string word;
-      while (stream >> word) {
-        std::cout << "Word occurrences:\n";
-        // Convert the word to lowercase to make the counting case-insensitive
-        for (char &c : word) {
-          c = std::tolower(c);
-        }
-
-        // Increment the count for the word in the map
-        wordCountMap[word]++;
-        msCmp->setField(std::to_string(computeCounter), "lines2->wordcount", 0);
+      while (streamedlines >> word) {
+        push(word);
+        msCmp->setField(std::to_string(computeCounter), "lines1->words", 0);
         msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
-        computeCounter++;
-        printOccurances();
       }
     }
   }
-  void printOccurances() {
-
-    for (const auto &pair : wordCountMap) {
-      std::cout << pair.first << ": " << pair.second << " times\n";
-    }
-  }
-
-private:
-  std::unordered_map<std::string, int> wordCountMap;
 };
 
 void DataFlow(const std::string &sub_syncPrefix,
               const std::string &sub_Prefix_data_main,
-              const std::vector<int> &nDataStreams) {
+              const std::vector<int> &nDataStreams,
+              const std::string &pub_syncPrefix,
+              const std::string &pub_Prefix_data_main,
+              const std::vector<int> nPub) {
   Compute compute;
   ndn::Face consumerInterFace;
-
+  ndn::Face producerInterFace;
   iceflow::Consumer consumer(sub_syncPrefix, sub_Prefix_data_main, nDataStreams,
                              consumerInterFace);
 
-  std::vector<std::thread> ConThreads;
-  ConThreads.emplace_back(&iceflow::Consumer::run, &consumer);
-  ConThreads.emplace_back([&compute, &consumer]() {
-    compute.countWord(
-        [&consumer]() -> std::string { return consumer.receive(); });
+  iceflow::Producer producer(pub_syncPrefix, pub_Prefix_data_main, nDataStreams,
+                             producerInterFace);
+  std::vector<std::thread> ProConThreads;
+  ProConThreads.emplace_back(&iceflow::Consumer::run, &consumer);
+  ProConThreads.emplace_back(&iceflow::Producer::run, &producer);
+  ProConThreads.emplace_back([&compute, &consumer, &producer]() {
+    compute.lines2words(
+        [&consumer]() -> std::string { return consumer.receive(); },
+        [&producer](std::string data) { producer.push(data); });
   });
 
-  for (auto &t : ConThreads) {
+  for (auto &t : ProConThreads) {
     t.join();
   }
 }
@@ -93,6 +84,13 @@ int main(int argc, char *argv[]) {
   auto nSubscription =
       config["Consumer"]["nSubscription"].as<std::vector<int>>();
 
+  // ----------------------- Producer -----------------------------------------
+
+  auto pubsyncPrefix = config["Producer"]["pubsyncPrefix"].as<std::string>();
+  auto pubPrefixdatamain =
+      config["Producer"]["pubPrefixdatamain"].as<std::string>();
+  auto nPartition = config["Producer"]["nPartition"].as<std::vector<int>>();
+
   // --------------------------------------------------------------------------
 
   // ##### MEASUREMENT #####
@@ -105,7 +103,8 @@ int main(int argc, char *argv[]) {
                                    "A");
 
   try {
-    DataFlow(subsyncPrefix, subPrefixdatamain, nSubscription);
+    DataFlow(subsyncPrefix, subPrefixdatamain, nSubscription, pubsyncPrefix,
+             pubPrefixdatamain, nPartition);
   }
 
   catch (const std::exception &e) {

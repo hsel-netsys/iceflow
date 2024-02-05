@@ -17,10 +17,10 @@ VisionProcessing/GenderDetection/genderdetection.cpp
 VisionProcessing/Aggregate/aggregate.cpp 
 JsonSampleApp/functionA.cpp 
 JsonSampleApp/functionB.cpp
-wordCount/text2lines.cpp 
-wordCount/lines2words1.cpp 
-wordCount/lines2words2.cpp 
-wordCount/wordcount.cpp)
+wordCount/text2lines/text2lines.cpp 
+wordCount/lines2words1/lines2words1.cpp 
+wordCount/lines2words2/lines2words2.cpp 
+wordCount/wordcount/wordcount.cpp)
 
 foreach(SOURCE_FILE ${SOURCES})
   get_filename_component(EXECUTABLE_NAME ${SOURCE_FILE} NAME_WE)
