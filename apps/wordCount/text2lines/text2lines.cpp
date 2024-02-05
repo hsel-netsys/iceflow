@@ -1,6 +1,7 @@
 #include "iceflow/Producer.hpp"
 #include "iceflow/measurements.hpp"
 
+#include <csignal>
 #include <fstream>
 #include <iostream>
 #include <thread>

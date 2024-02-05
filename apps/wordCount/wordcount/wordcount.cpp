@@ -2,6 +2,7 @@
 #include "iceflow/measurements.hpp"
 
 #include <iostream>
+#include <csignal>
 #include <ndn-cxx/face.hpp>
 #include <sstream>
 #include <string>
