@@ -1,0 +1,169 @@
+---
+- name: Uninstall previous NDN components
+  hosts: cluster
+  become: true
+  vars:
+    ansible_user: picocluster
+    ansible_ssh_pass: picocluster
+    dest: /home/picocluster/Desktop/tm
+  gather_facts: yes
+
+  tasks:
+    - name: Uninstall ndn-cxx
+      command: sudo ./waf uninstall
+      args:
+        chdir: "{{ dest }}/ndn-cxx"
+      ignore_errors: yes
+
+    - name: Uninstall PSync
+      command: sudo ./waf uninstall
+      args:
+        chdir: "{{ dest }}/PSync"
+      ignore_errors: yes
+
+    - name: Uninstall NFD-out-of-the-box
+      command: sudo ./waf uninstall
+      args:
+        chdir: "{{ dest }}/NFD-out-of-the-box"
+      ignore_errors: yes
+
+    - name: Uninstall ndn-svs
+      command: sudo ./waf uninstall
+      args:
+        chdir: "{{ dest }}/ndn-svs"
+      ignore_errors: yes
+
+- name: Install NDN dependencies and applications
+  hosts: cluster
+  become: true
+  gather_facts: no
+  vars:
+    ansible_user: picocluster
+    ansible_ssh_pass: picocluster
+    dest: /home/picocluster/Desktop/tm
+  tasks:
+    - name: Update apt package cache
+      apt:
+        update_cache: yes
+
+    - name: Install required packages
+      apt:
+        name: "{{ item }}"
+        state: present
+      loop:
+        - pkg-config
+        - python3
+        - python3-pip
+        - libssl-dev
+        - libsqlite3-dev
+        - libpcap-dev
+# # -----------------------------ndn-cxx-----------------------------------
+    - name: Check if ndn-cxx directory exists
+      stat:
+        path: "{{ dest }}/ndn-cxx"
+      register: ndn_cxx_directory
+
+    - name: Clone ndn-cxx from GitHub
+      git:
+        repo: https://github.com/named-data/ndn-cxx.git
+        dest: "{{ dest }}/ndn-cxx"
+        version: master
+      when: not ndn_cxx_directory.stat.exists
+
+    - name: Update ndn-cxx from GitHub if available
+      git:
+        repo: https://github.com/named-data/ndn-cxx.git
+        dest: "{{ dest }}/ndn-cxx"
+        version: master
+      when: ndn_cxx_directory.stat.exists
+
+    - name: Build and install ndn-cxx
+      shell: |
+        cd {{ dest }}/ndn-cxx &&
+        ./waf configure
+        ./waf
+        sudo ./waf install
+#
+# # ----------------------- PSync------------------------------------------
+#
+    - name: Check if PSync directory exists
+      stat:
+        path: "{{ dest }}/PSync"
+      register: PSync_directory
+
+    - name: Clone PSync from GitHub
+      git:
+        repo: https://github.com/named-data/PSync.git
+        dest: "{{ dest }}/PSync"
+        version: master
+      when: not PSync_directory.stat.exists
+
+    - name: Update PSync from GitHub if available
+      git:
+        repo: https://github.com/named-data/PSync.git
+        dest: "{{ dest }}/PSync"
+        version: master
+      when: PSync_directory.stat.exists
+
+    - name: Build and install PSync
+      shell: |
+        cd {{ dest }}/PSync &&
+        ./waf configure
+        ./waf
+        sudo ./waf install
+# # -----------------------------NFD-----------------------------------
+    - name: Check if NFD-out-of-the-box directory exists
+      stat:
+        path: "{{ dest }}/NFD-out-of-the-box"
+      register: NFD_directory
+
+    - name: Clone NFD-out-of-the-box from GitHub
+      git:
+        repo: https://github.com/JKRhb/NFD-out-of-the-box.git
+        dest: "{{ dest }}/NFD-out-of-the-box"
+        version: master
+        update: yes
+        recursive: yes
+      when: not NFD_directory.stat.exists
+
+    - name: Update NFD-out-of-the-box from GitHub if available
+      git:
+        repo: https://github.com/JKRhb/NFD-out-of-the-box.git
+        dest: "{{ dest }}/NFD-out-of-the-box"
+        version: master
+      when: NFD_directory.stat.exists
+
+    - name: Build and install NFD-out-of-the-box
+      shell: |
+        cd {{ dest }}/NFD-out-of-the-box &&
+        ./waf configure
+        ./waf
+        sudo ./waf install
+# --------------------------------State Vector Sync--------------------------------
+    - name: Check if ndn-svs directory exists
+      stat:
+        path: "{{ dest }}/ndn-svs"
+      register: svs_directory
+
+
+    - name: Clone ndn-svs from GitHub
+      git:
+        repo: https://github.com/named-data/ndn-svs.git
+        dest: "{{ dest }}/ndn-svs"
+        version: master
+        update: yes
+      when: not svs_directory.stat.exists
+
+    - name: Update ndn-svs from GitHub if available
+      git:
+        repo: https://github.com/named-data/ndn-svs.git
+        dest: "{{ dest }}/ndn-svs"
+        version: master
+      when: svs_directory.stat.exists
+
+    - name: Build and install ndn-svs
+      shell: |
+        cd {{ dest }}/ndn-svs &&
+        ./waf configure
+        ./waf
+        sudo ./waf install
