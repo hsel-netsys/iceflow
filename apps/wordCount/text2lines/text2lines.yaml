@@ -1,0 +1,9 @@
+Producer:
+  pubsyncPrefix             : /wordcount
+  pubPrefixdatamain         : /text2lines/dataMain
+  nPartition                : [1,2,3]
+
+Measurement:
+  nodeName: Text2lines
+  saveInterval: 100
+  

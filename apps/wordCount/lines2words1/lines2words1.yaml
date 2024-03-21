@@ -1,0 +1,15 @@
+Consumer:
+  subsyncPrefix           : /wordcount
+  subPrefixdatamain       : /text2lines/dataMain
+  nSubscription           : [1,2]
+  inputthreshold          : 200
+
+Producer:
+  pubsyncPrefix             : /wordcount
+  pubPrefixdatamain        : /lines2words/dataMain
+  nPartition                : [1,2]
+
+Measurement:
+  nodeName: Lines2words1
+  saveInterval: 100
+  

@@ -39,7 +39,9 @@ public:
   /**
    *@brief Constructor of the RingBuffer class.
    */
-  RingBuffer() : m_queue(256) {}
+  //   TODO: make it configurable - pass this parameter from the Config
+  //   file/Constructor
+  RingBuffer() : m_queue(10000) {}
 
   /**
    *@brief Copy assignment
