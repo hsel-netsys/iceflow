@@ -83,9 +83,14 @@
         ./waf configure
         ./waf
         sudo ./waf install
-#
-# # ----------------------- PSync------------------------------------------
-#
+      register: install_output
+
+    - name: Display install output
+      debug:
+        var: install_output
+
+# ----------------------- PSync------------------------------------------
+
     - name: Check if PSync directory exists
       stat:
         path: "{{ dest }}/PSync"
@@ -111,7 +116,7 @@
         ./waf configure
         ./waf
         sudo ./waf install
-# # -----------------------------NFD-----------------------------------
+# -----------------------------NFD-----------------------------------
     - name: Check if NFD-out-of-the-box directory exists
       stat:
         path: "{{ dest }}/NFD-out-of-the-box"
@@ -121,7 +126,7 @@
       git:
         repo: https://github.com/JKRhb/NFD-out-of-the-box.git
         dest: "{{ dest }}/NFD-out-of-the-box"
-        version: master
+        version: self-learning-rebased
         update: yes
         recursive: yes
       when: not NFD_directory.stat.exists
@@ -130,7 +135,7 @@
       git:
         repo: https://github.com/JKRhb/NFD-out-of-the-box.git
         dest: "{{ dest }}/NFD-out-of-the-box"
-        version: master
+        version: self-learning-rebased
       when: NFD_directory.stat.exists
 
     - name: Build and install NFD-out-of-the-box
@@ -139,13 +144,18 @@
         ./waf configure
         ./waf
         sudo ./waf install
+        sudo cp /usr/local/etc/ndn/nfd.conf.sample /usr/local/etc/ndn/nfd.conf
+      - name: Copy the NFD config file from Mac to Raspberry Pi
+        copy:
+          src: /usr/local/etc/ndn/nfd.conf  # Update with the path to your file on your Mac
+          dest: /usr/local/etc/ndn/nfd.conf
 # --------------------------------State Vector Sync--------------------------------
     - name: Check if ndn-svs directory exists
       stat:
         path: "{{ dest }}/ndn-svs"
       register: svs_directory
-
-
+    
+    
     - name: Clone ndn-svs from GitHub
       git:
         repo: https://github.com/named-data/ndn-svs.git
@@ -153,17 +163,27 @@
         version: master
         update: yes
       when: not svs_directory.stat.exists
-
+    
     - name: Update ndn-svs from GitHub if available
       git:
         repo: https://github.com/named-data/ndn-svs.git
         dest: "{{ dest }}/ndn-svs"
         version: master
       when: svs_directory.stat.exists
-
+    
     - name: Build and install ndn-svs
       shell: |
         cd {{ dest }}/ndn-svs &&
         ./waf configure
         ./waf
         sudo ./waf install
+      - name: Update library packages
+        shell: |
+          sudo ldconfig
+    - name: Run NFD
+      shell: |
+        nfd-start
+      register: nfd_output
+    - name: Display install output
+      debug:
+        var: nfd_output

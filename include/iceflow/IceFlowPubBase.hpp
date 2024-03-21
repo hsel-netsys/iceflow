@@ -33,7 +33,7 @@ namespace iceflow {
 class IceFlowPub {
 
 public:
-  IceFlowPub(const std::string &syncPrefix, const std::string &topic,
+  IceFlowPub(const std::string &syncPrefix,  const std::string &topic,
              const std::vector<int> &nTopic, ndn::Face &interFace,
              boost::asio::io_context &ioContext)
       : ndnInterFace(interFace), m_scheduler(ioContext), pubTopic(topic),
@@ -96,21 +96,22 @@ public:
 
   void fetchingStateVector(
       const std::vector<ndn::svs::MissingDataInfo> &missing_data) {
-    // // Iterate over the entire difference set
-    // for (const auto &info : missing_data) {
-    //   // Iterate over each new sequence number that we learned
-    //   for (ndn::svs::SeqNo sequence = info.low; sequence <= info.high;
-    //        ++sequence) {
-    //     // Process the missing data info here if needed
-    //   }
-    // }
+    // Iterate over the entire difference set
+    for (const auto &info : missing_data) {
+      // Iterate over each new sequence number that we learned
+      for (ndn::svs::SeqNo sequence = info.low; sequence <= info.high;
+           ++sequence) {
+            // std::cout<< info.nodeId <<"/"<< info.low<<"/"<<info.high<<std::endl;
+        // Process the missing data info here if needed
+      }
+    }
   }
 
   ndn::Name prepareDataName() {
-    if (partitionCount > topicPartition.size()) {
-      partitionCount = 1;
+    if (partitionCount >= topicPartition.size()) {
+      partitionCount = 0;
     }
-    dataName = pubTopic + "/" + std::to_string(partitionCount);
+    dataName = pubTopic + "/" + std::to_string(topicPartition[partitionCount]);
     partitionCount++;
     dataCount++;
     return dataName;
@@ -125,7 +126,7 @@ public:
         auto encodedContent = ndn::make_span(
             reinterpret_cast<const uint8_t *>(payload.data()), payload.size());
         auto sequenceNo = m_SvSProds[producerNr]->publish(
-            dataID, encodedContent, ndn::Name(), ndn::time::milliseconds(4000));
+            dataID, encodedContent, ndn::Name(), ndn::time::seconds(4));
         NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
       }
     }
@@ -167,7 +168,7 @@ private:
   // SVS
   std::vector<std::shared_ptr<ndn::svs::SVSPubSub>> m_SvSProds;
   const ndn::svs::UpdateCallback m_onUpdate;
-  int partitionCount = 1;
+  int partitionCount = 0;
   const std::string pubTopic;
   const std::vector<int> topicPartition;
 

@@ -7,7 +7,7 @@ Consumer:
 Producer:
   pubsyncPrefix             : /wordcount
   pubPrefixdatamain        : /lines2words/dataMain
-  nPartition                : [1,2]
+  nPartition                : [3]
 
 Measurement:
   nodeName: Lines2words2
