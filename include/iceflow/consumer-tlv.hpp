@@ -41,7 +41,7 @@ public:
   ConsumerTlv(const ndn::Name &syncPrefix, std::string &subPrefix,
               const std::string &subPrefixAck, const std::vector<int> &nSub,
               int inputThreshold)
-      : m_subscriptionList(nSub), m_scheduler(m_face.getIoService()),
+      : m_subscriptionList(nSub), m_scheduler(m_face.getIoContext()),
         m_ack(subPrefixAck), m_Sub(subPrefix),
         m_inputQueueThreshold(inputThreshold),
         m_consumer(syncPrefix, m_face,
