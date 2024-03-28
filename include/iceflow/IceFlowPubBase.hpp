@@ -33,7 +33,7 @@ namespace iceflow {
 class IceFlowPub {
 
 public:
-  IceFlowPub(const std::string &syncPrefix,  const std::string &topic,
+  IceFlowPub(const std::string &syncPrefix, const std::string &topic,
              const std::vector<int> &nTopic, ndn::Face &interFace,
              boost::asio::io_context &ioContext)
       : ndnInterFace(interFace), m_scheduler(ioContext), pubTopic(topic),
@@ -101,7 +101,7 @@ public:
       // Iterate over each new sequence number that we learned
       for (ndn::svs::SeqNo sequence = info.low; sequence <= info.high;
            ++sequence) {
-            // std::cout<< info.nodeId <<"/"<< info.low<<"/"<<info.high<<std::endl;
+        // std::cout<< info.nodeId <<"/"<< info.low<<"/"<<info.high<<std::endl;
         // Process the missing data info here if needed
       }
     }

@@ -25,14 +25,14 @@ namespace iceflow {
 class Producer {
 
 public:
-/**
- * @brief Construct a new Producer object
- * 
- * @param syncPrefix 
- * @param topic 
- * @param nTopic 
- * @param interFace 
- */
+  /**
+   * @brief Construct a new Producer object
+   *
+   * @param syncPrefix
+   * @param topic
+   * @param nTopic
+   * @param interFace
+   */
   Producer(const std::string &syncPrefix, const std::string &topic,
            const std::vector<int> &nTopic, ndn::Face &interFace)
       : ProducerFace(interFace),

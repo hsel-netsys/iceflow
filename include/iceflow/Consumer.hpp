@@ -24,7 +24,7 @@
 namespace iceflow {
 class Consumer {
 public:
-  Consumer(const std::string &syncPrefix,const std::string &topic,
+  Consumer(const std::string &syncPrefix, const std::string &topic,
            const std::vector<int> &nTopic, ndn::Face &interFace)
       : subscribeTopic(topic), topicPartition(nTopic), ConsumerFace(interFace),
         baseConsumer(syncPrefix, topic, nTopic, interFace,
