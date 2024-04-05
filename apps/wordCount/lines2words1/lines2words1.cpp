@@ -47,13 +47,12 @@ void DataFlow(const std::string &sub_syncPrefix,
               const std::string &pub_Prefix_data_main,
               const std::vector<int> nPub) {
   Compute compute;
-  ndn::Face consumerInterFace;
-  ndn::Face producerInterFace;
+  ndn::Face face;
   iceflow::Consumer consumer(sub_syncPrefix, sub_Prefix_data_main, nDataStreams,
-                             consumerInterFace);
+                             face);
 
   iceflow::Producer producer(pub_syncPrefix, pub_Prefix_data_main, nDataStreams,
-                             producerInterFace);
+                             face);
   std::vector<std::thread> ProConThreads;
   ProConThreads.emplace_back(&iceflow::Consumer::run, &consumer);
   ProConThreads.emplace_back(&iceflow::Producer::run, &producer);
