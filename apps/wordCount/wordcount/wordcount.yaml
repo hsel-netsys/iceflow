@@ -1,9 +1,9 @@
-Consumer:
-  subsyncPrefix          : /wordcount
-  subPrefixdatamain      : /lines2words/dataMain
-  nSubscription          : [1,2,3]
+syncPrefix: /wordcount
+nodePrefix: wordcount
+partitions: [1, 2, 3]
 
-Measurement:
-  nodeName: WordCount
+consumer:
+  topic: /lines2words/dataMain
+
+measurements:
   saveInterval: 100
-  
