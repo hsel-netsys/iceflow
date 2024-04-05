@@ -1,4 +1,4 @@
-#include "iceflow/Producer.hpp"
+#include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 
 #include <csignal>
@@ -8,122 +8,104 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-// ###### MEASUREMENT ######
-iceflow::Measurement *msCmp;
+iceflow::Measurement *measurementHandler;
 
 void signalCallbackHandler(int signum) {
-  msCmp->recordToFile();
-  // Terminate program
+  measurementHandler->recordToFile();
   exit(signum);
 }
 
-class Compute {
+class LineSplitter {
 public:
-  void text2lines(const std::string &filename,
+  void text2lines(const std::string &applicationName,
+                  const std::string &fileName,
                   std::function<void(std::string)> push) {
 
-    auto application = applicationName();
+    auto application = applicationName;
     std::cout << "Starting " << application << " Application - - - - "
               << std::endl;
     int computeCounter = 0;
     std::ifstream file;
-    file.open(filename);
+    file.open(fileName);
 
     if (file.is_open()) {
       for (std::string line; getline(file, line);) {
-        //				std::cout << line + ";" << std::endl;
-        // ##### MEASUREMENT #####
-        msCmp->setField(std::to_string(computeCounter), "CMP_START", 0);
+        measurementHandler->setField(std::to_string(computeCounter),
+                                     "CMP_START", 0);
         push(line);
-        msCmp->setField(std::to_string(computeCounter), "text->lines1", 0);
-        msCmp->setField(std::to_string(computeCounter), "text->lines2", 0);
-        msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
+        measurementHandler->setField(std::to_string(computeCounter),
+                                     "text->lines1", 0);
+        measurementHandler->setField(std::to_string(computeCounter),
+                                     "text->lines2", 0);
+        measurementHandler->setField(std::to_string(computeCounter),
+                                     "CMP_FINISH", 0);
         computeCounter++;
       }
       file.close();
-      msCmp->setField(std::to_string(computeCounter), "CMP_FINISH", 0);
+      measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
+                                   0);
     } else {
-      std::cerr << "Error opening file: " << filename << std::endl;
-    }
-  }
-
-  std::string applicationName() {
-    const char *fullPath = __FILE__;
-    const char *fileNameWithExtension =
-        strrchr(fullPath, '/'); // For Unix-like paths
-    // const char* fileNameWithExtension = strrchr(fullPath, '\\'); // For
-    // Windows paths
-
-    if (fileNameWithExtension == nullptr) {
-      // If no directory separator is found, use the whole path
-      fileNameWithExtension = fullPath;
-    } else {
-      // Move one character ahead to exclude the directory separator
-      fileNameWithExtension++;
-    }
-
-    const char *fileName = strrchr(fileNameWithExtension, '.');
-
-    if (fileName != nullptr) {
-      // If a dot (.) is found, truncate the string at that position
-      size_t length = fileName - fileNameWithExtension;
-      char appName[length + 1];
-      strncpy(appName, fileNameWithExtension, length);
-      appName[length] = '\0';
-      return appName;
+      std::cerr << "Error opening file: " << fileName << std::endl;
     }
   }
 };
 
-void DataFlow(const std::string &pub_syncPrefix,
-              const std::string &userPrefix_data_main,
-              std::vector<int> &nDataStreams, const std::string &filename) {
+void run(const std::string &syncPrefix, const std::string &nodePrefix,
+         const std::string &pubTopic, std::vector<int> &topicPartitions,
+         const std::string &filename, int publishInterval) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
-  Compute compute;
-  ndn::Face interFace;
+  LineSplitter lineSplitter;
+  ndn::Face face;
 
-  iceflow::Producer producer(pub_syncPrefix, userPrefix_data_main, nDataStreams,
-                             interFace);
-  std::vector<std::thread> ProducerThreads;
-  ProducerThreads.emplace_back(&iceflow::Producer::run, &producer);
-  ProducerThreads.emplace_back([&compute, &producer, &filename]() {
-    compute.text2lines(filename,
-                       [&producer](std::string data) { producer.push(data); });
+  iceflow::IceFlow producer(syncPrefix, nodePrefix, std::nullopt,
+                            std::optional(pubTopic), topicPartitions, face,
+                            std::optional(publishInterval));
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::IceFlow::run, &producer);
+  threads.emplace_back([&lineSplitter, &producer, &nodePrefix, &filename]() {
+    lineSplitter.text2lines(
+        nodePrefix, filename, [&producer](std::string data) {
+          std::vector<uint8_t> encodedString(data.begin(), data.end());
+          producer.pushData(encodedString);
+        });
   });
 
-  for (auto &t : ProducerThreads) {
-    t.join();
+  for (auto &thread : threads) {
+    thread.join();
   }
 }
 
 int main(int argc, char *argv[]) {
+  std::string command = argv[0];
+
   if (argc != 4) {
-    std::cout << "usage: " << argv[0] << " "
-              << "<config-file><text-file><measurement-Name>" << std::endl;
+    std::cout << "usage: " << command
+              << " <config-file> <text-file> <measurement-Name>" << std::endl;
     return 1;
   }
 
-  YAML::Node config = YAML::LoadFile(argv[1]);
-
-  auto pubsyncPrefix = config["Producer"]["pubsyncPrefix"].as<std::string>();
-  auto pubPrefixdatamain =
-      config["Producer"]["pubPrefixdatamain"].as<std::string>();
-  auto nPartition = config["Producer"]["nPartition"].as<std::vector<int>>();
-
-  std::string filename = argv[2];
-
-  // ##### MEASUREMENT #####
+  std::string configFileName = argv[1];
+  std::string sourceTextFileName = argv[2];
   std::string measurementFileName = argv[3];
-  auto measurementConfig = config["Measurement"];
-  std::string nodeName = measurementConfig["nodeName"].as<std::string>();
+
+  YAML::Node config = YAML::LoadFile(configFileName);
+  YAML::Node producerConfig = config["producer"];
+  YAML::Node measurementConfig = config["measurements"];
+
+  std::string syncPrefix = config["syncPrefix"].as<std::string>();
+  std::string nodePrefix = config["nodePrefix"].as<std::string>();
+  std::vector<int> partitions = config["partitions"].as<std::vector<int>>();
+  std::string pubTopic = producerConfig["topic"].as<std::string>();
+  int publishInterval = producerConfig["publishInterval"].as<int>();
   int saveInterval = measurementConfig["saveInterval"].as<int>();
+
   ::signal(SIGINT, signalCallbackHandler);
-  msCmp = new iceflow::Measurement(measurementFileName, nodeName, saveInterval,
-                                   "A");
+  measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,
+                                                saveInterval, "A");
 
   try {
-
-    DataFlow(pubsyncPrefix, pubPrefixdatamain, nPartition, filename);
+    run(syncPrefix, nodePrefix, pubTopic, partitions, sourceTextFileName,
+        publishInterval);
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
   }

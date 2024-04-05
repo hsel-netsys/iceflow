@@ -1,9 +1,10 @@
-Producer:
-  pubsyncPrefix             : /wordcount
-  pubPrefixdatamain         : /text2lines/dataMain
-  nPartition                : [1,2,3]
+syncPrefix: /wordcount
+nodePrefix: text2lines
+partitions: [1, 2, 3]
 
-Measurement:
-  nodeName: Text2lines
+producer:
+  topic: /text2lines/dataMain
+  publishInterval: 500
+
+measurements:
   saveInterval: 100
-  
