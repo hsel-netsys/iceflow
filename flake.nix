@@ -13,7 +13,11 @@
 
   outputs = { self, nixpkgs, devenv, systems, ... } @ inputs:
     let
-      pkg-overlay = (final: prev: rec {
+      pkg-overlay = (final: prev: let
+        lib = nixpkgs.lib;
+        pkgs = prev;
+      in rec {
+        # Update ndn-cxx to newest commit (required by ndn-svs).
         ndn-cxx = prev.ndn-cxx.overrideAttrs (old: rec {
           src = prev.fetchFromGitHub {
             owner = "named-data";
@@ -25,6 +29,7 @@
 
         });
 
+        # Update nfd to newest commit.
         nfd = prev.nfd.overrideAttrs (old: {
           src = prev.fetchFromGitHub {
             owner = "named-data";
@@ -41,7 +46,9 @@
           
           doCheck = false;
         });
-        psync = prev.stdenv.mkDerivation rec {
+
+        # Add psync build dependency.
+        psync = lib.makeOverridable prev.stdenv.mkDerivation rec {
           pname = "psync";
           version = "8c7c22804c2437166af14156b6681a245e8724fa";
 
@@ -52,7 +59,7 @@
             sha256 = "sha256-IY3hq06l4MYpNw2GKY9g9nLyY/yvuNKl10BYz/CJJyg=";
           };
 
-          nativeBuildInputs = [ prev.pkg-config prev.wafHook prev.python3 ];
+          nativeBuildInputs = with prev; [ pkg-config wafHook python3 ];
           buildInputs = [ ndn-cxx prev.sphinx prev.openssl ];
 
           wafConfigureFlags = [
@@ -71,7 +78,9 @@
             runHook postCheck
           '';
         };
-        ndn-svs = prev.stdenv.mkDerivation rec {
+
+        # Add ndn-svs build dependency.
+        ndn-svs = lib.makeOverridable prev.stdenv.mkDerivation rec {
           pname = "ndn-svs";
           version = "dev";
 
@@ -82,7 +91,7 @@
             sha256 = "sha256-BoT3G4CAhoq7CerZoOPgGlqRkVY6Arnax834YDAeohk=";
           };
 
-          nativeBuildInputs = [ prev.pkg-config prev.wafHook prev.python3 ];
+          nativeBuildInputs = with prev; [ pkg-config wafHook python3 ];
           buildInputs = [ ndn-cxx prev.sphinx prev.openssl ];
 
           wafConfigureFlags = [
@@ -101,13 +110,31 @@
             LD_LIBRARY_PATH=build/:$LD_LIBRARY_PATH build/unit-tests
             runHook postCheck
           '';
-        };        
+        };
+
       });
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
+      # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
+      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "opencv" "psync" "ndn-svs" "ndn-cxx"];
     in {
-      packages = forEachSystem (system: {
+      packages = forEachSystem (system: let
+        pkgs = nixpkgs.legacyPackages.${system}.extend pkg-overlay;
+        lib = nixpkgs.lib;
+      in rec {
+        default = iceflow;
+
+        # IceFlow package
+        iceflow = lib.makeOverridable pkgs.stdenv.mkDerivation {
+            name = "iceflow";
+            src = ./.;
+
+            # Build using cmake, pkg-config and gnumake.
+            nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake ];
+            #
+            buildInputs = map (x: pkgs."${x}") iceflowDependencies;
+        };
+
         devenv-up = self.devShells.${system}.default.config.procfileScript;
-                
       });
 
       devShells = forEachSystem
@@ -115,25 +142,25 @@
           let
             pkgs = nixpkgs.legacyPackages.${system}.extend pkg-overlay;
             lib = nixpkgs.lib;
-          in
-          {
-            default = devenv.lib.mkShell {
+            # Keep debug symbols disabled for very large packages to avoid long compilation times.
+            keepDebuggingDisabledFor = ["opencv"];
+            additionalShellPackages = with pkgs; [nfd];
+          in rec {
+            default = lib.makeOverridable devenv.lib.mkShell {
               inherit inputs pkgs;
               modules = [
                 ({config, ...}: {
                   # https://devenv.sh/reference/options/
-                  packages = with pkgs; [ 
-                    ndn-cxx
-                    nfd
-                    psync
-                    ndn-svs
-                    yaml-cpp
-                    nlohmann_json
-                    boost179
-                    opencv
-                    gnumake
-                    cmake
-                  ];
+
+                  # Add to the dev shell:
+                  # - the build system (nativeBuildInputs)
+                  # - build dependencies (iceflowDependencies)
+                  # - additional software
+                  # Unfortunately, we need a separate iceflowDependencies variable and cant use iceflow.buildInputs
+                  # directly, as it wouldn't allow enabling debugging.
+                  packages = with pkgs; self.packages.${system}.iceflow.nativeBuildInputs
+                    ++ (map (x: if builtins.elem x keepDebuggingDisabledFor then pkgs."${x}" else enableDebugging pkgs."${x}") iceflowDependencies)
+                    ++ additionalShellPackages;
 
                   languages.cplusplus.enable = true;
 
@@ -148,6 +175,16 @@
                 })
               ];
             };
+
+            debugAll = default.override (old: {
+              modules = old.modules ++ [
+                ({config, ...}: {
+                  packages = lib.mkForce (with pkgs; self.packages.${system}.iceflow.nativeBuildInputs
+                    ++ (map (x: enableDebugging pkgs."${x}") iceflowDependencies)
+                    ++ additionalShellPackages);
+                })
+              ];
+            });
           });
     };
 }
