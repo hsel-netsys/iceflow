@@ -13,6 +13,14 @@ IceFlow provides a Nix Flake, which provides a development environment using the
 In order to compile IceFlow in the Nix environment, you may follow the 
 [Nix section of the installation instructions](../Install.md#using-nix-and-devenvsh).
 
+By default, the development shell will include debug symbols for all dependencies except OpenCV.
+If you need debug symbols for OpenCV too, you can enter a shell with debug symbols for OpenCV using:
+```sh
+nix develop --impure '.#debugAll'
+```
+Note, however, that this will compile OpenCV on your local system, which might take a while and a considerable amount
+of resources.
+
 Some IDEs may allow for direct integration with devenv.sh, see 
 [the devenv.sh documentation](https://devenv.sh/getting-started/), most notably the section on "Editor Support".
 For VSCode, refer to https://devenv.sh/editor-support/vscode/.
@@ -34,14 +42,13 @@ without an absolute path:
 
 
 ## Changing the Nix environment
-TODO
 
 ### Updating dependencies
 
 For updates from the Nix package repositories:
 `nix flake update` (will update flake.lock)
 
-For updating packages that we defined ourselves:
+For updating packages that are defined in the `flake.nix` file itself:
 1. Update the `src` attribute of the package in the `flake.nix` file as follows:
     - Update the `rev` to the git revision (commit hash or tag) you want to switch to.
     - Change a single character of the `hash` attribute (otherwise Nix will think that it doesn't have to redownload)
@@ -51,19 +58,59 @@ For updating packages that we defined ourselves:
 3. Update the `hash` attribute of the package again, this time using the hash given in the error message.
 4. Save and close the file again. This time, the build should succeed (assuming there are no actualy compilation issues).
 
-TODO expand
-
 ### Defining a dependency
-TODO
+Most basic dependencies are already available in the nixpkgs repository.
+Therefore, the first step to adding a dependency should be to check for its presence in the [Nix repositories](https://search.nixos.org/packages).
+Depending on whether the dependency is already available in the repositories, you can then refer to one of the following sections to add it.
 
 #### Defining a dependency available in the repositories
-TODO
+To add a dependency that is already available in the repositories, simply add it to the packages attribute in the `devShell` defined in the `flake.nix` file.
 
 #### Defining a dependency not available in the repositories
-TODO
+If a dependency is not available in the repositories, you need to define a package yourself.
+The easiest way of doing so is by adding the package to the `pkg-overlay` set defined in the `flake.nix`.
+Package definition differs based on the type of package and build system.
+
+However, the basic steps for adding a package to the flake's `pkg-overlay`:
+1. Create a derivation using `pkgs.stdenv.mkDerivation`
+2. Define the package source (typically using `pkgs.fetchFromGitHub` or `pkgs.fetchgit`), which involves specifying the git revision and hash of the downloaded source (see [Updating dependencies](#updating-dependencies)).
+3. Add the build system to `nativeBuildInputs` and the dependencies as `buildInputs` (if necessary).
+4. Set build system-specific configuration options
+5. Add the name of the created derivation to the `iceflowDependencies` variable defined in `flake.nix`, which will add it both to the developer shell and to the package build.
+
+For CMake based projects, you may specify additional flags using the `cmakeFlags` attribute inside of the derivation.
+You can use other package definitions already present in the `flake.nix` as templates (e.g. `ndn-svs` for WAF-based packages).
+
+For other build systems and more information regarding build system specific configuration, refer to the Nix documentation regarding [build hooks](https://nixos.org/manual/nixpkgs/stable/#chap-hooks).
+
+Some general information regarding C-based projects can also be found in the [NixOS Wiki](https://nixos.wiki/wiki/C).
+
+For more information regarding package definitions in general, refer to the Nix documentation regarding the [Standard environment](https://nixos.org/manual/nixpkgs/stable/#part-stdenv)
 
 ### Overriding packages (e.g. change versions)
-TODO
+Overriding packages can be done by adding an attribute to the `pkg-overlay` defined in the `flake.nix`.
+To do so, you can use the `overrideAttrs` function of the package whose version you would like to change.
+
+For instance, this pkg-overlay will override the `ndn-cxx` package version with a specific commit:
+```nix
+let pkg-overlay = (final: prev: rec {
+    ndn-cxx = prev.ndn-cxx.overrideAttrs (old: rec {
+      src = prev.fetchFromGitHub {
+        owner = "named-data";
+        repo = "ndn-cxx";
+        rev = "18ccbb3b1f600d913dd42dd5c462afdac77e37e0";
+        hash = "sha256-yHsp6dBq2kMsubJrn77qeQ9Ah+Udy7nE9eWBX2smemA="; 
+        fetchSubmodules = true; 
+      };
+    
+    });
+});
+in {}
+```
+For instructions on how to get the right hash, see [Updating dependencies](#updating-dependencies).
+You may also override any other attribute of the derivation, which allows for customization of build flags, etc.
+For more information on these customizations, you may refer to the documentation linked in [Defining a dependency not available in the repositories](#defining-a-dependency-not-available-in-the-repositories).
 
 ### Adding command line tools
-TODO
+In general, it should be sufficient to add the tools to the default `devShell`'s `packages` attribute, assuming that it is present in the Nix package repository.
+If a package is not available there, refer to [Defining a dependency not available in the repositories](#defining-a-dependency-not-available-in-the-repositories)
