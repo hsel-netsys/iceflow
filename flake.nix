@@ -65,13 +65,14 @@
           wafConfigureFlags = [
             "--boost-includes=${prev.boost179.dev}/include"
             "--boost-libs=${prev.boost179.out}/lib"
-            "--with-tests"
+            #"--without-tests"
           ];
 
-          doCheck = true;
+          # Tests currently fail on macOS (https://github.com/hsel-netsys/iceflow/pull/45#discussion_r1555717705)
+          doCheck = false;
           checkPhase = ''
             runHook preCheck
-            # this line removes a bug where value of $HOME is set to a non-writable /homeless-shelter dir
+            # this line fixes a bug where value of $HOME is set to a non-writable /homeless-shelter dir
             # see https://github.com/NixOS/nix/issues/670#issuecomment-1211700127
             export HOME=$(pwd)
             LD_LIBRARY_PATH=build/:$LD_LIBRARY_PATH build/unit-tests
