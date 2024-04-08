@@ -161,7 +161,7 @@ virtualenvs in Python.
 ### Requirements
 
 In order to compile and run IceFlow using Nix, the following system requirements must be fulfilled:
-1. A Linux or MacOS based system (Windows might work through the WSL, but is untested, refer to
+1. A Linux or macOS based system (Windows might work through the WSL, but is untested, refer to
    [the NixOS documentation regarding WSL](https://wiki.nixos.org/wiki/WSL) if necessary).
 2. The Nix package manager must be installed, see [the Nix download page](https://nixos.org/download/) for installation
    instructions.
