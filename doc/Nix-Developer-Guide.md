@@ -46,7 +46,7 @@ without an absolute path:
 ### Updating dependencies
 
 For updates from the Nix package repositories:
-`nix flake update` (will update flake.lock)
+`nix flake update` (will update `flake.lock`)
 
 For updating packages that are defined in the `flake.nix` file itself:
 1. Update the `src` attribute of the package in the `flake.nix` file as follows:

@@ -17,7 +17,7 @@
         lib = nixpkgs.lib;
         pkgs = prev;
       in rec {
-        # Update ndn-cxx to newest commit (required by ndn-svs).
+        # Update ndn-cxx to specific commit (required by ndn-svs).
         ndn-cxx = prev.ndn-cxx.overrideAttrs (old: rec {
           src = prev.fetchFromGitHub {
             owner = "named-data";
@@ -29,7 +29,7 @@
 
         });
 
-        # Update nfd to newest commit.
+        # Update nfd to specific commit.
         nfd = prev.nfd.overrideAttrs (old: {
           src = prev.fetchFromGitHub {
             owner = "named-data";
@@ -145,7 +145,7 @@
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
             keepDebuggingDisabledFor = ["opencv"];
-            additionalShellPackages = with pkgs; [nfd];
+            additionalShellPackages = with pkgs; [nfd cppcheck];
           in rec {
             default = lib.makeOverridable devenv.lib.mkShell {
               inherit inputs pkgs;
@@ -170,7 +170,6 @@
                       enable = true;
                       types_or = lib.mkForce ["c" "c++"];
                       files = "(apps|include)\\\/\.\*\\\/\.\*\\\.(c|h)pp";
-                      #entry = lib.mkForce "${pkgs.clang-tools}/bin/clang-format -style=file -i src/**/*.cpp src/**/*.hpp";
                     };
                   };
                 })
