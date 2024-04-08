@@ -107,3 +107,8 @@ docs/
 CTestTestfile.cmake
 Testing/
 test_build/
+
+# devenv.sh/direnv
+.devenv
+.direnv
+.pre-commit-config.yaml
