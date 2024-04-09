@@ -8,9 +8,14 @@
 
   outputs = { self, nixpkgs, devenv, systems, ... } @ inputs:
     let
-      pkg-overlay = (final: prev: let
-        lib = nixpkgs.lib;
-        pkgs = prev;
+      forEachSystem = nixpkgs.lib.genAttrs (import systems);
+      # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
+      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "opencv" "psync" "ndn-svs" "ndn-cxx"];
+    in {
+
+      overlays.default = final: prev: let
+         lib = nixpkgs.lib;
+         pkgs = prev;
       in rec {
         # Update ndn-cxx to specific commit (required by ndn-svs).
         ndn-cxx = prev.ndn-cxx.overrideAttrs (old: rec {
@@ -18,8 +23,8 @@
             owner = "named-data";
             repo = "ndn-cxx";
             rev = "18ccbb3b1f600d913dd42dd5c462afdac77e37e0";
-            hash = "sha256-yHsp6dBq2kMsubJrn77qeQ9Ah+Udy7nE9eWBX2smemA="; 
-            fetchSubmodules = true; 
+            hash = "sha256-yHsp6dBq2kMsubJrn77qeQ9Ah+Udy7nE9eWBX2smemA=";
+            fetchSubmodules = true;
           };
 
         });
@@ -38,7 +43,7 @@
             "--boost-includes=${prev.boost179.dev}/include"
             "--boost-libs=${prev.boost179.out}/lib"
           ];
-          
+
           doCheck = false;
         });
 
@@ -107,14 +112,10 @@
             runHook postCheck
           '';
         };
+      };
 
-      });
-      forEachSystem = nixpkgs.lib.genAttrs (import systems);
-      # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
-      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "opencv" "psync" "ndn-svs" "ndn-cxx"];
-    in {
       packages = forEachSystem (system: let
-        pkgs = nixpkgs.legacyPackages.${system}.extend pkg-overlay;
+        pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
         lib = nixpkgs.lib;
       in rec {
         default = iceflow;
@@ -136,7 +137,7 @@
       devShells = forEachSystem
         (system:
           let
-            pkgs = nixpkgs.legacyPackages.${system}.extend pkg-overlay;
+            pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
             keepDebuggingDisabledFor = ["opencv"];
