@@ -6,11 +6,6 @@
     devenv.inputs.nixpkgs.follows = "nixpkgs";
   };
 
-  nixConfig = {
-    extra-trusted-public-keys = "devenv.cachix.org-1:w1cLUi8dv3hnoSPGAuibQv+f9TZLr6cv/Hm9XgU50cw=";
-    extra-substituters = "https://devenv.cachix.org";
-  };
-
   outputs = { self, nixpkgs, devenv, systems, ... } @ inputs:
     let
       pkg-overlay = (final: prev: let
@@ -129,8 +124,8 @@
             name = "iceflow";
             src = ./.;
 
-            # Build using cmake, pkg-config and gnumake.
-            nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake ];
+            # Build using cmake, pkg-config and gnumake, add doxygen for docs.
+            nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
             #
             buildInputs = map (x: pkgs."${x}") iceflowDependencies;
         };
@@ -176,7 +171,7 @@
               ];
             };
 
-            debugAll = default.override (old: {
+            debugall = default.override (old: {
               modules = old.modules ++ [
                 ({config, ...}: {
                   packages = lib.mkForce (with pkgs; self.packages.${system}.iceflow.nativeBuildInputs
@@ -185,6 +180,18 @@
                 })
               ];
             });
+
+            nodebug = default.override (old: {
+              modules = old.modules ++ [
+                ({config, ...}: {
+                  packages = lib.mkForce (with pkgs; self.packages.${system}.iceflow.nativeBuildInputs
+                    ++ (map (x: pkgs."${x}") iceflowDependencies)
+                    ++ additionalShellPackages);
+                })
+              ];
+            });
+
+            ci = nodebug;
           });
     };
 }

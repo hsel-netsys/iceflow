@@ -1,10 +1,9 @@
-name: Build Status
+name: Build
 
 on:
   push:
     branches: [ main ]
   pull_request:
-    branches: [ main ]
   merge_group:
     branches: [ main ]
 
@@ -14,37 +13,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install dependencies
-        run : |
-          echo "deb [arch=amd64 trusted=yes] https://nfd-nightly-apt.ndn.today/ubuntu jammy main" \
-          | sudo tee /etc/apt/sources.list.d/nfd-nightly.list
-          sudo apt update
-          sudo apt install libndn-cxx-dev libpsync-dev libyaml-cpp-dev libopencv-dev nlohmann-json3-dev cppcheck doxygen
-
-      - name: Install ndn-svs
-        run: |
-          git clone https://github.com/named-data/ndn-svs.git
-          cd ndn-svs
-          ./waf configure
-          ./waf
-          sudo ./waf install
-          cd ..
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Generate CMake Build Files
-        run: cmake -DBUILD_TESTS=ON .
+        run: nix develop --impure .#ci -c cmake -DBUILD_TESTS=ON .
 
       - name: Verify Formatting
-        run: make check-format
+        run: nix develop --impure .#ci -c make check-format
 
       - name: Lint Codebase
-        run: make lint
+        run: nix develop --impure .#ci -c make lint
 
       - name: Build IceFlow Example Applications and Tests
-        run: make
+        run: nix develop --impure .#ci -c make
 
       - name: Run Tests
-        run: make test
+        run: nix develop --impure .#ci -c make test
 
       - name: Export IceFlow Example Application Binaries
         uses: actions/upload-artifact@v3
@@ -63,51 +48,23 @@ jobs:
 
     steps:
       - uses: actions/checkout@v3
-
-      - name: Install Dependencies
-        run: brew install boost openssl pkg-config opencv nlohmann-json yaml-cpp clang-format cppcheck
-
-      - name: Install ndn-cxx
-        run: |
-          git clone https://github.com/named-data/ndn-cxx
-          cd ndn-cxx
-          ./waf configure
-          ./waf
-          sudo ./waf install
-          cd ..
-
-      - name: Install PSync
-        run: |
-          git clone https://github.com/named-data/PSync.git
-          cd PSync
-          ./waf configure
-          ./waf
-          sudo ./waf install
-          cd ..
-
-      - name: Install ndn-svs
-        run: |
-          git clone https://github.com/named-data/ndn-svs.git
-          cd ndn-svs
-          ./waf configure
-          ./waf
-          sudo ./waf install
-          cd ..
+      - uses: DeterminateSystems/nix-installer-action@main
+      - uses: DeterminateSystems/magic-nix-cache-action@main
 
       - name: Generate CMake Build Files
-        run: cmake -DBUILD_TESTS=ON .
+        run: nix develop --impure .#ci -c cmake -DBUILD_TESTS=ON .
 
       - name: Verify Formatting
-        run: make check-format
+        run: nix develop --impure .#ci -c make check-format
 
       - name: Lint Codebase
-        run: make lint
+        run: nix develop --impure .#ci -c make lint
 
       - name: Build IceFlow Example Applications and Tests
-        run: make
+        run: nix develop --impure .#ci -c make
 
       - name: Run Tests
-        run: make test
+        run: nix develop --impure .#ci -c make test
 
       - name: Export IceFlow Example Application Binaries
         uses: actions/upload-artifact@v3
