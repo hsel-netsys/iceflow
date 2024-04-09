@@ -35,7 +35,7 @@ public:
               const std::string &userPrefixDataManifest,
               const std::string &userPrefixAck, int nDataStreams,
               int publishInterval, int publishIntervalNew, int mapThreshold)
-      : m_scheduler(m_face.getIoService()),
+      : m_scheduler(m_face.getIoContext()),
         m_producer(m_face, m_keyChain, 100, syncPrefix, userPrefixDataMain),
         m_userPrefixDataMain(userPrefixDataMain),
         m_userPrefixDataManifest(userPrefixDataManifest),
@@ -245,6 +245,7 @@ public:
   }
 
   std::vector<std::vector<uint8_t>>
+
   splitVector(std::vector<uint8_t> inputVector, unsigned segmentSize) {
     auto start = inputVector.begin();
     auto end = inputVector.end();

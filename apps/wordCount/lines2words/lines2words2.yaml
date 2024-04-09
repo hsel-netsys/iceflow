@@ -1,0 +1,14 @@
+syncPrefix: /wordcount
+nodePrefix: text2lines2
+partitions: [3]
+
+consumer:
+  topic: /text2lines/dataMain
+  inputThreshold: 200 # TODO: This is unused at the moment
+
+producer:
+  topic: /lines2words/dataMain
+  publishInterval: 500
+
+measurements:
+  saveInterval: 100

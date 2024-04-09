@@ -23,6 +23,8 @@
 
 #include "ndn-cxx/data.hpp"
 
+#include "content-type-value.hpp"
+#include "logger.hpp"
 #include "typed-data.hpp"
 
 namespace iceflow {
@@ -41,7 +43,7 @@ public:
 
   // for manifests
   Data(const ndn::Name &name, const std::vector<ndn::Name> &namesInput,
-       ContentTypeValue type)
+       iceflow::ContentTypeValue type)
       : ndn::Data(name), m_names(namesInput), m_type(type) {
     encodeContent();
   }
@@ -49,8 +51,8 @@ public:
   void encodeContent() {
     setContentType(m_type);
     uint32_t contentType = getContentType();
-    if (contentType == ContentTypeValue::UpdateManifest ||
-        contentType == ContentTypeValue::FrameManifest) {
+    if (contentType == iceflow::ContentTypeValue::UpdateManifest ||
+        contentType == iceflow::ContentTypeValue::FrameManifest) {
       if (m_names.empty()) {
         setContent(std::span<uint8_t>{});
       } else {
@@ -64,7 +66,7 @@ public:
   // Content=segment object as tlv to be nested
   explicit Data(const ndn::Name &name, std::vector<uint8_t> segmentContent)
       : ndn::Data(name) {
-    setContentType(ContentTypeValue::Manifest);
+    setContentType(iceflow::ContentTypeValue::Manifest);
     ndn::Block segContent =
         ndn::encoding::makeBinaryBlock(ndn::tlv::Content, segmentContent);
     setContent(segContent);
@@ -72,7 +74,7 @@ public:
   explicit Data(const ndn::Name &name, ndn::Block dataContent, uint32_t type)
       : ndn::Data(name) {
     setContentType(type);
-    NDN_LOG_DEBUG("Data-------: " << dataContent.type());
+    //    NDN_LOG_DEBUG("Data-------: " << dataContent.type());
     ndn::Block binaryBlock = ndn::encoding::makeBinaryBlock(
         ndn::tlv::Content, dataContent.value_begin(), dataContent.value_end());
     setContent(binaryBlock);
@@ -81,7 +83,7 @@ public:
   // for data of content: metaInfo(Json)
   Data(const ndn::Name &name, std::span<uint8_t> jsonContent)
       : ndn::Data(name) {
-    setContentType(ContentTypeValue::Json);
+    setContentType(iceflow::ContentTypeValue::Json);
     ndn::Block binaryBlock =
         ndn::encoding::makeBinaryBlock(ndn::tlv::Content, jsonContent);
     setContent(binaryBlock);
@@ -91,8 +93,8 @@ public:
     Data::wireDecode(wire);
     uint32_t contentType = getContentType();
 
-    if (contentType == ContentTypeValue::UpdateManifest ||
-        contentType == ContentTypeValue::FrameManifest) {
+    if (contentType == iceflow::ContentTypeValue::UpdateManifest ||
+        contentType == iceflow::ContentTypeValue::FrameManifest) {
       m_names.clear();
       auto content = getContent();
       content.parse();

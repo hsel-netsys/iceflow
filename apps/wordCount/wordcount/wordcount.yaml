@@ -1,0 +1,9 @@
+syncPrefix: /wordcount
+nodePrefix: wordcount
+partitions: [1, 2, 3]
+
+consumer:
+  topic: /lines2words/dataMain
+
+measurements:
+  saveInterval: 100
