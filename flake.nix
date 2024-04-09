@@ -10,7 +10,7 @@
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
       # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
-      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "opencv" "psync" "ndn-svs" "ndn-cxx"];
+      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "psync" "ndn-svs" "ndn-cxx"];
     in {
 
       overlays.default = final: prev: let
@@ -140,7 +140,7 @@
             pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
-            keepDebuggingDisabledFor = ["opencv"];
+            keepDebuggingDisabledFor = [];
             additionalShellPackages = with pkgs; [nfd cppcheck];
           in rec {
             default = lib.makeOverridable devenv.lib.mkShell {

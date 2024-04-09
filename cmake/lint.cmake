@@ -18,7 +18,14 @@
 # running cppcheck for linting the project's source code.
 
 # TODO: Create one variable that is also used for formatting sources
-set(LINTING_SOURCES apps/**/*.cpp tests/*.cpp include/**/*.hpp)
+# Find all source files for linting, see the replies to https://stackoverflow.com/a/36046965
+# and https://www.labri.fr/perso/fleury/posts/programming/using-clang-tidy-and-clang-format.html.
+file(GLOB_RECURSE LINTING_SOURCES 
+  examples/*.[ch]pp examples/*.[CH]PP examples/*.[ch]xx examples/*.[CH]XX examples/*.cc 
+  examples/*.CC examples/*.hh examples/*.HH examples/*.[CHch]
+  include/*.[ch]pp include/*.[CH]PP include/*.[ch]xx include/*.[CH]XX include/*.cc 
+  include/*.CC include/*.hh include/*.HH include/*.[CHch]
+)
 
 add_custom_target(lint)
 add_custom_command(TARGET lint COMMAND cppcheck --enable=all ${LINTING_SOURCES})

@@ -21,7 +21,14 @@
 # format`. To only check whether the codebase is properly formatted, run `make
 # check-format` instead.
 
-set(FORMATTING_SOURCES apps/**/*.cpp  apps/**/*.hpp tests/*.cpp include/**/*.hpp)
+# Find all source files for formatting, see the replies to https://stackoverflow.com/a/36046965
+# and https://www.labri.fr/perso/fleury/posts/programming/using-clang-tidy-and-clang-format.html.
+file(GLOB_RECURSE FORMATTING_SOURCES 
+  examples/*.[ch]pp examples/*.[CH]PP examples/*.[ch]xx examples/*.[CH]XX examples/*.cc 
+  examples/*.CC examples/*.hh examples/*.HH examples/*.[CHch]
+  include/*.[ch]pp include/*.[CH]PP include/*.[ch]xx include/*.[CH]XX include/*.cc 
+  include/*.CC include/*.hh include/*.HH include/*.[CHch]
+)
 
 add_custom_target(format)
 add_custom_command(
