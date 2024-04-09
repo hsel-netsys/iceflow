@@ -16,7 +16,7 @@ In order to compile IceFlow in the Nix environment, you may follow the
 By default, the development shell will include debug symbols for all dependencies except OpenCV.
 If you need debug symbols for OpenCV too, you can enter a shell with debug symbols for OpenCV using:
 ```sh
-nix develop --impure '.#debugAll'
+nix develop --impure '.#debugall'
 ```
 Note, however, that this will compile OpenCV on your local system, which might take a while and a considerable amount
 of resources.
@@ -31,8 +31,7 @@ A plugin for adding syntax highlighting and linting to .nix files can be found [
 
 Unfortunately, CLion does not have direct support for Nix integration (i.e. automatically enabling a Nix environment 
 configured for a project and using its compiler, libraries and debugger), even though this feature has been requested 
-both for [the IDE itself](https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008227939-How-to-configure-a-Nix-based-remote-interpreter)
-as well as for [the nix-idea plugin](https://github.com/NixOS/nix-idea/issues/1).
+both for [the IDE itself](https://intellij-support.jetbrains.com/hc/en-us/community/posts/360008227939-How-to-configure-a-Nix-based-remote-interpreter) and the [the nix-idea plugin](https://github.com/NixOS/nix-idea/issues/1).
 
 So far, the easiest way to use Nix in CLion is by simply starting it from the command line while inside the Nix 
 development shell.
@@ -78,7 +77,7 @@ However, the basic steps for adding a package to the flake's `pkg-overlay`:
 4. Set build system-specific configuration options
 5. Add the name of the created derivation to the `iceflowDependencies` variable defined in `flake.nix`, which will add it both to the developer shell and to the package build.
 
-For CMake based projects, you may specify additional flags using the `cmakeFlags` attribute inside of the derivation.
+For CMake based projects, you may specify additional flags using the `cmakeFlags` attribute of the derivation.
 You can use other package definitions already present in the `flake.nix` as templates (e.g. `ndn-svs` for WAF-based packages).
 
 For other build systems and more information regarding build system specific configuration, refer to the Nix documentation regarding [build hooks](https://nixos.org/manual/nixpkgs/stable/#chap-hooks).
