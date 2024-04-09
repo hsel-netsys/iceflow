@@ -30,30 +30,15 @@ foreach(SOURCE_FILE ${SOURCES})
                                ${PSYNC_INCLUDE_DIRS} ${YAML_INCLUDE_DIRS})
   target_compile_options(${EXECUTABLE_NAME} PRIVATE -D_GNU_SOURCE
                                                     -DBOOST_LOG_DYN_LINK)
-
-  if(APPLE)
-    target_link_directories(${EXECUTABLE_NAME} PRIVATE /usr/local/lib)
-    target_link_libraries(
-      ${EXECUTABLE_NAME}
-      -lpthread
-      -lPSync
-      -lndn-cxx
-      -lndn-svs
-      ${OpenCV_LIBS}
-      -lboost_log-mt
-      -lboost_chrono-mt
-      -lyaml-cpp)
-  else()
-    target_link_libraries(
-      ${EXECUTABLE_NAME}
-      ${Boost_LIBRARIES}
-      -lboost_log
-      -lboost_system
-      -lpthread
-      -lndn-cxx
-      -lndn-svs
-      -lPSync
-      ${OpenCV_LIBS}
-      ${YAML_CPP_LIBRARIES})
-  endif()
+  target_link_libraries(
+    ${EXECUTABLE_NAME}
+    ${Boost_LIBRARIES}
+    -lboost_log
+    -lboost_system
+    -lpthread
+    -lndn-cxx
+    -lndn-svs
+    -lPSync
+    ${OpenCV_LIBS}
+    ${YAML_CPP_LIBRARIES})
 endforeach(SOURCE_FILE ${SOURCES})
