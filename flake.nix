@@ -84,18 +84,51 @@
       packages = forEachSystem (system: let
         pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
         lib = nixpkgs.lib;
+        iceflowPackage = ({enableExamples ? false}: lib.makeOverridable pkgs.stdenv.mkDerivation {
+          name = "iceflow";
+          src = ./.;
+
+          # Build using cmake, pkg-config and gnumake, add doxygen for docs.
+          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
+          #
+          buildInputs = map (x: pkgs."${x}") iceflowDependencies;
+
+          cmakeFlags = [ "-DBUILD_APPS=${if enableExamples then "ON" else "OFF"}" ];
+        });
+        genIceflowExampleCtrImage = {example_name, args ? []}: pkgs.dockerTools.buildLayeredImage {
+          name = "iceflow-${example_name}";
+          tag = "latest";
+
+          contents = [ self.packages."${system}".iceflow-with-examples pkgs.busybox ];
+
+          config = {
+            Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
+            Env = [ "ICEFLOW_CONFIG_FILE=/data/${example_name}.yaml" "ICEFLOW_METRICS_FILE=/data/${example_name}.metrics" ];
+            Volume = "/data";
+          };
+        };
       in rec {
         default = iceflow;
 
         # IceFlow package
-        iceflow = lib.makeOverridable pkgs.stdenv.mkDerivation {
-            name = "iceflow";
-            src = ./.;
+        iceflow = iceflowPackage {enableExamples = false;};
 
-            # Build using cmake, pkg-config and gnumake, add doxygen for docs.
-            nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
-            #
-            buildInputs = map (x: pkgs."${x}") iceflowDependencies;
+        # IceFlow examples
+        iceflow-with-examples = iceflowPackage {enableExamples = true;};
+
+        docker-text2lines = genIceflowExampleCtrImage {
+          example_name = "text2lines";
+          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_INPUT_FILE" "$ICEFLOW_METRICS_FILE"];
+        };
+
+        docker-lines2words = genIceflowExampleCtrImage {
+          example_name = "lines2words";
+          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
+        };
+
+        docker-wordcount = genIceflowExampleCtrImage {
+          example_name = "wordcount";
+          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
         };
 
         devenv-up = self.devShells.${system}.default.config.procfileScript;

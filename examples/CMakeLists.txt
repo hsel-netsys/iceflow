@@ -18,10 +18,11 @@ foreach(SOURCE_FILE ${SOURCES})
   set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                       ../build)
   target_include_directories(
-    ${EXECUTABLE_NAME} PRIVATE ../include include ${NDN_CXX_INCLUDE_DIRS}
-                               ${PSYNC_INCLUDE_DIRS} ${YAML_INCLUDE_DIRS})
+    ${EXECUTABLE_NAME} PRIVATE ../include include ${NDN_CXX_INCLUDE_DIRS} ${YAML_INCLUDE_DIRS})
   target_compile_options(${EXECUTABLE_NAME} PRIVATE -D_GNU_SOURCE
                                                     -DBOOST_LOG_DYN_LINK)
+  install(TARGETS ${EXECUTABLE_NAME})
+
   target_link_libraries(
     ${EXECUTABLE_NAME}
     ${Boost_LIBRARIES}
