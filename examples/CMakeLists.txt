@@ -4,7 +4,6 @@ find_package(yaml-cpp REQUIRED)
 find_package(Boost)
 find_package(PkgConfig)
 pkg_check_modules(NDN_CXX REQUIRED libndn-cxx)
-pkg_check_modules(PSYNC REQUIRED PSync)
 pkg_check_modules(SVS REQUIRED libndn-svs)
 
 set(SOURCES
@@ -31,6 +30,5 @@ foreach(SOURCE_FILE ${SOURCES})
     -lpthread
     -lndn-cxx
     -lndn-svs
-    -lPSync
     ${YAML_CPP_LIBRARIES})
 endforeach(SOURCE_FILE ${SOURCES})

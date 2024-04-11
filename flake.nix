@@ -10,7 +10,7 @@
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
       # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
-      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "psync" "ndn-svs" "ndn-cxx"];
+      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "ndn-svs" "ndn-cxx"];
     in {
 
       overlays.default = final: prev: let
@@ -46,39 +46,6 @@
 
           doCheck = false;
         });
-
-        # Add psync build dependency.
-        psync = lib.makeOverridable prev.stdenv.mkDerivation rec {
-          pname = "psync";
-          version = "8c7c22804c2437166af14156b6681a245e8724fa";
-
-          src = prev.fetchFromGitHub {
-            owner = "named-data";
-            repo = "PSync";
-            rev = "${version}";
-            sha256 = "sha256-IY3hq06l4MYpNw2GKY9g9nLyY/yvuNKl10BYz/CJJyg=";
-          };
-
-          nativeBuildInputs = with prev; [ pkg-config wafHook python3 ];
-          buildInputs = [ ndn-cxx prev.sphinx prev.openssl ];
-
-          wafConfigureFlags = [
-            "--boost-includes=${prev.boost179.dev}/include"
-            "--boost-libs=${prev.boost179.out}/lib"
-            #"--without-tests"
-          ];
-
-          # Tests currently fail on macOS (https://github.com/hsel-netsys/iceflow/pull/45#discussion_r1555717705)
-          doCheck = false;
-          checkPhase = ''
-            runHook preCheck
-            # this line fixes a bug where value of $HOME is set to a non-writable /homeless-shelter dir
-            # see https://github.com/NixOS/nix/issues/670#issuecomment-1211700127
-            export HOME=$(pwd)
-            LD_LIBRARY_PATH=build/:$LD_LIBRARY_PATH build/unit-tests
-            runHook postCheck
-          '';
-        };
 
         # Add ndn-svs build dependency.
         ndn-svs = lib.makeOverridable prev.stdenv.mkDerivation rec {
