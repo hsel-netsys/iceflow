@@ -21,16 +21,16 @@
 # format`. To only check whether the codebase is properly formatted, run `make
 # check-format` instead.
 
-set(FORMATTING_SOURCES apps/**/*.cpp  apps/**/*.hpp tests/*.cpp include/**/*.hpp)
+include("cmake/sources.cmake")
 
 add_custom_target(format)
 add_custom_command(
   TARGET format
-  COMMAND clang-format -i ${FORMATTING_SOURCES}
+  COMMAND clang-format -i ${ALL_SOURCES}
   COMMENT "Formatting codebase...")
 
 add_custom_target(check-format)
 add_custom_command(
   TARGET check-format
-  COMMAND clang-format -i ${FORMATTING_SOURCES} --dry-run -Werror
+  COMMAND clang-format -i ${ALL_SOURCES} --dry-run -Werror
   COMMENT "Verifying formatting...")

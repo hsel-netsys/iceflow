@@ -27,12 +27,12 @@ include(cmake/lint.cmake)
 
 add_subdirectory(include)
 
-option(BUILD_APPS "Build IceFlow applications" ON)
+option(BUILD_APPS "Build IceFlow examples" ON)
 option(BUILD_TESTS "Build library tests" OFF)
 
 if(BUILD_APPS)
-  message(STATUS "Building IceFlow applications...")
-  add_subdirectory(apps)
+  message(STATUS "Building IceFlow examples...")
+  add_subdirectory(examples)
 endif()
 
 if(BUILD_TESTS)

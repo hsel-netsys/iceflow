@@ -1,6 +1,0 @@
-# Ignore output binary
-gender
-genderdetection
-# Ignore machine learning models
-gender_deploy.prototxt
-gender_net.caffemodel
