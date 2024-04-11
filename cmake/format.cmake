@@ -21,23 +21,16 @@
 # format`. To only check whether the codebase is properly formatted, run `make
 # check-format` instead.
 
-# Find all source files for formatting, see the replies to https://stackoverflow.com/a/36046965
-# and https://www.labri.fr/perso/fleury/posts/programming/using-clang-tidy-and-clang-format.html.
-file(GLOB_RECURSE FORMATTING_SOURCES 
-  examples/*.[ch]pp examples/*.[CH]PP examples/*.[ch]xx examples/*.[CH]XX examples/*.cc 
-  examples/*.CC examples/*.hh examples/*.HH examples/*.[CHch]
-  include/*.[ch]pp include/*.[CH]PP include/*.[ch]xx include/*.[CH]XX include/*.cc 
-  include/*.CC include/*.hh include/*.HH include/*.[CHch]
-)
+include("cmake/sources.cmake")
 
 add_custom_target(format)
 add_custom_command(
   TARGET format
-  COMMAND clang-format -i ${FORMATTING_SOURCES}
+  COMMAND clang-format -i ${ALL_SOURCES}
   COMMENT "Formatting codebase...")
 
 add_custom_target(check-format)
 add_custom_command(
   TARGET check-format
-  COMMAND clang-format -i ${FORMATTING_SOURCES} --dry-run -Werror
+  COMMAND clang-format -i ${ALL_SOURCES} --dry-run -Werror
   COMMENT "Verifying formatting...")

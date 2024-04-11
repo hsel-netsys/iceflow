@@ -1,4 +1,4 @@
-# Copyright 2023 The IceFlow Authors.
+# Copyright 2024 The IceFlow Authors.
 #
 # Licensed under the Apache License, Version 2.0 (the "License"); you may not
 # use this file except in compliance with the License. You may obtain a copy of
@@ -14,10 +14,11 @@
 #
 # SPDX-License-Identifier: Apache-2.0
 
-# This file introduces a custom `link` target which simplifies the process of
-# running cppcheck for linting the project's source code.
-
-include("cmake/sources.cmake")
-
-add_custom_target(lint)
-add_custom_command(TARGET lint COMMAND cppcheck --enable=all ${ALL_SOURCES})
+# Find all source files for formatting, see the replies to https://stackoverflow.com/a/36046965
+# and https://www.labri.fr/perso/fleury/posts/programming/using-clang-tidy-and-clang-format.html.
+file(GLOB_RECURSE ALL_SOURCES
+  examples/*.[chCH][pP][pP] examples/*.[chCH][xX][xX] examples/*.[cC][cC]
+  examples/*.[hH][hH] examples/*.[CHch]
+  include/*.[chCH][pP][pP] include/*.[chCH][xX][xX] include/*.[cC][cC]
+  include/*.[hH][hH] include/*.[CHch]
+)
