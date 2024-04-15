@@ -27,6 +27,8 @@
             fetchSubmodules = true;
           };
 
+          dontAddWafCrossFlags = true;
+
         });
 
         # Update nfd to specific commit.
@@ -43,6 +45,7 @@
             "--boost-includes=${prev.boost179.dev}/include"
             "--boost-libs=${prev.boost179.out}/lib"
           ];
+          dontAddWafCrossFlags = true;
 
           doCheck = false;
         });
@@ -67,6 +70,7 @@
             "--boost-libs=${prev.boost179.out}/lib"
             "--with-tests"
           ];
+          dontAddWafCrossFlags = true;
 
           # Tests currently fail
           doCheck = false;
@@ -82,9 +86,10 @@
       };
 
       packages = forEachSystem (system: let
-        pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
         lib = nixpkgs.lib;
-        iceflowPackage = ({enableExamples ? false}: lib.makeOverridable pkgs.stdenv.mkDerivation {
+        iceflowPackage = ({enableExamples ? false, crossTarget ? "${system}"}:  let
+          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
+        in lib.makeOverridable pkgs.stdenv.mkDerivation {
           name = "iceflow";
           src = ./.;
 
@@ -95,11 +100,13 @@
 
           cmakeFlags = [ "-DBUILD_APPS=${if enableExamples then "ON" else "OFF"}" ];
         });
-        genIceflowExampleCtrImage = {example_name, args ? []}: pkgs.dockerTools.buildLayeredImage {
+        genIceflowExampleCtrImage = {example_name, args ? [], crossTarget ? "${system}"}: let
+          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
+        in pkgs.dockerTools.buildLayeredImage {
           name = "iceflow-${example_name}";
           tag = "latest";
 
-          contents = [ self.packages."${system}".iceflow-with-examples pkgs.busybox ];
+          contents = [ self.packages."${system}".iceflow-with-examples-cross."${crossTarget}" pkgs.busybox ];
 
           config = {
             Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
@@ -111,25 +118,38 @@
         default = iceflow;
 
         # IceFlow package
-        iceflow = iceflowPackage {enableExamples = false;};
+        iceflow = iceflow-cross."${system}";
+
+        # IceFlow package including examples
+        iceflow-with-examples = iceflow-with-examples-cross."${system}";
+
+        docker-text2lines = docker-text2lines-cross."${system}";
+        docker-lines2words = docker-lines2words-cross."${system}";
+        docker-wordcount = docker-wordcount-cross."${system}";
+
+        # IceFlow package
+        iceflow-cross = forEachSystem (crossTarget: iceflowPackage {enableExamples = false; crossTarget = crossTarget;});
 
         # IceFlow examples
-        iceflow-with-examples = iceflowPackage {enableExamples = true;};
+        iceflow-with-examples-cross = forEachSystem (crossTarget: iceflowPackage {enableExamples = true; crossTarget = crossTarget;});
 
-        docker-text2lines = genIceflowExampleCtrImage {
+        docker-text2lines-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "text2lines";
           args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_INPUT_FILE" "$ICEFLOW_METRICS_FILE"];
-        };
+          crossTarget = crossTarget;
+        });
 
-        docker-lines2words = genIceflowExampleCtrImage {
+        docker-lines2words-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "lines2words";
           args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
-        };
+          crossTarget = crossTarget;
+        });
 
-        docker-wordcount = genIceflowExampleCtrImage {
+        docker-wordcount-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "wordcount";
           args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
-        };
+          crossTarget = crossTarget;
+        });
 
         devenv-up = self.devShells.${system}.default.config.procfileScript;
       });
