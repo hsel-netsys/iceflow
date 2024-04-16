@@ -101,12 +101,16 @@
         });
         genIceflowExampleCtrImage = {example_name, args ? [], crossTarget ? "${system}"}: let
           pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
+          crossTargetContainer =
+            if crossTarget == "x86_64-linux" then "amd64"
+            else if crossTarget == "aarch64-linux" then "arm64"
+            else throw "unknown target architecture, please specify docker equivalent architecture for Nix target \"${crossTarget}\" in flake.nix variable \"crossTargetContainer\"";
         in pkgs.dockerTools.buildLayeredImage {
           name = "iceflow-${example_name}";
           tag = "latest";
 
           contents = [ self.packages."${system}".iceflow-with-examples-cross."${crossTarget}" pkgs.busybox ];
-
+          architecture = crossTargetContainer;
           config = {
             Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
             Env = [ "ICEFLOW_CONFIG_FILE=/data/${example_name}.yaml" "ICEFLOW_METRICS_FILE=/data/${example_name}.metrics" ];
@@ -160,7 +164,7 @@
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
             keepDebuggingDisabledFor = [];
-            additionalShellPackages = with pkgs; [nfd cppcheck];
+            additionalShellPackages = with pkgs; [nfd cppcheck manifest-tool];
           in rec {
             default = lib.makeOverridable devenv.lib.mkShell {
               inherit inputs pkgs;
