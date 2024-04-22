@@ -27,6 +27,8 @@
             fetchSubmodules = true;
           };
 
+          dontAddWafCrossFlags = true;
+
         });
 
         # Update nfd to specific commit.
@@ -43,6 +45,7 @@
             "--boost-includes=${prev.boost179.dev}/include"
             "--boost-libs=${prev.boost179.out}/lib"
           ];
+          dontAddWafCrossFlags = true;
 
           doCheck = false;
         });
@@ -67,6 +70,7 @@
             "--boost-libs=${prev.boost179.out}/lib"
             "--with-tests"
           ];
+          dontAddWafCrossFlags = true;
 
           # Tests currently fail
           doCheck = false;
@@ -82,21 +86,73 @@
       };
 
       packages = forEachSystem (system: let
-        pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
         lib = nixpkgs.lib;
+        iceflowPackage = ({enableExamples ? false, crossTarget ? "${system}"}:  let
+          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
+        in lib.makeOverridable pkgs.stdenv.mkDerivation {
+          name = "iceflow";
+          src = ./.;
+
+          # Build using cmake, pkg-config and gnumake, add doxygen for docs.
+          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
+          buildInputs = map (x: pkgs."${x}") iceflowDependencies;
+
+          cmakeFlags = [ "-DBUILD_APPS=${if enableExamples then "ON" else "OFF"}" ];
+        });
+        genIceflowExampleCtrImage = {example_name, args ? [], crossTarget ? "${system}"}: let
+          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
+          crossTargetContainer =
+            if crossTarget == "x86_64-linux" then "amd64"
+            else if crossTarget == "aarch64-linux" then "arm64"
+            else throw "unknown target architecture, please specify docker equivalent architecture for Nix target \"${crossTarget}\" in flake.nix variable \"crossTargetContainer\"";
+        in pkgs.dockerTools.buildLayeredImage {
+          name = "iceflow-${example_name}";
+          tag = "latest";
+
+          contents = [ self.packages."${system}".iceflow-with-examples-cross."${crossTarget}" pkgs.busybox ];
+          architecture = crossTargetContainer;
+          config = {
+            Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
+            Env = [ "ICEFLOW_CONFIG_FILE=/data/${example_name}.yaml" "ICEFLOW_METRICS_FILE=/data/${example_name}.metrics" ];
+            Volume = "/data";
+          };
+        };
       in rec {
         default = iceflow;
 
         # IceFlow package
-        iceflow = lib.makeOverridable pkgs.stdenv.mkDerivation {
-            name = "iceflow";
-            src = ./.;
+        iceflow = iceflow-cross."${system}";
 
-            # Build using cmake, pkg-config and gnumake, add doxygen for docs.
-            nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
-            #
-            buildInputs = map (x: pkgs."${x}") iceflowDependencies;
-        };
+        # IceFlow package including examples
+        iceflow-with-examples = iceflow-with-examples-cross."${system}";
+
+        docker-text2lines = docker-text2lines-cross."${system}";
+        docker-lines2words = docker-lines2words-cross."${system}";
+        docker-wordcount = docker-wordcount-cross."${system}";
+
+        # IceFlow package
+        iceflow-cross = forEachSystem (crossTarget: iceflowPackage {enableExamples = false; crossTarget = crossTarget;});
+
+        # IceFlow examples
+        iceflow-with-examples-cross = forEachSystem (crossTarget: iceflowPackage {enableExamples = true; crossTarget = crossTarget;});
+
+        docker-text2lines-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
+          example_name = "text2lines";
+          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_INPUT_FILE" "$ICEFLOW_METRICS_FILE"];
+          crossTarget = crossTarget;
+        });
+
+        docker-lines2words-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
+          example_name = "lines2words";
+          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
+          crossTarget = crossTarget;
+        });
+
+        docker-wordcount-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
+          example_name = "wordcount";
+          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
+          crossTarget = crossTarget;
+        });
 
         devenv-up = self.devShells.${system}.default.config.procfileScript;
       });
@@ -108,7 +164,7 @@
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
             keepDebuggingDisabledFor = [];
-            additionalShellPackages = with pkgs; [nfd cppcheck];
+            additionalShellPackages = with pkgs; [nfd cppcheck manifest-tool];
           in rec {
             default = lib.makeOverridable devenv.lib.mkShell {
               inherit inputs pkgs;

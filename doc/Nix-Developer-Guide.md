@@ -39,6 +39,46 @@ This allows you to configure a toolchain in CLion that uses the Nix environment 
 without an absolute path:
 ![Nix toolchain configuration in CLion](nix_clion.png)
 
+### Cross-Compilation using Nix
+Assuming that Nix is set up, you can use it to cross compile to different platforms.
+To do so, first install QEMU User Mode emulation and the binfmt-registration using your system's native package manager.
+On Debian-based systems, you may use `sudo apt install qemu-user static`.
+
+Afterward, you can cross compile by appending `-cross` and the desired target to the package you want to build:
+
+```sh
+nix build '.#iceflow-cross.[TARGET]'
+```
+
+Where `[TARGET]` is one of the available target platforms that can be found [here](https://github.com/NixOS/nixpkgs/blob/12371a51e647a00b90fe250837f056642125c095/lib/systems/doubles.nix#L8).
+
+### Building Example Container Images using Nix
+Nix can build container images for the IceFlow example applications.
+To do so, simply execute the following command:
+
+```sh
+nix build '.#docker-[APPLICATION_NAME]'
+```
+
+Where `[APPLICATION_NAME]` is the example application you would like to build.
+You may also cross compile images using the method described in the previous section.
+
+The generated images can be found using the `result` symlink in a format importable by docker/podman using the `load` subcommand:
+
+```sh
+podman load < result
+```
+
+> [!NOTE]  
+> If you encounter an error when importing the image, it might help to first `gunzip` the image before importing.
+
+Running the container can then be done using:
+
+```sh
+podman run -v "./examples/[APPLICATION_NAME]:/data" -e "ICEFLOW_INPUT_FILE=/data/sourcetext.txt" -e "NDN_CLIENT_TRANSPORT=unix:///nfd/nfd.sock" -v "/run/nfd:/nfd" localhost/iceflow-[APPLICATION_NAME]
+```
+
+(The config file and metrics file path can also be manually set using the `ICEFLOW_CONFIG_FILE` and `ICEFLOW_METRICS_FILE` environment variables)
 
 ## Changing the Nix environment
 

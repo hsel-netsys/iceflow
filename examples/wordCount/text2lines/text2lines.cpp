@@ -55,10 +55,10 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &filename, int publishInterval) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
   LineSplitter lineSplitter;
-  ndn::Face face;
+  std::shared_ptr<ndn::Face> face;
 
   iceflow::IceFlow producer(syncPrefix, nodePrefix, std::nullopt,
-                            std::optional(pubTopic), topicPartitions, face,
+                            std::optional(pubTopic), topicPartitions, *face,
                             std::optional(publishInterval));
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, &producer);
@@ -92,10 +92,10 @@ int main(int argc, char *argv[]) {
   YAML::Node producerConfig = config["producer"];
   YAML::Node measurementConfig = config["measurements"];
 
-  std::string syncPrefix = config["syncPrefix"].as<std::string>();
-  std::string nodePrefix = config["nodePrefix"].as<std::string>();
-  std::vector<int> partitions = config["partitions"].as<std::vector<int>>();
-  std::string pubTopic = producerConfig["topic"].as<std::string>();
+  auto syncPrefix = config["syncPrefix"].as<std::string>();
+  auto nodePrefix = config["nodePrefix"].as<std::string>();
+  auto partitions = config["partitions"].as<std::vector<int>>();
+  auto pubTopic = producerConfig["topic"].as<std::string>();
   int publishInterval = producerConfig["publishInterval"].as<int>();
   int saveInterval = measurementConfig["saveInterval"].as<int>();
 
