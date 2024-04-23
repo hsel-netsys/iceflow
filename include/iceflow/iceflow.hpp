@@ -22,14 +22,34 @@
 #include "constants.hpp"
 #include "data.hpp"
 #include "logger.hpp"
-#include "ndn-svs/security-options.hpp"
 #include "ringbuffer.hpp"
-#include <ndn-svs/svspubsub.hpp>
 
+#include "ndn-svs/security-options.hpp"
+#include "ndn-svs/svspubsub.hpp"
+
+#include <chrono>
 #include <iostream>
 #include <thread>
+#include <unordered_map>
 
 namespace iceflow {
+
+struct QueueEntry {
+  std::string topic;
+  int partitionNumber;
+  std::vector<uint8_t> data;
+};
+
+struct ProducerRegistrationInfo {
+  std::function<QueueEntry(void)> popQueueValue;
+  std::function<bool(void)> hasQueueValue;
+  std::function<std::chrono::time_point<std::chrono::steady_clock>(void)>
+      getNextPublishTimePoint;
+  std::function<void(void)> resetLastPublishTimepoint;
+};
+
+class IceflowProducer;
+class IceflowConsumer;
 
 /**
  * Central building block for IceFlow-based consumers and producers.
@@ -40,67 +60,117 @@ namespace iceflow {
  * object will act both as a producer _and_ a consumer.
  */
 class IceFlow {
-  // TODO: Convert into base class and derive consumer, producer, and hybrid
-  // base classes
-
 public:
+  /**
+   * Generates a new IceFlow object from a `syncPrefix`, a `nodePrefix`, and a
+   * custom `face`.
+   */
   IceFlow(const std::string &syncPrefix, const std::string &nodePrefix,
-          const std::optional<std::string> &subTopic,
-          const std::optional<std::string> &pubTopic,
-          const std::vector<int> &topicPartitions, ndn::Face &face,
-          std::optional<int> publishInterval)
-      : m_face(face), m_scheduler(face.getIoContext()),
-        m_nodePrefix(nodePrefix), m_pubTopic(pubTopic), m_subTopic(subTopic),
-        m_topicPartitions(topicPartitions), m_publishInterval(publishInterval) {
-
+          ndn::Face &face)
+      : m_syncPrefix(syncPrefix), m_nodePrefix(nodePrefix), m_face(face) {
     ndn::svs::SecurityOptions secOpts(m_keyChain);
 
     ndn::svs::SVSPubSubOptions opts;
 
     m_svsPubSub = std::make_shared<ndn::svs::SVSPubSub>(
-        ndn::Name(syncPrefix), ndn::Name(nodePrefix), m_face,
+        ndn::Name(m_syncPrefix), ndn::Name(m_nodePrefix), m_face,
         std::bind(&IceFlow::onMissingData, this, _1), opts, secOpts);
-
-    if (!subTopic.has_value()) {
-      return;
-    }
-
-    for (auto topicPartition : m_topicPartitions) {
-      auto subscribedTopic =
-          ndn::Name(subTopic.value()).appendNumber(topicPartition);
-
-      m_svsPubSub->subscribe(
-          subscribedTopic,
-          std::bind(&IceFlow::subscribeCallBack, this, std::placeholders::_1));
-      std::cout << "Subscribed to " << subscribedTopic << std::endl;
-    }
   }
-
-  virtual ~IceFlow() = default;
 
 public:
   void run() {
+    if (m_running) {
+      throw std::runtime_error("Iceflow instance is already running!");
+    }
+
     std::thread svsThread([this] { m_face.processEvents(); });
 
-    if (m_pubTopic.has_value()) {
-      publishMsg();
+    m_running = true;
+    while (m_running) {
+      std::chrono::time_point<std::chrono::steady_clock>
+          closestNextPublishTimePoint;
+      // TODO: Get rid of this variable
+      bool timepointSet = false;
+
+      for (auto producerRegistrationTuple : m_producerRegistrations) {
+        auto producerRegistration = std::get<1>(producerRegistrationTuple);
+
+        auto nextPublishTimePoint =
+            producerRegistration.getNextPublishTimePoint();
+        auto timeUntilNextPublish =
+            nextPublishTimePoint - std::chrono::steady_clock::now();
+
+        auto publishTimerExpired = timeUntilNextPublish.count() < 0;
+
+        if (!publishTimerExpired) {
+          if (!timepointSet ||
+              nextPublishTimePoint < closestNextPublishTimePoint) {
+            closestNextPublishTimePoint = nextPublishTimePoint;
+            timepointSet = true;
+          }
+
+          continue;
+        }
+
+        if (producerRegistration.hasQueueValue()) {
+          auto queueEntry = producerRegistration.popQueueValue();
+          publishMsg(queueEntry.data, queueEntry.topic,
+                     queueEntry.partitionNumber);
+        }
+
+        producerRegistration.resetLastPublishTimepoint();
+      }
+
+      auto minimalTimeUntilNextPublish =
+          closestNextPublishTimePoint - std::chrono::steady_clock::now();
+
+      if (minimalTimeUntilNextPublish.count() > 0) {
+        NDN_LOG_INFO("Sleeping for " << minimalTimeUntilNextPublish.count()
+                                     << " nanoseconds...");
+        std::this_thread::sleep_for(minimalTimeUntilNextPublish);
+      }
     }
+
+    m_face.shutdown();
 
     svsThread.join();
   }
 
-  void pushData(std::vector<uint8_t> &data) { m_outputQueue.push(data); }
+  void shutdown() { m_running = false; }
 
-  std::vector<uint8_t> receiveData() { return m_inputQueue.waitAndPopValue(); }
+  friend IceflowConsumer;
+  friend IceflowProducer;
 
 private:
-  void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData) {
+  uint32_t subscribeToTopicPartition(
+      const std::string &topic, int partitionNumber,
+      std::function<void(std::vector<uint8_t>)> &pushDataCallback) {
+
+    auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
+
+    auto subscriptionHandle = m_svsPubSub->subscribe(
+        subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
+                                   pushDataCallback, std::placeholders::_1));
+
+    std::cout << "Subscribed to " << topic << std::endl;
+
+    return subscriptionHandle;
+  }
+
+  void unsubscribe(uint32_t subscriptionHandle) {
+    m_svsPubSub->unsubscribe(subscriptionHandle);
+  }
+
+  void subscribeCallBack(
+      const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
+      const ndn::svs::SVSPubSub::SubscriptionData &subData) {
     NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
                                       << subData.seqNo << "] : " << subData.name
                                       << " : ");
 
-    auto data = subData.data;
-    m_inputQueue.push(std::vector<uint8_t>(data.begin(), data.end()));
+    std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
+
+    pushDataCallback(data);
   }
 
   void
@@ -108,45 +178,45 @@ private:
     // TODO: Implement if needed
   }
 
-  ndn::Name prepareDataName() {
-    int partitionIndex = m_partitionCount++ % m_topicPartitions.size();
-    auto partitionNumber = m_topicPartitions[partitionIndex];
-
-    return ndn::Name(m_pubTopic.value()).appendNumber(partitionNumber);
+  ndn::Name prepareDataName(const std::string &topic, int partitionNumber) {
+    return ndn::Name(topic).appendNumber(partitionNumber);
   }
 
-  void publishMsg() {
-    if (!m_outputQueue.empty()) {
-      auto dataID = prepareDataName();
-      auto payload = m_outputQueue.waitAndPopValue();
-      auto sequenceNo = m_svsPubSub->publish(
-          dataID, payload, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
-      NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
-    }
+  void publishMsg(std::vector<uint8_t> payload, const std::string &topic,
+                  int partitionNumber) {
+    auto dataID = prepareDataName(topic, partitionNumber);
+    auto sequenceNo = m_svsPubSub->publish(
+        dataID, payload, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
+    NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
+  }
 
-    if (m_publishInterval.has_value()) {
-      m_scheduler.schedule(ndn::time::milliseconds(m_publishInterval.value()),
-                           [this] { publishMsg(); });
-    }
+  uint64_t registerProducer(ProducerRegistrationInfo producerRegistration) {
+    uint64_t producerId = m_nextProducerId++;
+    m_producerRegistrations.insert({producerId, producerRegistration});
+
+    return producerId;
+  }
+
+  void deregisterProducer(u_int64_t producerId) {
+
+    m_producerRegistrations.erase(producerId);
   }
 
 private:
-  ndn::Scheduler m_scheduler;
   ndn::KeyChain m_keyChain;
   ndn::Face &m_face;
+
+  bool m_running = false;
 
   std::shared_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
 
   const std::string m_nodePrefix;
-  const std::optional<std::string> m_pubTopic;
-  const std::optional<std::string> m_subTopic;
-  std::optional<int> m_publishInterval;
+  const std::string m_syncPrefix;
 
-  const std::vector<int> m_topicPartitions;
-  int m_partitionCount = 0;
+  std::unordered_map<uint64_t, ProducerRegistrationInfo>
+      m_producerRegistrations;
 
-  RingBuffer<std::vector<uint8_t>> m_outputQueue;
-  RingBuffer<std::vector<uint8_t>> m_inputQueue;
+  uint64_t m_nextProducerId = 0;
 };
 
 } // namespace iceflow

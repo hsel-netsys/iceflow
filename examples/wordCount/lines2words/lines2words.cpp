@@ -1,5 +1,7 @@
+#include "iceflow/consumer.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
+#include "iceflow/producer.hpp"
 
 #include <csignal>
 #include <iostream>
@@ -42,24 +44,27 @@ public:
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &subTopic, const std::string &pubTopic,
-         const std::vector<int> &topicPartitions, int publishInterval) {
+         const std::vector<int> &topicPartitions,
+         std::chrono::milliseconds publishInterval) {
   WordSplitter wordSplitter;
   ndn::Face face;
-  iceflow::IceFlow iceflow(syncPrefix, nodePrefix, std::optional(subTopic),
-                           std::optional(pubTopic), topicPartitions, face,
-                           publishInterval);
+  auto iceflow =
+      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
+  auto producer = iceflow::IceflowProducer(iceflow, pubTopic, topicPartitions,
+                                           publishInterval);
+  auto consumer = iceflow::IceflowConsumer(iceflow, subTopic, topicPartitions);
 
   std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, &iceflow);
-  threads.emplace_back([&wordSplitter, &iceflow]() {
+  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
+  threads.emplace_back([&wordSplitter, &consumer, &producer]() {
     wordSplitter.lines2words(
-        [&iceflow]() -> std::string {
-          auto data = iceflow.receiveData();
+        [&consumer]() -> std::string {
+          auto data = consumer.receiveData();
           return std::string(data.begin(), data.end());
         },
-        [&iceflow](std::string data) {
+        [&producer](std::string data) {
           std::vector<uint8_t> encodedString(data.begin(), data.end());
-          iceflow.pushData(encodedString);
+          producer.pushData(encodedString);
         });
   });
 
@@ -99,7 +104,7 @@ int main(int argc, char *argv[]) {
 
   try {
     run(syncPrefix, nodePrefix, subTopic, pubTopic, partitions,
-        publishInterval);
+        std::chrono::milliseconds(publishInterval));
   }
 
   catch (const std::exception &e) {

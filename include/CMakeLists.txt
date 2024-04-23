@@ -6,6 +6,8 @@ set(ICEFLOW_INTERFACE_FILES
     iceflow/block.hpp
     iceflow/constants.hpp
     iceflow/iceflow.hpp
+    iceflow/producer.hpp
+    iceflow/consumer.hpp
     iceflow/content-type-value.hpp
     iceflow/data.hpp
     iceflow/logger.hpp

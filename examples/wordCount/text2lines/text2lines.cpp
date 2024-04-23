@@ -1,5 +1,6 @@
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
+#include "iceflow/producer.hpp"
 
 #include <csignal>
 #include <fstream>
@@ -52,16 +53,20 @@ public:
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &pubTopic, std::vector<int> &topicPartitions,
-         const std::string &filename, int publishInterval) {
+         const std::string &filename,
+         std::chrono::milliseconds publishInterval) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
   LineSplitter lineSplitter;
-  std::shared_ptr<ndn::Face> face;
+  ndn::Face face;
 
-  iceflow::IceFlow producer(syncPrefix, nodePrefix, std::nullopt,
-                            std::optional(pubTopic), topicPartitions, *face,
-                            std::optional(publishInterval));
+  auto iceflow = std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix,
+
+                                                    face);
+  auto producer = iceflow::IceflowProducer(iceflow, pubTopic, topicPartitions,
+                                           publishInterval);
+
   std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, &producer);
+  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
   threads.emplace_back([&lineSplitter, &producer, &nodePrefix, &filename]() {
     lineSplitter.text2lines(
         nodePrefix, filename, [&producer](std::string data) {
@@ -105,7 +110,7 @@ int main(int argc, char *argv[]) {
 
   try {
     run(syncPrefix, nodePrefix, pubTopic, partitions, sourceTextFileName,
-        publishInterval);
+        std::chrono::milliseconds(publishInterval));
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
   }
