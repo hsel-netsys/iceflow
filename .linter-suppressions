@@ -1,0 +1,5 @@
+// This file contains suppressions for cppcheck.
+
+missingIncludeSystem // Suppress system include errors
+missingInclude // Suppress other include errors
+unusedFunction // Suppress warnings about unused functions
