@@ -20,4 +20,6 @@
 include("cmake/sources.cmake")
 
 add_custom_target(lint)
-add_custom_command(TARGET lint COMMAND cppcheck --enable=all ${ALL_SOURCES})
+add_custom_command(
+  TARGET lint COMMAND cppcheck --suppressions-list=.linter-suppressions
+                      --enable=all ${ALL_SOURCES})
