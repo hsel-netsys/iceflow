@@ -1,3 +1,4 @@
+#include "iceflow/consumer.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 
@@ -64,11 +65,12 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   WordCounter compute;
   ndn::Face face;
 
-  iceflow::IceFlow consumer(syncPrefix, nodePrefix, std::optional(subTopic),
-                            std::nullopt, topicPartitions, face, std::nullopt);
+  auto iceflow =
+      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
+  auto consumer = iceflow::IceflowConsumer(iceflow, subTopic, topicPartitions);
 
   std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, &consumer);
+  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
   threads.emplace_back([&compute, &consumer]() {
     compute.countWord([&consumer]() -> std::string {
       auto data = consumer.receiveData();
