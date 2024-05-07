@@ -38,6 +38,10 @@ public:
         m_topicPartitions(topicPartitions), m_publishInterval(publishInterval),
         m_lastPublishTimePoint(std::chrono::steady_clock::now()) {
 
+    if (publishInterval.count() < 0) {
+      throw std::invalid_argument("Publish interval has to be positive.");
+    }
+
     if (auto validIceflow = m_iceflow.lock()) {
       std::function<QueueEntry(void)> popQueueValueCallback =
           std::bind(&IceflowProducer::popQueueValue, this);
