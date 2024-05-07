@@ -78,10 +78,22 @@ public:
     m_publishInterval = publishInterval;
   }
 
+  void setTopicPartitions(const std::vector<int> &topicPartitions) {
+    checkTopicPartitions(topicPartitions);
+    m_topicPartitions = topicPartitions;
+  }
+
 private:
   void checkPublishInterval(std::chrono::milliseconds publishInterval) {
     if (publishInterval.count() < 0) {
       throw std::invalid_argument("Publish interval has to be positive.");
+    }
+  }
+
+  void checkTopicPartitions(const std::vector<int> &topicPartitions) {
+    if (topicPartitions.empty()) {
+      throw std::invalid_argument(
+          "At least one topic partition has to be defined!");
     }
   }
 
@@ -113,7 +125,7 @@ private:
   const std::string m_pubTopic;
   RingBuffer<std::vector<uint8_t>> m_outputQueue;
 
-  const std::vector<int> m_topicPartitions;
+  std::vector<int> m_topicPartitions;
   int m_partitionCount = 0;
   std::chrono::nanoseconds m_publishInterval;
   std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
