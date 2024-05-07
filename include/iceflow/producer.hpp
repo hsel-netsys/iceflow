@@ -39,6 +39,7 @@ public:
         m_lastPublishTimePoint(std::chrono::steady_clock::now()) {
 
     checkPublishInterval(publishInterval);
+    checkTopicPartitions(topicPartitions);
 
     if (auto validIceflow = m_iceflow.lock()) {
       std::function<QueueEntry(void)> popQueueValueCallback =
