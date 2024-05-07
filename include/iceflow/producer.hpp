@@ -70,6 +70,14 @@ public:
 
   void pushData(const std::vector<uint8_t> &data) { m_outputQueue.push(data); }
 
+  void setPublishInterval(std::chrono::milliseconds publishInterval) {
+    if (publishInterval.count() < 0) {
+      throw std::invalid_argument("Publish interval has to be positive.");
+    }
+
+    m_publishInterval = publishInterval;
+  }
+
 private:
   QueueEntry popQueueValue() {
     int partitionIndex = m_partitionCount++ % m_topicPartitions.size();
