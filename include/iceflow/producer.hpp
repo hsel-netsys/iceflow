@@ -32,7 +32,7 @@ namespace iceflow {
 class IceflowProducer {
 public:
   IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  const std::vector<int> &topicPartitions,
+                  const std::vector<uint64_t> &topicPartitions,
                   std::chrono::milliseconds publishInterval)
       : m_iceflow(iceflow), m_pubTopic(pubTopic),
         m_topicPartitions(topicPartitions), m_publishInterval(publishInterval),
@@ -79,7 +79,7 @@ public:
     m_publishInterval = publishInterval;
   }
 
-  void setTopicPartitions(const std::vector<int> &topicPartitions) {
+  void setTopicPartitions(const std::vector<uint64_t> &topicPartitions) {
     checkTopicPartitions(topicPartitions);
     m_topicPartitions = topicPartitions;
   }
@@ -91,7 +91,7 @@ private:
     }
   }
 
-  void checkTopicPartitions(const std::vector<int> &topicPartitions) {
+  void checkTopicPartitions(const std::vector<uint64_t> &topicPartitions) {
     if (topicPartitions.empty()) {
       throw std::invalid_argument(
           "At least one topic partition has to be defined!");
@@ -100,7 +100,7 @@ private:
 
   QueueEntry popQueueValue() {
     int partitionIndex = m_partitionCount++ % m_topicPartitions.size();
-    auto partitionNumber = m_topicPartitions[partitionIndex];
+    uint64_t partitionNumber = m_topicPartitions[partitionIndex];
     auto data = m_outputQueue.waitAndPopValue();
     m_lastPublishTimePoint = std::chrono::steady_clock::now();
 
@@ -126,7 +126,7 @@ private:
   const std::string m_pubTopic;
   RingBuffer<std::vector<uint8_t>> m_outputQueue;
 
-  std::vector<int> m_topicPartitions;
+  std::vector<uint64_t> m_topicPartitions;
   int m_partitionCount = 0;
   std::chrono::nanoseconds m_publishInterval;
   std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
