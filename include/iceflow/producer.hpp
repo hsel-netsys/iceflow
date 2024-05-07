@@ -19,6 +19,8 @@
 #ifndef ICEFLOW_PRODUCER_HPP
 #define ICEFLOW_PRODUCER_HPP
 
+#include <unordered_set>
+
 #include "iceflow.hpp"
 
 namespace iceflow {
@@ -32,14 +34,14 @@ namespace iceflow {
 class IceflowProducer {
 public:
   IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  const std::vector<uint64_t> &topicPartitions,
+                  const std::unordered_set<uint64_t> &topicPartitions,
                   std::chrono::milliseconds publishInterval)
       : m_iceflow(iceflow), m_pubTopic(pubTopic),
         m_topicPartitions(topicPartitions), m_publishInterval(publishInterval),
         m_lastPublishTimePoint(std::chrono::steady_clock::now()) {
 
     checkPublishInterval(publishInterval);
-    checkTopicPartitions(topicPartitions);
+    setTopicPartitions(topicPartitions);
 
     if (auto validIceflow = m_iceflow.lock()) {
       std::function<QueueEntry(void)> popQueueValueCallback =
@@ -79,9 +81,10 @@ public:
     m_publishInterval = publishInterval;
   }
 
-  void setTopicPartitions(const std::vector<uint64_t> &topicPartitions) {
+  void setTopicPartitions(const std::unordered_set<uint64_t> &topicPartitions) {
     checkTopicPartitions(topicPartitions);
     m_topicPartitions = topicPartitions;
+    m_topicPartitionIterator = m_topicPartitions.begin();
   }
 
 private:
@@ -91,17 +94,25 @@ private:
     }
   }
 
-  void checkTopicPartitions(const std::vector<uint64_t> &topicPartitions) {
+  void
+  checkTopicPartitions(const std::unordered_set<uint64_t> &topicPartitions) {
     if (topicPartitions.empty()) {
       throw std::invalid_argument(
           "At least one topic partition has to be defined!");
     }
   }
 
+  uint64_t getNextPartitionNumber() {
+    if (m_topicPartitionIterator == m_topicPartitions.end()) {
+      m_topicPartitionIterator = m_topicPartitions.begin();
+    }
+
+    return *m_topicPartitionIterator++;
+  }
+
   QueueEntry popQueueValue() {
-    int partitionIndex = m_partitionCount++ % m_topicPartitions.size();
-    uint64_t partitionNumber = m_topicPartitions[partitionIndex];
     auto data = m_outputQueue.waitAndPopValue();
+    uint64_t partitionNumber = getNextPartitionNumber();
     m_lastPublishTimePoint = std::chrono::steady_clock::now();
 
     return {
@@ -126,8 +137,9 @@ private:
   const std::string m_pubTopic;
   RingBuffer<std::vector<uint8_t>> m_outputQueue;
 
-  std::vector<uint64_t> m_topicPartitions;
-  int m_partitionCount = 0;
+  std::unordered_set<uint64_t> m_topicPartitions;
+  std::unordered_set<uint64_t>::iterator m_topicPartitionIterator;
+
   std::chrono::nanoseconds m_publishInterval;
   std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
 

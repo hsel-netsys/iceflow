@@ -53,7 +53,8 @@ public:
 };
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &pubTopic, std::vector<uint64_t> &topicPartitions,
+         const std::string &pubTopic,
+         const std::unordered_set<uint64_t> &topicPartitions,
          const std::string &filename,
          std::chrono::milliseconds publishInterval) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
@@ -110,8 +111,9 @@ int main(int argc, const char *argv[]) {
                                                 saveInterval, "A");
 
   try {
-    run(syncPrefix, nodePrefix, pubTopic, partitions, sourceTextFileName,
-        std::chrono::milliseconds(publishInterval));
+    run(syncPrefix, nodePrefix, pubTopic,
+        std::unordered_set(partitions.begin(), partitions.end()),
+        sourceTextFileName, std::chrono::milliseconds(publishInterval));
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
   }
