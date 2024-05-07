@@ -19,6 +19,8 @@
 #ifndef ICEFLOW_CONSUMER_HPP
 #define ICEFLOW_CONSUMER_HPP
 
+#include <unordered_set>
+
 #include "iceflow.hpp"
 
 namespace iceflow {
@@ -30,19 +32,53 @@ class IceflowConsumer {
 
 public:
   IceflowConsumer(std::shared_ptr<IceFlow> iceflow, const std::string &subTopic,
+                  // TODO: Change constructor parameter to std::set as well.
                   const std::vector<int> &topicPartitions)
-      : m_iceflow(iceflow), m_subTopic(subTopic),
-        m_topicPartitions(topicPartitions) {
+      : m_iceflow(iceflow), m_subTopic(subTopic)
 
-    for (auto topicPartition : m_topicPartitions) {
-      auto subscriptionHandle = subscribeToTopicPartition(topicPartition);
-      m_subscriptionHandles.push_back(subscriptionHandle);
-    }
+  {
+
+    setTopicPartitions(topicPartitions);
   }
 
   ~IceflowConsumer() { unsubscribeFromAllPartitions(); }
 
   std::vector<uint8_t> receiveData() { return m_inputQueue.waitAndPopValue(); }
+
+  void setTopicPartitions(const std::vector<int> &topicPartitions) {
+    if (topicPartitions.empty()) {
+      throw std::invalid_argument(
+          "At least one topic partition has to be defined!");
+    }
+
+    if (auto validIceflow = m_iceflow.lock()) {
+      std::unordered_set<int> topicPartitionSet(topicPartitions.begin(),
+                                                topicPartitions.end());
+
+      std::vector<decltype(m_subscriptionHandles)::key_type> handlesToErase;
+      for (auto subscriptionHandle : m_subscriptionHandles) {
+        auto topicPartition = subscriptionHandle.first;
+
+        if (!topicPartitionSet.contains(topicPartition)) {
+          validIceflow->unsubscribe(subscriptionHandle.second);
+          handlesToErase.push_back(subscriptionHandle.first);
+        }
+      }
+
+      for (auto handleToErase : handlesToErase) {
+        m_subscriptionHandles.erase(handleToErase);
+      }
+
+      for (auto topicPartition : topicPartitionSet) {
+        if (!m_subscriptionHandles.contains(topicPartition)) {
+          auto subscriptionHandle = subscribeToTopicPartition(topicPartition);
+          m_subscriptionHandles.emplace(topicPartition, subscriptionHandle);
+        }
+      }
+    } else {
+      throw std::runtime_error("Iceflow instance has already expired.");
+    }
+  }
 
 private:
   uint32_t subscribeToTopicPartition(int topicPartition) {
@@ -62,17 +98,17 @@ private:
   void unsubscribeFromAllPartitions() {
     if (auto validIceflow = m_iceflow.lock()) {
       for (auto subscriptionHandle : m_subscriptionHandles) {
-        validIceflow->unsubscribe(subscriptionHandle);
+        validIceflow->unsubscribe(subscriptionHandle.second);
       }
     }
+    m_subscriptionHandles.clear();
   }
 
 private:
   const std::weak_ptr<IceFlow> m_iceflow;
   const std::string m_subTopic;
 
-  const std::vector<int> m_topicPartitions;
-  std::vector<uint32_t> m_subscriptionHandles;
+  std::unordered_map<int, uint32_t> m_subscriptionHandles;
 
   RingBuffer<std::vector<uint8_t>> m_inputQueue;
 };
