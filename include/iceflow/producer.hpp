@@ -98,13 +98,6 @@ private:
     };
   };
 
-  std::chrono::nanoseconds getTimeUntilNextPublish() {
-    auto elapsedTime =
-        std::chrono::steady_clock::now() - m_lastPublishTimePoint;
-
-    return m_publishInterval - elapsedTime;
-  }
-
   bool hasQueueValue() { return !m_outputQueue.empty(); }
 
   void resetLastPublishTimePoint() {

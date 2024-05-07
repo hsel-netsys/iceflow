@@ -25,11 +25,12 @@ public:
     auto application = applicationName;
     std::cout << "Starting " << application << " Application - - - - "
               << std::endl;
-    int computeCounter = 0;
     std::ifstream file;
     file.open(fileName);
 
     if (file.is_open()) {
+      int computeCounter = 0;
+
       for (std::string line; getline(file, line);) {
         measurementHandler->setField(std::to_string(computeCounter),
                                      "CMP_START", 0);
@@ -80,7 +81,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
   std::string command = argv[0];
 
   if (argc != 4) {

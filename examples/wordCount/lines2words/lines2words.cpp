@@ -73,7 +73,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   }
 }
 
-int main(int argc, char *argv[]) {
+int main(int argc, const char *argv[]) {
   std::string command = argv[0];
 
   if (argc != 3) {
