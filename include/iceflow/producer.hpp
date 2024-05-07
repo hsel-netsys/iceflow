@@ -119,7 +119,7 @@ private:
   std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
 
   uint64_t m_subscriberId;
-}; // namespace iceflow
+};
 } // namespace iceflow
 
 #endif // ICEFLOW_PRODUCER_HPP
