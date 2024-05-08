@@ -96,7 +96,7 @@ int main(int argc, const char *argv[]) {
       config["partitions"].as<std::vector<uint64_t>>();
   std::string pubTopic = producerConfig["topic"].as<std::string>();
   std::string subTopic = consumerConfig["topic"].as<std::string>();
-  int publishInterval = producerConfig["publishInterval"].as<int>();
+  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
   uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);

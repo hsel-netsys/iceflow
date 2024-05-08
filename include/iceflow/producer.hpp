@@ -37,10 +37,10 @@ public:
                   const std::unordered_set<uint64_t> &topicPartitions,
                   std::chrono::milliseconds publishInterval)
       : m_iceflow(iceflow), m_pubTopic(pubTopic),
-        m_topicPartitions(topicPartitions), m_publishInterval(publishInterval),
+        m_topicPartitions(topicPartitions),
         m_lastPublishTimePoint(std::chrono::steady_clock::now()) {
 
-    checkPublishInterval(publishInterval);
+    setPublishInterval(publishInterval);
     setTopicPartitions(topicPartitions);
 
     if (auto validIceflow = m_iceflow.lock()) {
@@ -76,7 +76,9 @@ public:
   void pushData(const std::vector<uint8_t> &data) { m_outputQueue.push(data); }
 
   void setPublishInterval(std::chrono::milliseconds publishInterval) {
-    checkPublishInterval(publishInterval);
+    if (publishInterval.count() < 0) {
+      throw std::invalid_argument("Publish interval has to be positive.");
+    }
 
     m_publishInterval = publishInterval;
   }
@@ -88,12 +90,6 @@ public:
   }
 
 private:
-  void checkPublishInterval(std::chrono::milliseconds publishInterval) {
-    if (publishInterval.count() < 0) {
-      throw std::invalid_argument("Publish interval has to be positive.");
-    }
-  }
-
   void
   checkTopicPartitions(const std::unordered_set<uint64_t> &topicPartitions) {
     if (topicPartitions.empty()) {

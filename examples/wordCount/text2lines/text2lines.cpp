@@ -103,7 +103,7 @@ int main(int argc, const char *argv[]) {
   auto nodePrefix = config["nodePrefix"].as<std::string>();
   auto partitions = config["partitions"].as<std::vector<uint64_t>>();
   auto pubTopic = producerConfig["topic"].as<std::string>();
-  int publishInterval = producerConfig["publishInterval"].as<int>();
+  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
   uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);
