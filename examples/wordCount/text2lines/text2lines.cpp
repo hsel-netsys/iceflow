@@ -104,7 +104,7 @@ int main(int argc, const char *argv[]) {
   auto partitions = config["partitions"].as<std::vector<uint64_t>>();
   auto pubTopic = producerConfig["topic"].as<std::string>();
   int publishInterval = producerConfig["publishInterval"].as<int>();
-  int saveThreshold = measurementConfig["saveThreshold"].as<int>();
+  uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);
   measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,

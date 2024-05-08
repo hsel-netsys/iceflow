@@ -106,7 +106,7 @@ int main(int argc, const char *argv[]) {
       config["partitions"].as<std::vector<uint64_t>>();
   std::string subTopic = consumerConfig["topic"].as<std::string>();
 
-  int saveThreshold = measurementConfig["saveThreshold"].as<int>();
+  uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);
   measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,

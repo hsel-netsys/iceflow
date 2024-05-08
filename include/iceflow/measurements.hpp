@@ -40,7 +40,7 @@ struct Entry // represents an entry: #, entryname, timestamp
 class Measurement {
 public:
   Measurement(const std::string &measurementId, const std::string &nodeName,
-              int saveThreshold, const std::string &observedObject)
+              uint64_t saveThreshold, const std::string &observedObject)
       : m_observedObject(observedObject), m_nodeName(nodeName),
         m_measurementId(measurementId), m_saveThreshold(saveThreshold) {
     m_fileCount = 0;
@@ -124,7 +124,7 @@ private:
   std::string m_observedObject;
   int m_fileCount;
   std::vector<Entry> m_entries;
-  int m_saveThreshold;
+  uint64_t m_saveThreshold;
   std::ofstream m_ofstream;
 };
 
