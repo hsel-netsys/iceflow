@@ -44,9 +44,6 @@ public:
       : m_observedObject(observedObject), m_nodeName(nodeName),
         m_measurementId(measurementId), m_saveThreshold(saveThreshold) {
     m_fileCount = 0;
-    m_lastSaveToFile = duration_cast<std::chrono::milliseconds>(
-                           std::chrono::system_clock::now().time_since_epoch())
-                           .count();
     createMeasurementFolder();
   }
   ~Measurement(){};
@@ -129,7 +126,6 @@ private:
   std::vector<Entry> m_entries;
   int m_saveThreshold;
   std::ofstream m_ofstream;
-  int m_lastSaveToFile;
 };
 
 } // namespace iceflow
