@@ -62,7 +62,7 @@ private:
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &subTopic,
-         const std::vector<uint64_t> &topicPartitions) {
+         const std::unordered_set<uint64_t> &topicPartitions) {
   WordCounter compute;
   ndn::Face face;
 
@@ -113,7 +113,8 @@ int main(int argc, const char *argv[]) {
                                                 saveInterval, "A");
 
   try {
-    run(syncPrefix, nodePrefix, subTopic, partitions);
+    run(syncPrefix, nodePrefix, subTopic,
+        std::unordered_set(partitions.begin(), partitions.end()));
   }
 
   catch (const std::exception &e) {

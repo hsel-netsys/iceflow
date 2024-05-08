@@ -44,7 +44,7 @@ public:
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &subTopic, const std::string &pubTopic,
-         const std::vector<uint64_t> &topicPartitions,
+         const std::unordered_set<uint64_t> &topicPartitions,
          std::chrono::milliseconds publishInterval) {
   WordSplitter wordSplitter;
   ndn::Face face;
@@ -104,7 +104,8 @@ int main(int argc, const char *argv[]) {
                                                 saveInterval, "A");
 
   try {
-    run(syncPrefix, nodePrefix, subTopic, pubTopic, partitions,
+    run(syncPrefix, nodePrefix, subTopic, pubTopic,
+        std::unordered_set(partitions.begin(), partitions.end()),
         std::chrono::milliseconds(publishInterval));
   }
 
