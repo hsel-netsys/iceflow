@@ -31,18 +31,6 @@ jobs:
       - name: Run Tests
         run: nix develop --impure .#ci -c make test
 
-      - name: Export IceFlow Example Application Binaries
-        uses: actions/upload-artifact@v3
-        with:
-          name: ubuntu-binaries
-          path: |
-            build/agedetection
-            build/aggregate
-            build/facedetection
-            build/genderdetection
-            build/imagesource
-            build/peoplecounter
-
   build-macos:
     runs-on: macos-latest
 
@@ -65,15 +53,3 @@ jobs:
 
       - name: Run Tests
         run: nix develop --impure .#ci -c make test
-
-      - name: Export IceFlow Example Application Binaries
-        uses: actions/upload-artifact@v3
-        with:
-          name: macos-binaries
-          path: |
-            build/agedetection
-            build/aggregate
-            build/facedetection
-            build/genderdetection
-            build/imagesource
-            build/peoplecounter
