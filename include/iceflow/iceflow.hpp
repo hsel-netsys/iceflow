@@ -36,7 +36,7 @@ namespace iceflow {
 
 struct QueueEntry {
   std::string topic;
-  int partitionNumber;
+  uint64_t partitionNumber;
   std::vector<uint8_t> data;
 };
 
@@ -143,7 +143,7 @@ public:
 
 private:
   uint32_t subscribeToTopicPartition(
-      const std::string &topic, int partitionNumber,
+      const std::string &topic, uint64_t partitionNumber,
       std::function<void(std::vector<uint8_t>)> &pushDataCallback) {
 
     auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
@@ -178,12 +178,13 @@ private:
     // TODO: Implement if needed
   }
 
-  ndn::Name prepareDataName(const std::string &topic, int partitionNumber) {
+  ndn::Name prepareDataName(const std::string &topic,
+                            uint64_t partitionNumber) {
     return ndn::Name(topic).appendNumber(partitionNumber);
   }
 
   void publishMsg(std::vector<uint8_t> payload, const std::string &topic,
-                  int partitionNumber) {
+                  uint64_t partitionNumber) {
     auto dataID = prepareDataName(topic, partitionNumber);
     auto sequenceNo = m_svsPubSub->publish(
         dataID, payload, ndn::Name(m_nodePrefix), ndn::time::seconds(4));

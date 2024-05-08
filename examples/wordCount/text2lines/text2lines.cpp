@@ -53,7 +53,7 @@ public:
 };
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &pubTopic, std::vector<int> &topicPartitions,
+         const std::string &pubTopic, std::vector<uint64_t> &topicPartitions,
          const std::string &filename,
          std::chrono::milliseconds publishInterval) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
@@ -100,7 +100,7 @@ int main(int argc, const char *argv[]) {
 
   auto syncPrefix = config["syncPrefix"].as<std::string>();
   auto nodePrefix = config["nodePrefix"].as<std::string>();
-  auto partitions = config["partitions"].as<std::vector<int>>();
+  auto partitions = config["partitions"].as<std::vector<uint64_t>>();
   auto pubTopic = producerConfig["topic"].as<std::string>();
   int publishInterval = producerConfig["publishInterval"].as<int>();
   int saveInterval = measurementConfig["saveInterval"].as<int>();

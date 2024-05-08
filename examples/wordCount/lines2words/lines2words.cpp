@@ -44,7 +44,7 @@ public:
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &subTopic, const std::string &pubTopic,
-         const std::vector<int> &topicPartitions,
+         const std::vector<uint64_t> &topicPartitions,
          std::chrono::milliseconds publishInterval) {
   WordSplitter wordSplitter;
   ndn::Face face;
@@ -92,7 +92,8 @@ int main(int argc, const char *argv[]) {
 
   std::string syncPrefix = config["syncPrefix"].as<std::string>();
   std::string nodePrefix = config["nodePrefix"].as<std::string>();
-  std::vector<int> partitions = config["partitions"].as<std::vector<int>>();
+  std::vector<uint64_t> partitions =
+      config["partitions"].as<std::vector<uint64_t>>();
   std::string pubTopic = producerConfig["topic"].as<std::string>();
   std::string subTopic = consumerConfig["topic"].as<std::string>();
   int publishInterval = producerConfig["publishInterval"].as<int>();
