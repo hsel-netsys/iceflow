@@ -27,14 +27,11 @@
 
 namespace iceflow {
 
-struct Entry // represents an entry: #, entryname, timestamp
-{
-  // string nodeName;
-  // string observedObject;
+struct Entry {
   std::string interest;
   std::string entryname;
   uint64_t timestamp;
-  unsigned short size;
+  uint64_t size;
 };
 
 class Measurement {
@@ -71,18 +68,22 @@ public:
   }
 
   void setField(const std::string &interestName, const std::string &entryName,
-                int dataSize) {
+                uint64_t dataSize) {
     NDN_LOG_DEBUG("################# SETTING FIELD "
                   << interestName << " - " << entryName << "#################");
-    Entry entry;
-    entry.interest = interestName;
-    entry.entryname = entryName;
-    entry.size = dataSize;
+
     uint64_t currentTimestamp =
         duration_cast<std::chrono::milliseconds>(
             std::chrono::system_clock::now().time_since_epoch())
             .count();
-    entry.timestamp = currentTimestamp;
+
+    Entry entry = {
+        interestName,
+        entryName,
+        currentTimestamp,
+        dataSize,
+    };
+
     m_entries.push_back(entry);
     if (m_entries.size() >= m_saveThreshold) {
       recordToFile();
