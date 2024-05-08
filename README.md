@@ -6,8 +6,9 @@
 
 This repository contains IceFlow, a stream processing library based on
 Named-Data Networking (NDN) written in C++.
-Besides the actual library, a number of applications are included in the
-repository illustrating the use of IceFlow for a video processing use case.
+Besides the actual library, a simple word counting example application is included
+in the repository to illustrate the use of IceFlow for stream processing use
+cases.
 
 ## Pre-Requisites and Installation
 
