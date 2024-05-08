@@ -104,11 +104,11 @@ int main(int argc, const char *argv[]) {
   auto partitions = config["partitions"].as<std::vector<uint64_t>>();
   auto pubTopic = producerConfig["topic"].as<std::string>();
   int publishInterval = producerConfig["publishInterval"].as<int>();
-  int saveInterval = measurementConfig["saveInterval"].as<int>();
+  uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);
   measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,
-                                                saveInterval, "A");
+                                                saveThreshold, "A");
 
   try {
     run(syncPrefix, nodePrefix, pubTopic,
