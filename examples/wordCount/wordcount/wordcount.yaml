@@ -6,4 +6,4 @@ consumer:
   topic: /lines2words/dataMain
 
 measurements:
-  saveInterval: 100
+  saveThreshold: 100

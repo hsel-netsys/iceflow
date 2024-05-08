@@ -7,4 +7,4 @@ producer:
   publishInterval: 500
 
 measurements:
-  saveInterval: 100
+  saveThreshold: 100

@@ -40,9 +40,9 @@ struct Entry // represents an entry: #, entryname, timestamp
 class Measurement {
 public:
   Measurement(const std::string &measurementId, const std::string &nodeName,
-              int saveInterval, const std::string &observedObject)
+              int saveThreshold, const std::string &observedObject)
       : m_observedObject(observedObject), m_nodeName(nodeName),
-        m_measurementId(measurementId), m_saveInterval(saveInterval) {
+        m_measurementId(measurementId), m_saveThreshold(saveThreshold) {
     m_fileCount = 0;
     m_lastSaveToFile = duration_cast<std::chrono::milliseconds>(
                            std::chrono::system_clock::now().time_since_epoch())
@@ -87,7 +87,7 @@ public:
             .count();
     entry.timestamp = currentTimestamp;
     m_entries.push_back(entry);
-    if (m_entries.size() >= m_saveInterval) {
+    if (m_entries.size() >= m_saveThreshold) {
       recordToFile();
     }
   }
@@ -127,7 +127,7 @@ private:
   std::string m_observedObject;
   int m_fileCount;
   std::vector<Entry> m_entries;
-  int m_saveInterval;
+  int m_saveThreshold;
   std::ofstream m_ofstream;
   int m_lastSaveToFile;
 };
