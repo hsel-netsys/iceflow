@@ -19,9 +19,11 @@
 #ifndef ICEFLOW_CORE_MEASUREMENTS_H
 #define ICEFLOW_CORE_MEASUREMENTS_H
 
+#include <chrono>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 
 #include "logger.hpp"
 
