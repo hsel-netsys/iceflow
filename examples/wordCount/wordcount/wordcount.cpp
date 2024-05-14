@@ -33,10 +33,8 @@ public:
       std::string word;
       while (stream >> word) {
         std::cout << "Word occurrences:\n";
-        // Convert the word to lowercase to make the counting case-insensitive
-        for (char &c : word) {
-          c = std::tolower(c);
-        }
+        std::transform(word.begin(), word.end(), word.begin(),
+                       [](unsigned char c) { return std::tolower(c); });
 
         // Increment the count for the word in the map
         wordCountMap[word]++;
