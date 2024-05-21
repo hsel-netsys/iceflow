@@ -21,11 +21,11 @@
 
 #include "constants.hpp"
 #include "data.hpp"
+#include "iceflowBase.hpp"
 #include "logger.hpp"
 #include "ringbuffer.hpp"
 
 #include "ndn-svs/security-options.hpp"
-#include "ndn-svs/svspubsub.hpp"
 
 #include <chrono>
 #include <iostream>
@@ -70,9 +70,9 @@ public:
       : m_syncPrefix(syncPrefix), m_nodePrefix(nodePrefix), m_face(face) {
     ndn::svs::SecurityOptions secOpts(m_keyChain);
 
-    ndn::svs::SVSPubSubOptions opts;
+    iceflow::IceflowPubSubOptions opts;
 
-    m_svsPubSub = std::make_shared<ndn::svs::SVSPubSub>(
+    m_iceflowPubSub = std::make_shared<iceflow::IceflowPubSub>(
         ndn::Name(m_syncPrefix), ndn::Name(m_nodePrefix), m_face,
         std::bind(&IceFlow::onMissingData, this, _1), opts, secOpts);
   }
@@ -148,7 +148,7 @@ private:
 
     auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
 
-    auto subscriptionHandle = m_svsPubSub->subscribe(
+    auto subscriptionHandle = m_iceflowPubSub->subscribe(
         subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
                                    pushDataCallback, std::placeholders::_1));
 
@@ -158,12 +158,12 @@ private:
   }
 
   void unsubscribe(uint32_t subscriptionHandle) {
-    m_svsPubSub->unsubscribe(subscriptionHandle);
+    m_iceflowPubSub->unsubscribe(subscriptionHandle);
   }
 
   void subscribeCallBack(
       const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
-      const ndn::svs::SVSPubSub::SubscriptionData &subData) {
+      const iceflow::SubscriptionData &subData) {
     NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
                                       << subData.seqNo << "] : " << subData.name
                                       << " : ");
@@ -186,7 +186,7 @@ private:
   void publishMsg(std::vector<uint8_t> payload, const std::string &topic,
                   uint64_t partitionNumber) {
     auto dataID = prepareDataName(topic, partitionNumber);
-    auto sequenceNo = m_svsPubSub->publish(
+    auto sequenceNo = m_iceflowPubSub->publish(
         dataID, payload, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
     NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
   }
@@ -209,7 +209,7 @@ private:
 
   bool m_running = false;
 
-  std::shared_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
+  std::shared_ptr<iceflow::IceflowPubSub> m_iceflowPubSub;
 
   const std::string m_nodePrefix;
   const std::string m_syncPrefix;

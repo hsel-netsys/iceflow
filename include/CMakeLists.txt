@@ -13,7 +13,8 @@ set(ICEFLOW_INTERFACE_FILES
     iceflow/logger.hpp
     iceflow/measurements.hpp
     iceflow/ringbuffer.hpp
-    iceflow/typed-data.hpp)
+    iceflow/typed-data.hpp
+    iceflow/iceflowBase.hpp)
 
 target_include_directories(
   iceflow INTERFACE $<INSTALL_INTERFACE:${CMAKE_INSTALL_INCLUDEDIR}>
