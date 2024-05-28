@@ -83,7 +83,15 @@ public:
       throw std::runtime_error("Iceflow instance is already running!");
     }
 
-    std::thread svsThread([this] { m_face.processEvents(); });
+    std::thread svsThread([this] {
+      while (true) {
+        try {
+          m_face.processEvents(ndn::time::milliseconds(0), true);
+        } catch (std::exception &e) {
+          NDN_LOG_ERROR("Error in event handling loop: " << e.what());
+        }
+      }
+    });
 
     m_running = true;
     while (m_running) {
@@ -91,6 +99,15 @@ public:
           closestNextPublishTimePoint;
       // TODO: Get rid of this variable
       bool timepointSet = false;
+
+      {
+        NDN_LOG_INFO("Checking if producers are registered...");
+        std::unique_lock lock(m_producerRegistrationMutex);
+        m_producerRegistrationConditionVariable.wait(
+            lock, [this] { return m_producersAvailable; });
+        NDN_LOG_INFO("At least one producer is registered, continuing "
+                     "publishing thread.");
+      }
 
       for (auto producerRegistrationTuple : m_producerRegistrations) {
         auto producerRegistration = std::get<1>(producerRegistrationTuple);
@@ -195,17 +212,39 @@ private:
     uint64_t producerId = m_nextProducerId++;
     m_producerRegistrations.insert({producerId, producerRegistration});
 
+    if (!m_producersAvailable) {
+      {
+        std::lock_guard lock(m_producerRegistrationMutex);
+        m_producersAvailable = true;
+        NDN_LOG_INFO(
+            "Producer has been registered, resuming producer procedure.");
+      }
+      m_producerRegistrationConditionVariable.notify_one();
+    }
+
     return producerId;
   }
 
   void deregisterProducer(u_int64_t producerId) {
 
     m_producerRegistrations.erase(producerId);
+
+    if (m_producerRegistrations.empty()) {
+      {
+        std::lock_guard lock(m_producerRegistrationMutex);
+        m_producersAvailable = false;
+      }
+      m_producerRegistrationConditionVariable.notify_one();
+    }
   }
 
 private:
   ndn::KeyChain m_keyChain;
   ndn::Face &m_face;
+
+  std::mutex m_producerRegistrationMutex;
+  std::condition_variable m_producerRegistrationConditionVariable;
+  bool m_producersAvailable;
 
   bool m_running = false;
 
