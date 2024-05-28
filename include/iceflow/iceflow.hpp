@@ -95,10 +95,8 @@ public:
 
     m_running = true;
     while (m_running) {
-      std::chrono::time_point<std::chrono::steady_clock>
-          closestNextPublishTimePoint;
-      // TODO: Get rid of this variable
-      bool timepointSet = false;
+      auto closestNextPublishTimePoint =
+          std::chrono::time_point<std::chrono::steady_clock>::max();
 
       {
         NDN_LOG_INFO("Checking if producers are registered...");
@@ -117,15 +115,11 @@ public:
         auto timeUntilNextPublish =
             nextPublishTimePoint - std::chrono::steady_clock::now();
 
-        auto publishTimerExpired = timeUntilNextPublish.count() < 0;
+        if (nextPublishTimePoint < closestNextPublishTimePoint) {
+          closestNextPublishTimePoint = nextPublishTimePoint;
+        }
 
-        if (!publishTimerExpired) {
-          if (!timepointSet ||
-              nextPublishTimePoint < closestNextPublishTimePoint) {
-            closestNextPublishTimePoint = nextPublishTimePoint;
-            timepointSet = true;
-          }
-
+        if (timeUntilNextPublish.count() > 0) {
           continue;
         }
 
