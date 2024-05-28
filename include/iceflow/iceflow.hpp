@@ -83,7 +83,15 @@ public:
       throw std::runtime_error("Iceflow instance is already running!");
     }
 
-    std::thread svsThread([this] { m_face.processEvents(); });
+    std::thread svsThread([this] {
+      while (true) {
+        try {
+          m_face.processEvents(ndn::time::milliseconds(0), true);
+        } catch (std::exception &e) {
+          NDN_LOG_ERROR("Error in event handling loop: " << e.what());
+        }
+      }
+    });
 
     m_running = true;
     while (m_running) {
