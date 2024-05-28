@@ -244,7 +244,7 @@ private:
 
   std::mutex m_producerRegistrationMutex;
   std::condition_variable m_producerRegistrationConditionVariable;
-  bool m_producersAvailable;
+  bool m_producersAvailable = false;
 
   bool m_running = false;
 
