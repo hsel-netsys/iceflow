@@ -86,7 +86,7 @@ public:
     std::thread svsThread([this] {
       while (true) {
         try {
-          m_face.processEvents(ndn::time::milliseconds(0), true);
+          m_face.processEvents(ndn::time::milliseconds(5000), true);
         } catch (std::exception &e) {
           NDN_LOG_ERROR("Error in event handling loop: " << e.what());
         }
@@ -244,7 +244,7 @@ private:
 
   std::mutex m_producerRegistrationMutex;
   std::condition_variable m_producerRegistrationConditionVariable;
-  bool m_producersAvailable;
+  bool m_producersAvailable = false;
 
   bool m_running = false;
 
