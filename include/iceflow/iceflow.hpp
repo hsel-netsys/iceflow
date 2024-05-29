@@ -95,17 +95,15 @@ public:
 
     m_running = true;
     while (m_running) {
+      NDN_LOG_INFO("Checking if producers are registered...");
+      std::unique_lock lock(m_producerRegistrationMutex);
+      m_producerRegistrationConditionVariable.wait(
+          lock, [this] { return m_producersAvailable; });
+      NDN_LOG_INFO("At least one producer is registered, continuing "
+                   "publishing thread.");
+
       auto closestNextPublishTimePoint =
           std::chrono::time_point<std::chrono::steady_clock>::max();
-
-      {
-        NDN_LOG_INFO("Checking if producers are registered...");
-        std::unique_lock lock(m_producerRegistrationMutex);
-        m_producerRegistrationConditionVariable.wait(
-            lock, [this] { return m_producersAvailable; });
-        NDN_LOG_INFO("At least one producer is registered, continuing "
-                     "publishing thread.");
-      }
 
       for (auto producerRegistrationTuple : m_producerRegistrations) {
         auto producerRegistration = std::get<1>(producerRegistrationTuple);
@@ -203,16 +201,15 @@ private:
   }
 
   uint64_t registerProducer(ProducerRegistrationInfo producerRegistration) {
+    std::lock_guard lock(m_producerRegistrationMutex);
+
     uint64_t producerId = m_nextProducerId++;
     m_producerRegistrations.insert({producerId, producerRegistration});
 
     if (!m_producersAvailable) {
-      {
-        std::lock_guard lock(m_producerRegistrationMutex);
-        m_producersAvailable = true;
-        NDN_LOG_INFO(
-            "Producer has been registered, resuming producer procedure.");
-      }
+      m_producersAvailable = true;
+      NDN_LOG_INFO(
+          "Producer has been registered, resuming producer procedure.");
       m_producerRegistrationConditionVariable.notify_one();
     }
 
@@ -220,14 +217,12 @@ private:
   }
 
   void deregisterProducer(u_int64_t producerId) {
+    std::lock_guard lock(m_producerRegistrationMutex);
 
     m_producerRegistrations.erase(producerId);
 
     if (m_producerRegistrations.empty()) {
-      {
-        std::lock_guard lock(m_producerRegistrationMutex);
-        m_producersAvailable = false;
-      }
+      m_producersAvailable = false;
       m_producerRegistrationConditionVariable.notify_one();
     }
   }
