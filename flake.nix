@@ -188,7 +188,7 @@
                     clang-format = {
                       enable = true;
                       types_or = lib.mkForce ["c" "c++"];
-                      files = "(apps|include)\\\/\.\*\\\/\.\*\\\.(c|h)pp";
+                      files = "(examples|include)\\\/\.\*\\\/\.\*\\\.(c|h)pp";
                     };
                   };
                 })

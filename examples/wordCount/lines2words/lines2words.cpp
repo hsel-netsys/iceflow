@@ -62,7 +62,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
           auto data = consumer.receiveData();
           return std::string(data.begin(), data.end());
         },
-        [&producer](std::string data) {
+        [&producer](const std::string &data) {
           std::vector<uint8_t> encodedString(data.begin(), data.end());
           producer.pushData(encodedString);
         });
@@ -74,9 +74,9 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 }
 
 int main(int argc, const char *argv[]) {
-  std::string command = argv[0];
 
   if (argc != 3) {
+    std::string command = argv[0];
     std::cout << "usage: " << command << " <config-file> <measurement-Name>"
               << std::endl;
     return 1;
