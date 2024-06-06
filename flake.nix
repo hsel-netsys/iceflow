@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/release-23.11";
+    nixpkgs.url = "nixpkgs/nixos-24.05";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
@@ -188,7 +188,7 @@
                     clang-format = {
                       enable = true;
                       types_or = lib.mkForce ["c" "c++"];
-                      files = "(apps|include)\\\/\.\*\\\/\.\*\\\.(c|h)pp";
+                      files = "(examples|include)\\\/\.\*\\\/\.\*\\\.(c|h)pp";
                     };
                   };
                 })

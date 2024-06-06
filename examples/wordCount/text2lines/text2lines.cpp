@@ -71,7 +71,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
   threads.emplace_back([&lineSplitter, &producer, &nodePrefix, &filename]() {
     lineSplitter.text2lines(
-        nodePrefix, filename, [&producer](std::string data) {
+        nodePrefix, filename, [&producer](const std::string &data) {
           std::vector<uint8_t> encodedString(data.begin(), data.end());
           producer.pushData(encodedString);
         });
@@ -83,16 +83,15 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 }
 
 int main(int argc, const char *argv[]) {
-  std::string command = argv[0];
 
   if (argc != 4) {
+    std::string command = argv[0];
     std::cout << "usage: " << command
               << " <config-file> <text-file> <measurement-Name>" << std::endl;
     return 1;
   }
 
   std::string configFileName = argv[1];
-  std::string sourceTextFileName = argv[2];
   std::string measurementFileName = argv[3];
 
   YAML::Node config = YAML::LoadFile(configFileName);
@@ -111,6 +110,7 @@ int main(int argc, const char *argv[]) {
                                                 saveThreshold, "A");
 
   try {
+    std::string sourceTextFileName = argv[2];
     run(syncPrefix, nodePrefix, pubTopic,
         std::unordered_set(partitions.begin(), partitions.end()),
         sourceTextFileName, std::chrono::milliseconds(publishInterval));
