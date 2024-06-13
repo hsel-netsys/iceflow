@@ -44,6 +44,11 @@ public:
 
   std::vector<uint8_t> receiveData() { return m_inputQueue.waitAndPopValue(); }
 
+  /**
+   * Indicates whether the queue of this IceflowConsumer contains data.
+   */
+  bool hasData() { return !m_inputQueue.empty(); }
+
   void setTopicPartitions(const std::unordered_set<uint64_t> &topicPartitions) {
     if (topicPartitions.empty()) {
       throw std::invalid_argument(
