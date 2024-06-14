@@ -53,8 +53,7 @@ public:
 };
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &pubTopic,
-         const std::unordered_set<uint64_t> &topicPartitions,
+         const std::string &pubTopic, uint32_t numberOfPartitions,
          const std::string &filename,
          std::chrono::milliseconds publishInterval) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
@@ -64,8 +63,8 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   auto iceflow = std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix,
 
                                                     face);
-  auto producer = iceflow::IceflowProducer(iceflow, pubTopic, topicPartitions,
-                                           publishInterval);
+  auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
+                                           numberOfPartitions, publishInterval);
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
@@ -100,9 +99,9 @@ int main(int argc, const char *argv[]) {
 
   auto syncPrefix = config["syncPrefix"].as<std::string>();
   auto nodePrefix = config["nodePrefix"].as<std::string>();
-  auto partitions = config["partitions"].as<std::vector<uint64_t>>();
   auto pubTopic = producerConfig["topic"].as<std::string>();
   uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
+  auto numberOfPartitions = producerConfig["numberOfPartitions"].as<uint32_t>();
   uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);
@@ -111,8 +110,7 @@ int main(int argc, const char *argv[]) {
 
   try {
     std::string sourceTextFileName = argv[2];
-    run(syncPrefix, nodePrefix, pubTopic,
-        std::unordered_set(partitions.begin(), partitions.end()),
+    run(syncPrefix, nodePrefix, pubTopic, numberOfPartitions,
         sourceTextFileName, std::chrono::milliseconds(publishInterval));
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;

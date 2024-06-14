@@ -59,14 +59,16 @@ private:
 };
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &subTopic,
-         const std::unordered_set<uint64_t> &topicPartitions) {
+         const std::string &subTopic, uint32_t numberOfPartitions,
+         uint32_t consumerPartitionIndex, uint32_t totalNumberOfConsumers) {
   WordCounter compute;
   ndn::Face face;
 
   auto iceflow =
       std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
-  auto consumer = iceflow::IceflowConsumer(iceflow, subTopic, topicPartitions);
+  auto consumer =
+      iceflow::IceflowConsumer(iceflow, subTopic, numberOfPartitions,
+                               consumerPartitionIndex, totalNumberOfConsumers);
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
@@ -100,9 +102,13 @@ int main(int argc, const char *argv[]) {
 
   std::string syncPrefix = config["syncPrefix"].as<std::string>();
   std::string nodePrefix = config["nodePrefix"].as<std::string>();
-  std::vector<uint64_t> partitions =
-      config["partitions"].as<std::vector<uint64_t>>();
   std::string subTopic = consumerConfig["topic"].as<std::string>();
+  uint32_t consumerPartitionIndex =
+      consumerConfig["partitionIndex"].as<uint32_t>();
+  uint32_t totalNumberOfConsumers =
+      consumerConfig["totalNumberOfConsumers"].as<uint32_t>();
+  uint32_t numberOfPartitions =
+      consumerConfig["numberOfPartitions"].as<uint32_t>();
 
   uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
@@ -111,8 +117,8 @@ int main(int argc, const char *argv[]) {
                                                 saveThreshold, "A");
 
   try {
-    run(syncPrefix, nodePrefix, subTopic,
-        std::unordered_set(partitions.begin(), partitions.end()));
+    run(syncPrefix, nodePrefix, subTopic, numberOfPartitions,
+        consumerPartitionIndex, totalNumberOfConsumers);
   }
 
   catch (const std::exception &e) {

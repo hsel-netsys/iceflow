@@ -1,9 +1,11 @@
 syncPrefix: /wordcount
 nodePrefix: wordcount
-partitions: [1, 2, 3]
 
 consumer:
   topic: /lines2words/dataMain
+  totalNumberOfConsumers: 1
+  partitionIndex: 0
+  numberOfPartitions: 1
 
 measurements:
   saveThreshold: 100

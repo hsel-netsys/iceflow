@@ -36,7 +36,7 @@ namespace iceflow {
 
 struct QueueEntry {
   std::string topic;
-  uint64_t partitionNumber;
+  uint32_t partitionNumber;
   std::vector<uint8_t> data;
 };
 
@@ -152,7 +152,7 @@ public:
 
 private:
   uint32_t subscribeToTopicPartition(
-      const std::string &topic, uint64_t partitionNumber,
+      const std::string &topic, uint32_t partitionNumber,
       std::function<void(std::vector<uint8_t>)> &pushDataCallback) {
 
     auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
@@ -188,22 +188,22 @@ private:
   }
 
   ndn::Name prepareDataName(const std::string &topic,
-                            uint64_t partitionNumber) {
+                            uint32_t partitionNumber) {
     return ndn::Name(topic).appendNumber(partitionNumber);
   }
 
   void publishMsg(std::vector<uint8_t> payload, const std::string &topic,
-                  uint64_t partitionNumber) {
+                  uint32_t partitionNumber) {
     auto dataID = prepareDataName(topic, partitionNumber);
     auto sequenceNo = m_svsPubSub->publish(
         dataID, payload, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
     NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
   }
 
-  uint64_t registerProducer(ProducerRegistrationInfo producerRegistration) {
+  uint32_t registerProducer(ProducerRegistrationInfo producerRegistration) {
     std::lock_guard lock(m_producerRegistrationMutex);
 
-    uint64_t producerId = m_nextProducerId++;
+    uint32_t producerId = m_nextProducerId++;
     m_producerRegistrations.insert({producerId, producerRegistration});
 
     if (!m_producersAvailable) {
@@ -242,10 +242,10 @@ private:
   const std::string m_nodePrefix;
   const std::string m_syncPrefix;
 
-  std::unordered_map<uint64_t, ProducerRegistrationInfo>
+  std::unordered_map<uint32_t, ProducerRegistrationInfo>
       m_producerRegistrations;
 
-  uint64_t m_nextProducerId = 0;
+  uint32_t m_nextProducerId = 0;
 };
 
 } // namespace iceflow

@@ -1,14 +1,17 @@
 syncPrefix: /wordcount
 nodePrefix: text2lines1
-partitions: [1, 2]
 
 consumer:
   topic: /text2lines/dataMain
   inputThreshold: 200 # TODO: This is unused at the moment
+  totalNumberOfConsumers: 2
+  partitionIndex: 0
+  numberOfPartitions: 3
 
 producer:
   topic: /lines2words/dataMain
   publishInterval: 500
+  numberOfPartitions: 1
 
 measurements:
   saveThreshold: 100
