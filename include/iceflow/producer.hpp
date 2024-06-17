@@ -19,7 +19,10 @@
 #ifndef ICEFLOW_PRODUCER_HPP
 #define ICEFLOW_PRODUCER_HPP
 
+#include <random>
 #include <unordered_set>
+
+#include <time.h>
 
 #include "iceflow.hpp"
 
@@ -34,14 +37,15 @@ namespace iceflow {
 class IceflowProducer {
 public:
   IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  const std::unordered_set<uint64_t> &topicPartitions,
+                  uint32_t numberOfPartitions,
                   std::chrono::milliseconds publishInterval)
-      : m_iceflow(iceflow), m_pubTopic(pubTopic),
-        m_topicPartitions(topicPartitions),
-        m_lastPublishTimePoint(std::chrono::steady_clock::now()) {
+      : m_iceflow(iceflow), m_numberOfPartitions(numberOfPartitions),
+        m_pubTopic(pubTopic),
+        m_lastPublishTimePoint(std::chrono::steady_clock::now()),
+        m_randomNumberGenerator(std::mt19937(time(nullptr))) {
 
+    setTopicPartitions(numberOfPartitions);
     setPublishInterval(publishInterval);
-    setTopicPartitions(topicPartitions);
 
     if (auto validIceflow = m_iceflow.lock()) {
       std::function<QueueEntry(void)> popQueueValueCallback =
@@ -83,32 +87,25 @@ public:
     m_publishInterval = publishInterval;
   }
 
-  void setTopicPartitions(const std::unordered_set<uint64_t> &topicPartitions) {
-    checkTopicPartitions(topicPartitions);
-    m_topicPartitions = topicPartitions;
-    m_topicPartitionIterator = m_topicPartitions.begin();
-  }
-
-private:
-  void
-  checkTopicPartitions(const std::unordered_set<uint64_t> &topicPartitions) {
-    if (topicPartitions.empty()) {
+  void setTopicPartitions(uint64_t numberOfPartitions) {
+    if (numberOfPartitions == 0) {
       throw std::invalid_argument(
           "At least one topic partition has to be defined!");
     }
+
+    for (uint64_t i = 0; i < numberOfPartitions; ++i) {
+      m_topicPartitions.emplace_hint(m_topicPartitions.end(), i);
+    }
   }
 
-  uint64_t getNextPartitionNumber() {
-    if (m_topicPartitionIterator == m_topicPartitions.end()) {
-      m_topicPartitionIterator = m_topicPartitions.begin();
-    }
-
-    return *m_topicPartitionIterator++;
+private:
+  uint32_t getNextPartitionNumber() {
+    return m_randomNumberGenerator() % m_numberOfPartitions;
   }
 
   QueueEntry popQueueValue() {
     auto data = m_outputQueue.waitAndPopValue();
-    uint64_t partitionNumber = getNextPartitionNumber();
+    uint32_t partitionNumber = getNextPartitionNumber();
     m_lastPublishTimePoint = std::chrono::steady_clock::now();
 
     return {
@@ -133,13 +130,15 @@ private:
   const std::string m_pubTopic;
   RingBuffer<std::vector<uint8_t>> m_outputQueue;
 
-  std::unordered_set<uint64_t> m_topicPartitions;
-  std::unordered_set<uint64_t>::iterator m_topicPartitionIterator;
+  uint32_t m_numberOfPartitions;
+  std::unordered_set<uint32_t> m_topicPartitions;
 
   std::chrono::nanoseconds m_publishInterval;
   std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
 
   uint64_t m_subscriberId;
+
+  std::mt19937 m_randomNumberGenerator;
 };
 } // namespace iceflow
 

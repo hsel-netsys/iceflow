@@ -32,12 +32,15 @@ class IceflowConsumer {
 
 public:
   IceflowConsumer(std::shared_ptr<IceFlow> iceflow, const std::string &subTopic,
-                  const std::unordered_set<uint64_t> &topicPartitions)
-      : m_iceflow(iceflow), m_subTopic(subTopic)
+                  uint32_t numberOfPartitions, uint32_t consumerPartitionIndex,
+                  uint32_t totalNumberOfConsumers)
+      : m_iceflow(iceflow), m_subTopic(subTopic),
+        m_numberOfPartitions(numberOfPartitions),
+        m_consumerPartitionIndex(consumerPartitionIndex),
+        m_totalNumberOfConsumers(totalNumberOfConsumers) {
 
-  {
-
-    setTopicPartitions(topicPartitions);
+    setTopicPartitions(m_numberOfPartitions, m_consumerPartitionIndex,
+                       m_totalNumberOfConsumers);
   }
 
   ~IceflowConsumer() { unsubscribeFromAllPartitions(); }
@@ -49,10 +52,68 @@ public:
    */
   bool hasData() { return !m_inputQueue.empty(); }
 
-  void setTopicPartitions(const std::unordered_set<uint64_t> &topicPartitions) {
-    if (topicPartitions.empty()) {
+  void setNumberOfPartitions(uint32_t numberOfPartitions) {
+    setTopicPartitions(numberOfPartitions, m_consumerPartitionIndex,
+                       m_totalNumberOfConsumers);
+    m_numberOfPartitions = numberOfPartitions;
+  }
+
+  void setConsumerPartitionIndex(uint32_t consumerPartitionIndex) {
+    setTopicPartitions(m_numberOfPartitions, consumerPartitionIndex,
+                       m_totalNumberOfConsumers);
+    m_consumerPartitionIndex = consumerPartitionIndex;
+  }
+
+  void setTotalNumberOfConsumers(uint32_t totalNumberOfConsumers) {
+    setTopicPartitions(m_numberOfPartitions, m_consumerPartitionIndex,
+                       totalNumberOfConsumers);
+    m_totalNumberOfConsumers = totalNumberOfConsumers;
+  }
+
+private:
+  void validatePartitionConfiguration(uint32_t numberOfPartitions,
+                                      uint32_t consumerPartitionIndex,
+                                      uint32_t totalNumberOfConsumers) {
+    if (numberOfPartitions == 0) {
       throw std::invalid_argument(
           "At least one topic partition has to be defined!");
+    }
+
+    if (totalNumberOfConsumers <= consumerPartitionIndex) {
+      throw std::invalid_argument(
+          "The total number of consumers has to be larger "
+          "than the consumerPartitionIndex.");
+    }
+
+    if (numberOfPartitions < totalNumberOfConsumers) {
+      throw std::invalid_argument(
+          "The numberOfPartitions has to be at least as large as the "
+          "totalNumberOfConsumers.");
+    }
+
+    if (numberOfPartitions <= consumerPartitionIndex) {
+      throw std::invalid_argument("The numberOfPartitions has to be at least "
+                                  "as large as the consumerPartitionIndex.");
+    }
+  }
+
+  /**
+   * Updates the topic partitions this IceflowConsumer is subscribed to.
+   *
+   * Before updating the topic partitions, the method validates the passed
+   * arguments in order to ensure a valid consumer configuration.
+   */
+  void setTopicPartitions(uint32_t numberOfPartitions,
+                          uint32_t consumerPartitionIndex,
+                          uint32_t totalNumberOfConsumers) {
+    validatePartitionConfiguration(numberOfPartitions, consumerPartitionIndex,
+                                   totalNumberOfConsumers);
+
+    // TODO: Document that consumer indexes must start at 0
+    std::unordered_set<uint32_t> topicPartitions;
+    for (uint32_t i = consumerPartitionIndex; i < numberOfPartitions;
+         i += totalNumberOfConsumers) {
+      topicPartitions.emplace_hint(topicPartitions.end(), i);
     }
 
     if (auto validIceflow = m_iceflow.lock()) {
@@ -81,7 +142,6 @@ public:
     }
   }
 
-private:
   uint32_t subscribeToTopicPartition(uint64_t topicPartition) {
     if (auto validIceflow = m_iceflow.lock()) {
 
@@ -109,7 +169,11 @@ private:
   const std::weak_ptr<IceFlow> m_iceflow;
   const std::string m_subTopic;
 
-  std::unordered_map<uint64_t, uint32_t> m_subscriptionHandles;
+  uint32_t m_numberOfPartitions;
+  uint32_t m_consumerPartitionIndex;
+  uint32_t m_totalNumberOfConsumers;
+
+  std::unordered_map<uint32_t, uint32_t> m_subscriptionHandles;
 
   RingBuffer<std::vector<uint8_t>> m_inputQueue;
 };

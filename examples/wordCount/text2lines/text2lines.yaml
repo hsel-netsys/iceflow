@@ -1,10 +1,10 @@
 syncPrefix: /wordcount
 nodePrefix: text2lines
-partitions: [1, 2, 3]
 
 producer:
   topic: /text2lines/dataMain
   publishInterval: 500
+  numberOfPartitions: 3
 
 measurements:
   saveThreshold: 100
