@@ -19,11 +19,16 @@
 #ifndef ICEFLOW_CONSUMER_HPP
 #define ICEFLOW_CONSUMER_HPP
 
+#include <chrono>
 #include <unordered_set>
 
 #include "iceflow.hpp"
 
 namespace iceflow {
+
+struct IceflowConsumerSynchronizationData {
+  std::chrono::time_point<std::chrono::steady_clock> validUntil;
+};
 
 /**
  * Allows for subscribing to data published by `IceflowProducer`s.
@@ -41,6 +46,14 @@ public:
 
     setTopicPartitions(m_numberOfPartitions, m_consumerPartitionIndex,
                        m_totalNumberOfConsumers);
+
+    if (auto validIceflow = m_iceflow.lock()) {
+      m_synchronizationSubscriptionHandle =
+          validIceflow.get()->m_svsPubSub->subscribe(
+              "synchronize",
+              std::bind(&IceflowConsumer::synchronizationCallBack, this,
+                        std::placeholders::_1));
+    }
   }
 
   ~IceflowConsumer() { unsubscribeFromAllPartitions(); }
@@ -71,6 +84,29 @@ public:
   }
 
 private:
+  void synchronizationCallBack(
+      const ndn::svs::SVSPubSub::SubscriptionData &subData) {
+    NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
+                                      << subData.seqNo << "] : " << subData.name
+                                      << " : ");
+
+    auto consumerKey = subData.producerPrefix.toUri();
+    auto newValidUntil = std::chrono::time_point<std::chrono::steady_clock>(
+        std::chrono::seconds(10));
+
+    if (m_synchronizationData.contains(consumerKey)) {
+      m_synchronizationData[consumerKey].validUntil = newValidUntil;
+    } else {
+      m_synchronizationData.emplace(
+          consumerKey, IceflowConsumerSynchronizationData{newValidUntil});
+    }
+
+    auto newTotalNumberOfConsumers = m_synchronizationData.size() + 1;
+    if (newTotalNumberOfConsumers != m_totalNumberOfConsumers) {
+      setTotalNumberOfConsumers(newTotalNumberOfConsumers);
+    }
+  }
+
   void validatePartitionConfiguration(uint32_t numberOfPartitions,
                                       uint32_t consumerPartitionIndex,
                                       uint32_t totalNumberOfConsumers) {
@@ -174,6 +210,11 @@ private:
   uint32_t m_totalNumberOfConsumers;
 
   std::unordered_map<uint32_t, uint32_t> m_subscriptionHandles;
+
+  uint32_t m_synchronizationSubscriptionHandle;
+
+  std::unordered_map<std::string, IceflowConsumerSynchronizationData>
+      m_synchronizationData;
 
   RingBuffer<std::vector<uint8_t>> m_inputQueue;
 };
