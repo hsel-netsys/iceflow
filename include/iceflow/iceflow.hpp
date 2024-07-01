@@ -166,6 +166,13 @@ private:
     return subscriptionHandle;
   }
 
+  //   utint32_t subscribeToConsumerGroup(std::string consumerPrefix) {
+  //  auto subscriptionHandle = m_svsPubSub->subscribe(
+  //         subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
+  //                                    pushDataCallback,
+  //                                    std::placeholders::_1));
+  //   }
+
   void unsubscribe(uint32_t subscriptionHandle) {
     m_svsPubSub->unsubscribe(subscriptionHandle);
   }
