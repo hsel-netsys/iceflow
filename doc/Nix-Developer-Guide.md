@@ -122,7 +122,7 @@ You can use other package definitions already present in the `flake.nix` as temp
 
 For other build systems and more information regarding build system specific configuration, refer to the Nix documentation regarding [build hooks](https://nixos.org/manual/nixpkgs/stable/#chap-hooks).
 
-Some general information regarding C-based projects can also be found in the [NixOS Wiki](https://nixos.wiki/wiki/C).
+Some general information regarding C-based projects can also be found in the [NixOS Wiki](https://wiki.nixos.org/wiki/C).
 
 For more information regarding package definitions in general, refer to the Nix documentation regarding the [Standard environment](https://nixos.org/manual/nixpkgs/stable/#part-stdenv)
 
