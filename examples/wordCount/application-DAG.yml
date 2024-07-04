@@ -50,7 +50,7 @@
         "image": "lines2words-image",
         "resources": {
           "cpu": "1",
-          "memory": "1GB"
+          "memory": "1GB",
           "task-complexity":"no_of_instructions" 
         }
       },
