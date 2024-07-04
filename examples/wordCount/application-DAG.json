@@ -24,7 +24,7 @@
       "task": "2",
       "name": "lines2words",
       "type": "prosumer",
-      "description": "Splits lines into words (stream 1).",
+      "description": "Splits lines into words.",
       "executor": "container",
       "container": {
         "image": "lines2words-image",
