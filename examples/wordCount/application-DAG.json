@@ -1,0 +1,63 @@
+{
+  "applicationName": "WordCount",
+  "nodes": [
+    {
+      "task": "1",
+      "name": "text2lines",
+      "type": "producer",
+      "description": "Splits text into lines.",
+      "executor": "container",
+      "container": {
+        "image": "text2lines-image",
+        "resources": {
+          "cpu": "1",
+          "memory": "1GB",
+          "task-complexity": "no_of_instructions"
+        }
+      },
+      "comm-task": {
+        "payload": ""
+      },
+      "downstream": ["2"]
+    },
+    {
+      "task": "2",
+      "name": "lines2words",
+      "type": "prosumer",
+      "description": "Splits lines into words (stream 1).",
+      "executor": "container",
+      "container": {
+        "image": "lines2words-image",
+        "resources": {
+          "cpu": "1",
+          "memory": "1GB",
+          "task-complexity": "no_of_instructions"
+        }
+      },
+      "comm-task": {
+        "payload": ""
+      },
+      "upstream": ["1"],
+      "downstream": ["3"]
+    },
+    {
+      "task": "3",
+      "name": "wordcount",
+      "type": "consumer",
+      "description": "Counts the occurrences of words.",
+      "executor": "container",
+      "container": {
+        "image": "wordcount-image",
+        "resources": {
+          "cpu": "2",
+          "memory": "2GB",
+          "task-complexity": "no_of_instructions"
+        }
+      },
+      "comm-task": {
+        "payload": ""
+      },
+      "upstream": ["2"]
+    }
+  ]
+}
