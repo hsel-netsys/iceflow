@@ -70,7 +70,7 @@
         "image": "wordcount-image",
         "resources": {
           "cpu": "2",
-          "memory": "2GB"
+          "memory": "2GB",
           "task-complexity":"no_of_instructions"
         }
       },
