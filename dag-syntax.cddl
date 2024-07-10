@@ -1,0 +1,24 @@
+application = {
+    applicationName: tstr,
+    nodes: [ * node ],
+}
+
+node = {
+    task: tstr,
+    name: tstr,
+    type: "producer" / "prosumer" / "consumer",
+    description: tstr,
+    executor: "container",
+    container: {
+        image: tstr,
+        resources: {
+            cpu: uint,
+            memory: tstr, ; TODO: Discuss the unit we want to use here
+            taskComplexity: uint,
+        }
+    },
+    communicationTask: {
+        ? payloadSize: uint,
+    },
+    ? downstream: [ * tstr ],
+}
