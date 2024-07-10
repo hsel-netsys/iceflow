@@ -10,13 +10,13 @@
       "container": {
         "image": "text2lines-image",
         "resources": {
-          "cpu": "1",
+          "cpu": 1,
           "memory": "1GB",
-          "task-complexity": "no_of_instructions"
+          "taskComplexity": 2
         }
       },
-      "comm-task": {
-        "payload": ""
+      "communicationTask": {
+        "payloadSize": 9001
       },
       "downstream": ["2"]
     },
@@ -29,13 +29,13 @@
       "container": {
         "image": "lines2words-image",
         "resources": {
-          "cpu": "1",
+          "cpu": 1,
           "memory": "1GB",
-          "task-complexity": "no_of_instructions"
+          "taskComplexity": 2
         }
       },
-      "comm-task": {
-        "payload": ""
+      "communicationTask": {
+        "payloadSize": 9001
       },
       "downstream": ["3"]
     },
@@ -48,13 +48,13 @@
       "container": {
         "image": "wordcount-image",
         "resources": {
-          "cpu": "2",
+          "cpu": 1,
           "memory": "2GB",
-          "task-complexity": "no_of_instructions"
+          "taskComplexity": 2
         }
       },
-      "comm-task": {
-        "payload": ""
+      "communicationTask": {
+        "payloadSize": 9001
       }
     }
   ]
