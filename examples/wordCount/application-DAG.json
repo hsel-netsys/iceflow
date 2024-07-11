@@ -4,7 +4,6 @@
     {
       "task": "1",
       "name": "text2lines",
-      "type": "producer",
       "description": "Splits text into lines.",
       "executor": "container",
       "container": {
@@ -25,7 +24,6 @@
     {
       "task": "2",
       "name": "lines2words",
-      "type": "prosumer",
       "description": "Splits lines into words.",
       "executor": "container",
       "container": {
@@ -46,7 +44,6 @@
     {
       "task": "3",
       "name": "wordcount",
-      "type": "consumer",
       "description": "Counts the occurrences of words.",
       "executor": "container",
       "container": {
