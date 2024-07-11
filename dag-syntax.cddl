@@ -1,0 +1,25 @@
+application = {
+    applicationName: tstr,
+    nodes: [ * node ],
+}
+
+node = {
+    task: tstr,
+    name: tstr,
+    description: tstr,
+    executor: "container" / "static",
+    container: {
+        image: tstr,
+        resources: {
+            cpu: uint,
+            memory: uint,
+        }
+    },
+    scalingParameters: {
+        taskComplexity: uint,
+    }
+    communicationTask: {
+        ? payloadSize: uint,
+    },
+    ? downstream: [ * tstr ],
+}
