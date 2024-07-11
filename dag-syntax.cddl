@@ -13,7 +13,7 @@ node = {
         image: tstr,
         resources: {
             cpu: uint,
-            memory: tstr, ; TODO: Discuss the unit we want to use here
+            memory: uint,
             taskComplexity: uint,
         }
     },
