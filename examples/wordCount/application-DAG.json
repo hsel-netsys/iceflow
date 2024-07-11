@@ -11,9 +11,11 @@
         "image": "text2lines-image",
         "resources": {
           "cpu": 1,
-          "memory": "1GB",
-          "taskComplexity": 2
+          "memory": 1000000000
         }
+      },
+      "scalingParameters": {
+        "taskComplexity": 2
       },
       "communicationTask": {
         "payloadSize": 9001
@@ -30,12 +32,14 @@
         "image": "lines2words-image",
         "resources": {
           "cpu": 1,
-          "memory": "1GB",
-          "taskComplexity": 2
+          "memory": 1000000000
         }
       },
       "communicationTask": {
         "payloadSize": 9001
+      },
+      "scalingParameters": {
+        "taskComplexity": 2
       },
       "downstream": ["3"]
     },
@@ -49,9 +53,11 @@
         "image": "wordcount-image",
         "resources": {
           "cpu": 1,
-          "memory": "2GB",
-          "taskComplexity": 2
+          "memory": 2000000000
         }
+      },
+      "scalingParameters": {
+        "taskComplexity": 2
       },
       "communicationTask": {
         "payloadSize": 9001
