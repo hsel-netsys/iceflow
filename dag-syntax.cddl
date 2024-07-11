@@ -6,9 +6,8 @@ application = {
 node = {
     task: tstr,
     name: tstr,
-    type: "producer" / "prosumer" / "consumer",
     description: tstr,
-    executor: "container",
+    executor: "container" / "static",
     container: {
         image: tstr,
         resources: {
