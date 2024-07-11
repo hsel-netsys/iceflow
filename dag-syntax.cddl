@@ -13,9 +13,11 @@ node = {
         resources: {
             cpu: uint,
             memory: uint,
-            taskComplexity: uint,
         }
     },
+    scalingParameters: {
+        taskComplexity: uint,
+    }
     communicationTask: {
         ? payloadSize: uint,
     },
