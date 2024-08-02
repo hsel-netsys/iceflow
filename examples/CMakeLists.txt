@@ -25,6 +25,7 @@ foreach(SOURCE_FILE ${SOURCES})
 
   target_link_libraries(
     ${EXECUTABLE_NAME}
+    iceflow
     ${Boost_LIBRARIES}
     -lboost_log
     -lboost_system
