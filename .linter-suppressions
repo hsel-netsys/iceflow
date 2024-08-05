@@ -3,3 +3,4 @@
 missingIncludeSystem // Suppress system include errors
 missingInclude // Suppress other include errors
 unusedFunction // Suppress warnings about unused functions
+unusedStructMember // Suppress errors about unused struct members.
