@@ -30,51 +30,25 @@ namespace iceflow {
 
 class Block {
 public:
-  Block() {}
-  explicit Block(ndn::Block block) : m_data(block) {}
+  Block();
+  explicit Block(ndn::Block block);
 
-  Block(ndn::Block block, uint32_t type)
-      : m_data(ndn::encoding::makeBinaryBlock(type, block.value_begin(),
-                                              block.value_end())) {}
+  Block(ndn::Block block, uint32_t type);
 
-  void pushJson(JsonData inputJson) {
-    std::string jsonString = inputJson.getJson().dump();
-    NDN_LOG_DEBUG("IceFlow Block: " << jsonString);
-    ndn::Block jsonContent = ndn::encoding::makeBinaryBlock(
-        ContentTypeValue::Json, jsonString.begin(), jsonString.end());
-    pushBlock(jsonContent);
-  }
+  void pushJson(JsonData inputJson);
 
-  JsonData pullJson() {
-    std::vector<ndn::Block> resultSubElements = m_data.elements();
-    JsonData outputJson;
-    nlohmann::json convertedJson;
-    // test type here instead of the first element -- fix it
-    if (resultSubElements.size() > 0) { // fix this
-      convertedJson = nlohmann::json::parse(resultSubElements[0].value_begin(),
-                                            resultSubElements[0].value_end());
-    } else {
-      convertedJson =
-          nlohmann::json::parse(m_data.value_begin(), m_data.value_end());
-    }
-    outputJson.setJson(convertedJson);
-    return outputJson;
-  }
+  JsonData pullJson();
 
-  void pushSegmentManifestBlock(std::vector<uint8_t> &buffer) {
-    ndn::Block frameContent = ndn::encoding::makeBinaryBlock(
-        ContentTypeValue::SegmentsInManifest, buffer);
-    pushBlock(frameContent);
-  }
+  void pushSegmentManifestBlock(std::vector<uint8_t> &buffer);
 
-  void pushBlock(ndn::Block block) { m_data.push_back(block); }
+  void pushBlock(ndn::Block block);
 
-  void iceFlowBlockEncode() { m_data.encode(); }
-  void iceFlowBlockParse() { m_data.parse(); }
+  void iceFlowBlockEncode();
+  void iceFlowBlockParse();
 
-  std::vector<ndn::Block> getSubElements() { return m_data.elements(); }
+  std::vector<ndn::Block> getSubElements();
 
-  ndn::Block getData() { return m_data; }
+  ndn::Block getData();
 
 private:
   ndn::Block m_data;

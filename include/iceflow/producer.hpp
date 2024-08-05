@@ -38,92 +38,26 @@ class IceflowProducer {
 public:
   IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
                   uint32_t numberOfPartitions,
-                  std::chrono::milliseconds publishInterval)
-      : m_iceflow(iceflow), m_numberOfPartitions(numberOfPartitions),
-        m_pubTopic(pubTopic),
-        m_lastPublishTimePoint(std::chrono::steady_clock::now()),
-        m_randomNumberGenerator(std::mt19937(time(nullptr))) {
+                  std::chrono::milliseconds publishInterval);
 
-    setTopicPartitions(numberOfPartitions);
-    setPublishInterval(publishInterval);
+  ~IceflowProducer();
 
-    if (auto validIceflow = m_iceflow.lock()) {
-      std::function<QueueEntry(void)> popQueueValueCallback =
-          std::bind(&IceflowProducer::popQueueValue, this);
-      std::function<bool(void)> hasQueueValueCallback =
-          std::bind(&IceflowProducer::hasQueueValue, this);
-      std::function<std::chrono::time_point<std::chrono::steady_clock>(void)>
-          getNextPublishTimePointCallback =
-              std::bind(&IceflowProducer::getNextPublishTimePoint, this);
-      std::function<void(void)> resetLastPublishTimepointCallback =
-          std::bind(&IceflowProducer::resetLastPublishTimePoint, this);
+  void pushData(const std::vector<uint8_t> &data);
 
-      ProducerRegistrationInfo producerRegistration = {
-          popQueueValueCallback,
-          hasQueueValueCallback,
-          getNextPublishTimePointCallback,
-          resetLastPublishTimepointCallback,
-      };
+  void setPublishInterval(std::chrono::milliseconds publishInterval);
 
-      m_subscriberId = validIceflow->registerProducer(producerRegistration);
-    } else {
-      throw std::runtime_error("Iceflow instance has already expired.");
-    }
-  }
-
-  ~IceflowProducer() {
-    if (auto validIceflow = m_iceflow.lock()) {
-      validIceflow->deregisterProducer(m_subscriberId);
-    }
-  }
-
-  void pushData(const std::vector<uint8_t> &data) { m_outputQueue.push(data); }
-
-  void setPublishInterval(std::chrono::milliseconds publishInterval) {
-    if (publishInterval.count() < 0) {
-      throw std::invalid_argument("Publish interval has to be positive.");
-    }
-
-    m_publishInterval = publishInterval;
-  }
-
-  void setTopicPartitions(uint64_t numberOfPartitions) {
-    if (numberOfPartitions == 0) {
-      throw std::invalid_argument(
-          "At least one topic partition has to be defined!");
-    }
-
-    for (uint64_t i = 0; i < numberOfPartitions; ++i) {
-      m_topicPartitions.emplace_hint(m_topicPartitions.end(), i);
-    }
-  }
+  void setTopicPartitions(uint64_t numberOfPartitions);
 
 private:
-  uint32_t getNextPartitionNumber() {
-    return m_randomNumberGenerator() % m_numberOfPartitions;
-  }
+  uint32_t getNextPartitionNumber();
 
-  QueueEntry popQueueValue() {
-    auto data = m_outputQueue.waitAndPopValue();
-    uint32_t partitionNumber = getNextPartitionNumber();
-    m_lastPublishTimePoint = std::chrono::steady_clock::now();
+  QueueEntry popQueueValue();
 
-    return {
-        m_pubTopic,
-        partitionNumber,
-        data,
-    };
-  };
+  bool hasQueueValue();
 
-  bool hasQueueValue() { return !m_outputQueue.empty(); }
+  void resetLastPublishTimePoint();
 
-  void resetLastPublishTimePoint() {
-    m_lastPublishTimePoint = std::chrono::steady_clock::now();
-  }
-
-  std::chrono::time_point<std::chrono::steady_clock> getNextPublishTimePoint() {
-    return m_lastPublishTimePoint + m_publishInterval;
-  }
+  std::chrono::time_point<std::chrono::steady_clock> getNextPublishTimePoint();
 
 private:
   const std::weak_ptr<IceFlow> m_iceflow;

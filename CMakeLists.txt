@@ -21,11 +21,32 @@ project(
   DESCRIPTION "NDN-based stream processing library written in C++.")
 set(CMAKE_CXX_STANDARD 20)
 
+find_package(Boost)
+find_package(PkgConfig)
+pkg_check_modules(NDN_CXX REQUIRED libndn-cxx)
+pkg_check_modules(SVS REQUIRED libndn-svs)
+
 include(cmake/docs.cmake)
 include(cmake/format.cmake)
 include(cmake/lint.cmake)
 
-add_subdirectory(include)
+include(GNUInstallDirs)
+
+set(SOURCE_FILES src/iceflow.cpp src/consumer.cpp src/producer.cpp
+                 src/measurements.cpp)
+
+add_library(iceflow SHARED ${SOURCE_FILES})
+
+target_include_directories(iceflow PUBLIC include/iceflow)
+target_compile_options(iceflow PRIVATE -D_GNU_SOURCE -DBOOST_LOG_DYN_LINK)
+target_link_libraries(
+  iceflow
+  ${Boost_LIBRARIES}
+  -lboost_log
+  -lboost_system
+  -lpthread
+  -lndn-cxx
+  -lndn-svs)
 
 option(BUILD_APPS "Build IceFlow examples" ON)
 option(BUILD_TESTS "Build library tests" OFF)
@@ -41,8 +62,5 @@ if(BUILD_TESTS)
   enable_testing()
 endif()
 
-install(FILES cmake/iceflow-config.cmake
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/iceflow/cmake)
-
-install(EXPORT ${CMAKE_PROJECT_NAME}
-        DESTINATION ${CMAKE_INSTALL_LIBDIR}/iceflow/cmake)
+install(TARGETS iceflow DESTINATION ${CMAKE_INSTALL_LIBDIR})
+install(DIRECTORY include/iceflow DESTINATION include)
