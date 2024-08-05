@@ -21,4 +21,6 @@ file(GLOB_RECURSE ALL_SOURCES
   examples/*.[hH][hH] examples/*.[CHch]
   include/*.[chCH][pP][pP] include/*.[chCH][xX][xX] include/*.[cC][cC]
   include/*.[hH][hH] include/*.[CHch]
+  src/*.[chCH][pP][pP] src/*.[chCH][xX][xX] src/*.[cC][cC]
+  src/*.[hH][hH] src/*.[CHch]
 )
