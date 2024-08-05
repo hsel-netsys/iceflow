@@ -16,9 +16,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "ndn-cxx/util/logger.hpp"
+
 #include "measurements.hpp"
 
 namespace iceflow {
+
+NDN_LOG_INIT(iceflow.Measurement);
 
 Measurement::Measurement(const std::string &measurementId,
                          const std::string &nodeName, uint64_t saveThreshold,

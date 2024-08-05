@@ -16,9 +16,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "ndn-cxx/util/logger.hpp"
+
 #include "producer.hpp"
 
 namespace iceflow {
+
+NDN_LOG_INIT(iceflow.IceflowProducer);
 
 IceflowProducer::IceflowProducer(std::shared_ptr<IceFlow> iceflow,
                                  const std::string &pubTopic,

@@ -6,11 +6,14 @@
 #include <csignal>
 #include <iostream>
 #include <ndn-cxx/face.hpp>
+#include <ndn-cxx/util/logger.hpp>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 #include <yaml-cpp/yaml.h>
+
+NDN_LOG_INIT(iceflow.examples.lines2words);
 
 iceflow::Measurement *measurementHandler;
 

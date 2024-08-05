@@ -19,7 +19,6 @@
 #ifndef ICEFLOW_HPP
 #define ICEFLOW_HPP
 
-#include "logger.hpp"
 #include "ringbuffer.hpp"
 
 #include "ndn-svs/security-options.hpp"

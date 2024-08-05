@@ -25,8 +25,6 @@
 #include <iostream>
 #include <sstream>
 
-#include "logger.hpp"
-
 namespace iceflow {
 
 struct Entry {
