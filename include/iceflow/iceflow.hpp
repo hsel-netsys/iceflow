@@ -19,8 +19,6 @@
 #ifndef ICEFLOW_HPP
 #define ICEFLOW_HPP
 
-#include "constants.hpp"
-#include "data.hpp"
 #include "logger.hpp"
 #include "ringbuffer.hpp"
 
