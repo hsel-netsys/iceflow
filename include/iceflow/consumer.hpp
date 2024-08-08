@@ -32,8 +32,7 @@ class IceflowConsumer {
 
 public:
   IceflowConsumer(std::shared_ptr<IceFlow> iceflow, const std::string &subTopic,
-                  uint32_t numberOfPartitions, uint32_t consumerPartitionIndex,
-                  uint32_t totalNumberOfConsumers);
+                  std::vector<uint32_t> partitions);
 
   ~IceflowConsumer();
 
@@ -44,11 +43,9 @@ public:
    */
   bool hasData();
 
-  void setNumberOfPartitions(uint32_t numberOfPartitions);
+  bool repartition(std::vector<uint32_t> partitions);
 
-  void setConsumerPartitionIndex(uint32_t consumerPartitionIndex);
-
-  void setTotalNumberOfConsumers(uint32_t totalNumberOfConsumers);
+  std::vector<u_int32_t> getPartitions();
 
 private:
   void validatePartitionConfiguration(uint32_t numberOfPartitions,
@@ -73,9 +70,7 @@ private:
   const std::weak_ptr<IceFlow> m_iceflow;
   const std::string m_subTopic;
 
-  uint32_t m_numberOfPartitions;
-  uint32_t m_consumerPartitionIndex;
-  uint32_t m_totalNumberOfConsumers;
+  std::vector<uint32_t> m_partitions;
 
   std::unordered_map<uint32_t, uint32_t> m_subscriptionHandles;
 

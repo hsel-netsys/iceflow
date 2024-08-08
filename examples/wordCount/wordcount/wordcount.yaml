@@ -3,9 +3,7 @@ nodePrefix: wordcount
 
 consumer:
   topic: /lines2words/dataMain
-  totalNumberOfConsumers: 1
-  partitionIndex: 0
-  numberOfPartitions: 1
+  partitions: [1]
 
 measurements:
   saveThreshold: 100

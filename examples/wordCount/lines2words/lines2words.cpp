@@ -47,9 +47,8 @@ public:
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &subTopic, const std::string &pubTopic,
-         uint32_t numberOfConsumerPartitions,
-         uint32_t numberOfProducerPartitions, uint32_t consumerPartitionIndex,
-         uint32_t totalNumberOfConsumers,
+         uint32_t numberOfProducerPartitions,
+         std::vector<uint32_t> consumerPartitions,
          std::chrono::milliseconds publishInterval) {
   WordSplitter wordSplitter;
   ndn::Face face;
@@ -58,8 +57,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   auto producer = iceflow::IceflowProducer(
       iceflow, pubTopic, numberOfProducerPartitions, publishInterval);
   auto consumer =
-      iceflow::IceflowConsumer(iceflow, subTopic, numberOfConsumerPartitions,
-                               consumerPartitionIndex, totalNumberOfConsumers);
+      iceflow::IceflowConsumer(iceflow, subTopic, consumerPartitions);
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
@@ -101,14 +99,11 @@ int main(int argc, const char *argv[]) {
   std::string nodePrefix = config["nodePrefix"].as<std::string>();
   std::string pubTopic = producerConfig["topic"].as<std::string>();
   std::string subTopic = consumerConfig["topic"].as<std::string>();
-  auto consumerPartitionIndex = consumerConfig["partitionIndex"].as<uint32_t>();
-  auto totalNumberOfConsumers =
-      consumerConfig["totalNumberOfConsumers"].as<uint32_t>();
-  auto numberOfConsumerPartitions =
-      consumerConfig["numberOfPartitions"].as<uint32_t>();
-  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
+  auto consumerPartitions =
+      consumerConfig["partitions"].as<std::vector<uint32_t>>();
   auto numberOfProducerPartitions =
       producerConfig["numberOfPartitions"].as<uint32_t>();
+  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
   uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);
@@ -116,9 +111,8 @@ int main(int argc, const char *argv[]) {
                                                 saveThreshold, "A");
 
   try {
-    run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfConsumerPartitions,
-        numberOfProducerPartitions, consumerPartitionIndex,
-        totalNumberOfConsumers, std::chrono::milliseconds(publishInterval));
+    run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfProducerPartitions,
+        consumerPartitions, std::chrono::milliseconds(publishInterval));
   }
 
   catch (const std::exception &e) {
