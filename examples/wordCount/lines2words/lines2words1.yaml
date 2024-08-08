@@ -4,9 +4,7 @@ nodePrefix: text2lines1
 consumer:
   topic: /text2lines/dataMain
   inputThreshold: 200 # TODO: This is unused at the moment
-  totalNumberOfConsumers: 2
-  partitionIndex: 0
-  numberOfPartitions: 3
+  partitions: [1, 3]
 
 producer:
   topic: /lines2words/dataMain
