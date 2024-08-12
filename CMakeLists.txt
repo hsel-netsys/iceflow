@@ -42,7 +42,7 @@ set(PROTO_IMPORT_DIRS proto/)
 
 set(SOURCE_FILES
     src/iceflow.cpp src/consumer.cpp src/producer.cpp src/measurements.cpp
-    src/node-instance-service.cpp src/scaler.cpp)
+    src/services/node-instance-service.cpp src/scaler.cpp)
 
 add_library(iceflow SHARED ${SOURCE_FILES} proto/iceflow.proto)
 
