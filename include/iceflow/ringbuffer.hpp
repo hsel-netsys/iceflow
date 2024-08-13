@@ -119,7 +119,7 @@ public:
   }
 
   /**
-   *@brief Tries to pop an item fron the queue and returns a std::shared_ptr<T>
+   *@brief Tries to pop an item from the queue and returns a std::shared_ptr<T>
    *This is a non blocking call and returns immediately with a status of
    *retrieval.
    *
@@ -140,7 +140,7 @@ public:
    *in as an argument This is a blocking call and it waits until an item is
    *available to be popped.
    *
-   *@param value An intance to which the popped item is to be copied to.
+   *@param value An instance to which the popped item is to be copied to.
    */
   void waitAndPop(T &value) {
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -187,9 +187,9 @@ public:
    *in as an argument. This is a blocking call with a timeout functionality.
    *
    *@param value An instance to which the popped item is to be copied to.
-   *@param waitDuration Wait for atmost waitDuration.
+   *@param waitDuration Wait for at most waitDuration.
    *@return returns false if the wait timedout, returns true if an item was
-   *poped and copied.
+   *popped and copied.
    */
   bool waitForAndPop(T &value, std::chrono::milliseconds waitDuration) {
     std::unique_lock<std::mutex> lock(m_mutex);
@@ -208,7 +208,7 @@ public:
    *@brief Waits and pops an item from the queue and returns a
    *std::shared_ptr<T>. This is a blocking call with a timeout functionality.
    *
-   *@param waitDuration Wait for atmost waitDuration
+   *@param waitDuration Wait for at most waitDuration
    *@return returns nullptr if it timed out, else returns a std::shared_ptr<T>
    *pointing to an instance of item popped.
    */

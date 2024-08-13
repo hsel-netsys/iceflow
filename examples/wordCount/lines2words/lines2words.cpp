@@ -31,9 +31,9 @@ public:
       auto line = receive();
       measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
                                    0);
-      std::stringstream streamedlines(line);
+      std::stringstream streamedLines(line);
       std::string word;
-      while (streamedlines >> word) {
+      while (streamedLines >> word) {
         std::cout << word << std::endl;
         push(word);
         measurementHandler->setField(std::to_string(computeCounter),
