@@ -116,18 +116,4 @@ std::chrono::time_point<std::chrono::steady_clock>
 IceflowProducer::getNextPublishTimePoint() {
   return m_lastPublishTimePoint + m_publishInterval;
 }
-
-const std::weak_ptr<IceFlow> m_iceflow;
-const std::string m_pubTopic;
-RingBuffer<std::vector<uint8_t>> m_outputQueue;
-
-uint32_t m_numberOfPartitions;
-std::unordered_set<uint32_t> m_topicPartitions;
-
-std::chrono::nanoseconds m_publishInterval;
-std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
-
-uint64_t m_subscriberId;
-
-std::mt19937 m_randomNumberGenerator;
 } // namespace iceflow
