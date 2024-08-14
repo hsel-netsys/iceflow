@@ -24,14 +24,15 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.IceflowProducer);
 
-IceflowProducer::IceflowProducer(std::shared_ptr<IceFlow> iceflow,
-                                 const std::string &pubTopic,
-                                 uint32_t numberOfPartitions,
-                                 std::chrono::milliseconds publishInterval)
+IceflowProducer::IceflowProducer(
+    std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
+    uint32_t numberOfPartitions, std::chrono::milliseconds publishInterval,
+    std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_iceflow(iceflow), m_numberOfPartitions(numberOfPartitions),
       m_pubTopic(pubTopic),
       m_lastPublishTimePoint(std::chrono::steady_clock::now()),
-      m_randomNumberGenerator(std::mt19937(time(nullptr))) {
+      m_randomNumberGenerator(std::mt19937(time(nullptr))),
+      m_congestionReporter(congestionReporter) {
 
   setTopicPartitions(numberOfPartitions);
   setPublishInterval(publishInterval);
@@ -59,6 +60,20 @@ IceflowProducer::IceflowProducer(std::shared_ptr<IceFlow> iceflow,
     throw std::runtime_error("Iceflow instance has already expired.");
   }
 }
+
+IceflowProducer::IceflowProducer(std::shared_ptr<IceFlow> iceflow,
+                                 const std::string &pubTopic,
+                                 uint32_t numberOfPartitions,
+                                 std::chrono::milliseconds publishInterval)
+    : IceflowProducer(iceflow, pubTopic, numberOfPartitions, publishInterval,
+                      std::nullopt){};
+
+IceflowProducer::IceflowProducer(
+    std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
+    uint32_t numberOfPartitions, std::chrono::milliseconds publishInterval,
+    std::shared_ptr<CongestionReporter> congestionReporter)
+    : IceflowProducer(iceflow, pubTopic, numberOfPartitions, publishInterval,
+                      std::optional(congestionReporter)){};
 
 IceflowProducer::~IceflowProducer() {
   if (auto validIceflow = m_iceflow.lock()) {
@@ -92,6 +107,20 @@ void IceflowProducer::setTopicPartitions(uint64_t numberOfPartitions) {
 
 uint32_t IceflowProducer::getNextPartitionNumber() {
   return m_randomNumberGenerator() % m_numberOfPartitions;
+}
+
+// TODO: Determine where to use this method.
+void IceflowProducer::reportCongestion(CongestionReason congestionReason,
+                                       const std::string &edgeName) {
+  if (!m_congestionReporter.has_value()) {
+    NDN_LOG_WARN(
+        "Detected a congestion, but no congestion reporter is defined.");
+    return;
+  }
+
+  auto congestionReporter = m_congestionReporter.value();
+
+  congestionReporter->reportCongestion(congestionReason, edgeName);
 }
 
 QueueEntry IceflowProducer::popQueueValue() {

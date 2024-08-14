@@ -49,6 +49,11 @@ public:
                   uint32_t numberOfPartitions,
                   std::chrono::milliseconds publishInterval);
 
+  IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
+                  uint32_t numberOfPartitions,
+                  std::chrono::milliseconds publishInterval,
+                  std::shared_ptr<CongestionReporter> congestionReporter);
+
   ~IceflowProducer();
 
   void pushData(const std::vector<uint8_t> &data);
@@ -58,6 +63,11 @@ public:
   void setTopicPartitions(uint64_t numberOfPartitions);
 
 private:
+  IceflowProducer(
+      std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
+      uint32_t numberOfPartitions, std::chrono::milliseconds publishInterval,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
+
   uint32_t getNextPartitionNumber();
 
   QueueEntry popQueueValue();
@@ -67,6 +77,9 @@ private:
   void resetLastPublishTimePoint();
 
   std::chrono::time_point<std::chrono::steady_clock> getNextPublishTimePoint();
+
+  void reportCongestion(CongestionReason congestionReason,
+                        const std::string &edgeName);
 
 private:
   const std::weak_ptr<IceFlow> m_iceflow;
@@ -82,6 +95,8 @@ private:
   uint64_t m_subscriberId;
 
   std::mt19937 m_randomNumberGenerator;
+
+  std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
 };
 } // namespace iceflow
 
