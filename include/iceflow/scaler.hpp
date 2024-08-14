@@ -29,10 +29,10 @@ public:
                 const std::string &serverAddress,
                 const std::string &clientAddress);
 
-  ~IceflowScaler() override;
+  ~IceflowScaler();
 
   void reportCongestion(CongestionReason congestionReason,
-                        const std::string &edgeName) override;
+                        const std::string &edgeName);
 
 private:
   void runGrpcServer(const std::string &address);

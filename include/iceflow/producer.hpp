@@ -24,9 +24,18 @@
 
 #include <time.h>
 
+#include <iceflow.grpc.pb.h>
+
 #include "iceflow.hpp"
 
 namespace iceflow {
+
+class CongestionReporter {
+public:
+  virtual ~CongestionReporter() {}
+  virtual void reportCongestion(CongestionReason congestionReason,
+                                const std::string &edgeName) = 0;
+};
 
 /**
  * Allows for publishing data to `IceflowConsumer`s.
