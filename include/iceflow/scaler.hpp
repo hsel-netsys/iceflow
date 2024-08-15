@@ -20,25 +20,36 @@
 #define ICEFLOW_SCALER_HPP
 
 #include "iceflow.hpp"
+#include "producer.hpp"
 
 namespace iceflow {
 
-class IceflowScaler {
+class IceflowScaler : public CongestionReporter {
 public:
   IceflowScaler(std::shared_ptr<IceflowConsumer> consumer,
-                const std::string &serverAddress);
+                const std::string &serverAddress,
+                const std::string &clientAddress);
 
-  ~IceflowScaler();
+  ~IceflowScaler() override;
+
+  void reportCongestion(CongestionReason congestionReason,
+                        const std::string &edgeName) override;
 
 private:
   void runGrpcServer(const std::string &address);
+
+  void runGrpcClient(const std::string &address);
 
 private:
   std::shared_ptr<IceflowConsumer> m_consumer;
 
   const std::string &m_serverAddress;
 
+  const std::string &m_clientAddress;
+
   std::unique_ptr<grpc::Server> m_server;
+
+  std::unique_ptr<NodeExecutor::Stub> m_nodeExecutorService;
 };
 } // namespace iceflow
 

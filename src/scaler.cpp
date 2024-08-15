@@ -18,17 +18,23 @@
 
 #include "ndn-cxx/util/logger.hpp"
 
+#include "node-executor-service.hpp"
 #include "node-instance-service.hpp"
 #include "scaler.hpp"
+
+#include <grpc++/grpc++.h>
 
 namespace iceflow {
 
 NDN_LOG_INIT(iceflow.IceflowScaler);
 
 IceflowScaler::IceflowScaler(std::shared_ptr<IceflowConsumer> consumer,
-                             const std::string &serverAddress)
-    : m_consumer(consumer), m_serverAddress(serverAddress) {
+                             const std::string &serverAddress,
+                             const std::string &clientAddress)
+    : m_consumer(consumer), m_serverAddress(serverAddress),
+      m_clientAddress(clientAddress) {
   runGrpcServer(m_serverAddress);
+  runGrpcClient(m_clientAddress);
 };
 
 IceflowScaler::~IceflowScaler() {
@@ -46,4 +52,34 @@ void IceflowScaler::runGrpcServer(const std::string &address) {
   m_server = builder.BuildAndStart();
   NDN_LOG_INFO("Server listening on " << address);
 }
+
+void IceflowScaler::runGrpcClient(const std::string &address) {
+  auto channel =
+      grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
+  m_nodeExecutorService = NodeExecutor::NewStub(channel, grpc::StubOptions());
+}
+
+void IceflowScaler::reportCongestion(CongestionReason congestionReason,
+                                     const std::string &edgeName) {
+  if (!m_nodeExecutorService) {
+    NDN_LOG_WARN("NodeExecutorService instance is not available!");
+  }
+
+  CongestionReportRequest request;
+  request.set_congestion_reason(congestionReason);
+  request.set_edge_name(edgeName);
+  CongestionReportResponse response;
+  grpc::ClientContext context;
+
+  auto status =
+      m_nodeExecutorService->ReportCongestion(&context, request, &response);
+
+  if (status.ok()) {
+    NDN_LOG_INFO("Received a success reponse.");
+    return;
+  }
+
+  NDN_LOG_INFO("Received an error reponse.");
+}
+
 } // namespace iceflow

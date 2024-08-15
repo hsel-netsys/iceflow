@@ -43,3 +43,32 @@ message RepartitionResponse {
   uint32 lower_partition_bound = 2;
   uint32 upper_partition_bound = 3;
 }
+
+service NodeExecutor {
+  /// Sends a report about a congestion on an edge within the Iceflow system
+  /// to the NodeExecutor.
+  rpc ReportCongestion(CongestionReportRequest)
+      returns (CongestionReportResponse);
+}
+
+message CongestionReportRequest {
+  /// The specifier of the congested edge.
+  string edge_name = 1;
+
+  /// An identifier of the cause for the congestion.
+  CongestionReason congestion_reason = 2;
+  // TODO: Should the amount of congestion be quantified somehow?
+}
+
+message CongestionReportResponse {}
+
+/// Enumeration of reasons why a NodeInstance can become congested.
+enum CongestionReason {
+  /// The congestion is caused by insufficient network capacity, reported via
+  /// congestion marks attached to NDN messages.
+  CONGESTION_REASON_NETWORK = 0;
+
+  /// The congestion is caused by insufficient computing resources, causing the
+  /// producer's queue to fill up.
+  CONGESTION_REASON_PROCESSING = 1;
+}
