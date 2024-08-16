@@ -20,8 +20,9 @@
 #define ICEFLOW_NODE_INSTANCE_SERVICE_H
 
 #include "consumer.hpp"
-#include <iceflow.grpc.pb.h>
-#include <iceflow.pb.h>
+
+#include <iceflow/node-instance.grpc.pb.h>
+#include <iceflow/node-instance.pb.h>
 
 #include <grpc/grpc.h>
 #include <grpcpp/server_builder.h>

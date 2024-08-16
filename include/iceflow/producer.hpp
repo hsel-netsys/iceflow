@@ -24,7 +24,8 @@
 
 #include <time.h>
 
-#include <iceflow.grpc.pb.h>
+#include <iceflow/node-executor.grpc.pb.h>
+#include <iceflow/node-executor.pb.h>
 
 #include "iceflow.hpp"
 

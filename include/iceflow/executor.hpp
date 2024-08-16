@@ -21,7 +21,8 @@
 
 #include "iceflow.hpp"
 
-#include <iceflow.grpc.pb.h>
+#include <iceflow/node-executor.grpc.pb.h>
+#include <iceflow/node-instance.grpc.pb.h>
 
 #include <grpc/grpc.h>
 
