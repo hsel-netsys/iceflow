@@ -19,10 +19,8 @@
 #ifndef ICEFLOW_CONSUMER_HPP
 #define ICEFLOW_CONSUMER_HPP
 
-#include <chrono>
-#include <unordered_map>
+#include <unordered_set>
 
-#include "congestion-reporter.hpp"
 #include "iceflow.hpp"
 
 namespace iceflow {
@@ -49,8 +47,6 @@ public:
 
   std::vector<u_int32_t> getPartitions();
 
-  u_int32_t getConsumptionStats();
-
 private:
   void validatePartitionConfiguration(uint32_t numberOfPartitions,
                                       uint32_t consumerPartitionIndex,
@@ -70,11 +66,6 @@ private:
 
   void unsubscribeFromAllPartitions();
 
-  void saveTimestamp();
-
-  void cleanUpTimestamps(
-      std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
-
 private:
   const std::weak_ptr<IceFlow> m_iceflow;
   const std::string m_subTopic;
@@ -84,12 +75,6 @@ private:
   std::unordered_map<uint32_t, uint32_t> m_subscriptionHandles;
 
   RingBuffer<std::vector<uint8_t>> m_inputQueue;
-
-  std::deque<std::chrono::time_point<std::chrono::steady_clock>>
-      m_consumptionTimestamps;
-
-  // TODO: Make configurable
-  std::chrono::seconds m_maxConsumptionAge = std::chrono::seconds(1);
 };
 } // namespace iceflow
 
