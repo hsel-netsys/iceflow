@@ -34,8 +34,9 @@ service NodeInstance {
 //
 // Expects a lower and an upper partition bound for the new partition range.
 message RepartitionRequest {
-  uint32 lower_partition_bound = 1;
-  uint32 upper_partition_bound = 2;
+  string edge_name = 1;
+  uint32 lower_partition_bound = 2;
+  uint32 upper_partition_bound = 3;
 }
 
 // The response message that indicates whether repartitioning was successful.
@@ -43,9 +44,10 @@ message RepartitionRequest {
 // Will also report the current/updated lower and upper partition bounds defined
 // for the node instance.
 message RepartitionResponse {
-  bool success = 1;
-  uint32 lower_partition_bound = 2;
-  uint32 upper_partition_bound = 3;
+  string edge_name = 1;
+  bool success = 2;
+  uint32 lower_partition_bound = 3;
+  uint32 upper_partition_bound = 4;
 }
 
 // The request message for querying production and consumption stats from a node
