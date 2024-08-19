@@ -28,8 +28,7 @@ namespace iceflow {
 
 class IceflowScaler : public CongestionReporter {
 public:
-  IceflowScaler(std::shared_ptr<IceflowConsumer> consumer,
-                const std::string &serverAddress,
+  IceflowScaler(const std::string &serverAddress,
                 const std::string &clientAddress);
 
   ~IceflowScaler() override;
@@ -37,14 +36,22 @@ public:
   void reportCongestion(CongestionReason congestionReason,
                         const std::string &edgeName) override;
 
+  void registerConsumer(const std::string &edgeName,
+                        std::shared_ptr<IceflowConsumer> consumer);
+
+  void deregisterConsumer(const std::string &edgeName);
+
+  void registerProducer(const std::string &edgeName,
+                        std::shared_ptr<IceflowProducer> producer);
+
+  void deregisterProducer(const std::string &edgeName);
+
 private:
   void runGrpcServer(const std::string &address);
 
   void runGrpcClient(const std::string &address);
 
 private:
-  std::shared_ptr<IceflowConsumer> m_consumer;
-
   const std::string &m_serverAddress;
 
   const std::string &m_clientAddress;
@@ -52,6 +59,12 @@ private:
   std::unique_ptr<grpc::Server> m_server;
 
   std::unique_ptr<NodeExecutor::Stub> m_nodeExecutorService;
+
+  std::unordered_map<std::string, std::shared_ptr<IceflowConsumer>>
+      m_consumerMap;
+
+  std::unordered_map<std::string, std::shared_ptr<IceflowProducer>>
+      m_producerMap;
 };
 } // namespace iceflow
 
