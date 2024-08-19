@@ -16,6 +16,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <ranges>
+
 #include "ndn-cxx/util/logger.hpp"
 
 #include "consumer.hpp"
@@ -35,7 +37,36 @@ IceflowConsumer::IceflowConsumer(std::shared_ptr<IceFlow> iceflow,
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
 
 std::vector<uint8_t> IceflowConsumer::receiveData() {
-  return m_inputQueue.waitAndPopValue();
+  auto value = m_inputQueue.waitAndPopValue();
+
+  // TODO: Discuss if this should be put elsewhere
+  saveTimestamp();
+
+  return value;
+}
+
+void IceflowConsumer::saveTimestamp() {
+  auto timestamp = std::chrono::steady_clock::now();
+
+  m_consumptionTimestamps.push_back(timestamp);
+
+  cleanUpTimestamps(timestamp);
+}
+
+void IceflowConsumer::cleanUpTimestamps(
+    std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint) {
+
+  while (!m_consumptionTimestamps.empty()) {
+    auto firstValue = m_consumptionTimestamps.front();
+
+    auto timePassed = firstValue - referenceTimepoint;
+
+    if (timePassed <= m_maxConsumptionAge) {
+      break;
+    }
+
+    m_consumptionTimestamps.pop_front();
+  }
 }
 
 /**
@@ -81,6 +112,14 @@ bool IceflowConsumer::repartition(std::vector<uint32_t> partitions) {
   }
 
   return true;
+}
+
+uint32_t IceflowConsumer::getConsumptionStats() {
+  auto referenceTimestamp = std::chrono::steady_clock::now();
+
+  cleanUpTimestamps(referenceTimestamp);
+
+  return m_consumptionTimestamps.size();
 }
 
 uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
