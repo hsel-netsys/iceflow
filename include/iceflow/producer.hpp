@@ -57,6 +57,8 @@ public:
 
   void setTopicPartitions(uint64_t numberOfPartitions);
 
+  uint32_t getProductionStats();
+
 private:
   IceflowProducer(
       std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
@@ -76,6 +78,11 @@ private:
   void reportCongestion(CongestionReason congestionReason,
                         const std::string &edgeName);
 
+  void saveTimestamp(std::chrono::steady_clock::time_point timestamp);
+
+  void cleanUpTimestamps(
+      std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
+
 private:
   const std::weak_ptr<IceFlow> m_iceflow;
   const std::string m_pubTopic;
@@ -92,6 +99,12 @@ private:
   std::mt19937 m_randomNumberGenerator;
 
   std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
+
+  std::deque<std::chrono::time_point<std::chrono::steady_clock>>
+      m_productionTimestamps;
+
+  // TODO: Make configurable
+  std::chrono::seconds m_maxProductionTimestampAge = std::chrono::seconds(1);
 };
 } // namespace iceflow
 
