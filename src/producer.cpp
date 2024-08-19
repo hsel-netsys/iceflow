@@ -85,29 +85,6 @@ void IceflowProducer::pushData(const std::vector<uint8_t> &data) {
   m_outputQueue.push(data);
 }
 
-void IceflowProducer::saveTimestamp(
-    std::chrono::steady_clock::time_point timestamp) {
-  m_productionTimestamps.push_back(timestamp);
-
-  cleanUpTimestamps(timestamp);
-}
-
-void IceflowProducer::cleanUpTimestamps(
-    std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint) {
-
-  while (!m_productionTimestamps.empty()) {
-    auto firstValue = m_productionTimestamps.front();
-
-    auto timePassed = firstValue - referenceTimepoint;
-
-    if (timePassed <= m_maxProductionTimestampAge) {
-      break;
-    }
-
-    m_productionTimestamps.pop_front();
-  }
-}
-
 void IceflowProducer::setPublishInterval(
     std::chrono::milliseconds publishInterval) {
   if (publishInterval.count() < 0) {
@@ -126,14 +103,6 @@ void IceflowProducer::setTopicPartitions(uint64_t numberOfPartitions) {
   for (uint64_t i = 0; i < numberOfPartitions; ++i) {
     m_topicPartitions.emplace_hint(m_topicPartitions.end(), i);
   }
-}
-
-uint32_t IceflowProducer::getProductionStats() {
-  auto referenceTimestamp = std::chrono::steady_clock::now();
-
-  cleanUpTimestamps(referenceTimestamp);
-
-  return m_productionTimestamps.size();
 }
 
 uint32_t IceflowProducer::getNextPartitionNumber() {
@@ -158,8 +127,6 @@ QueueEntry IceflowProducer::popQueueValue() {
   auto data = m_outputQueue.waitAndPopValue();
   uint32_t partitionNumber = getNextPartitionNumber();
   m_lastPublishTimePoint = std::chrono::steady_clock::now();
-
-  saveTimestamp(m_lastPublishTimePoint);
 
   return {
       m_pubTopic,
