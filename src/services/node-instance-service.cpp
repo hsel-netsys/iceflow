@@ -16,9 +16,13 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "ndn-cxx/util/logger.hpp"
+
 #include "node-instance-service.hpp"
 
 namespace iceflow {
+
+NDN_LOG_INIT(iceflow.services.NodeInstanceService);
 
 NodeInstanceService::NodeInstanceService(
     std::unordered_map<std::string, std::shared_ptr<IceflowConsumer>>
@@ -42,9 +46,9 @@ grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
   auto lowerPartitionBound = request->lower_partition_bound();
   auto upperPartitionBound = request->upper_partition_bound();
 
-  std::cout << "Server: Repartition for NodeInstance with new partition range: "
-            << lowerPartitionBound << "--" << upperPartitionBound << "."
-            << std::endl;
+  NDN_LOG_INFO("Server: Repartition for edge "
+               << edgeName << " of NodeInstance with new partition range : "
+               << lowerPartitionBound << "--" << upperPartitionBound << ".");
 
   auto partitions =
       std::vector<uint32_t>(lowerPartitionBound, upperPartitionBound);
