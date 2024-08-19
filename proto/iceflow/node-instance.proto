@@ -24,6 +24,10 @@ package iceflow;
 service NodeInstance {
   // Performs the repartition of a node instance.
   rpc Repartition(RepartitionRequest) returns (RepartitionResponse) {}
+
+  // Retrieves production and consumption stats from the node instance.
+  rpc QueryStats(StatsRequest)
+      returns (StatsResponse) {}
 }
 
 // The request message for repartitioning a node instance.
@@ -42,4 +46,23 @@ message RepartitionResponse {
   bool success = 1;
   uint32 lower_partition_bound = 2;
   uint32 upper_partition_bound = 3;
+}
+
+// The request message for querying production and consumption stats from a node
+// instance.
+message StatsRequest {}
+
+// The response message indicating production and consumption stats for a all
+// incoming and outgoing edges of a node instance.
+message StatsResponse {
+  message ProductionStats {
+    string edge_name = 1;
+    uint32 units_produced = 2;
+  }
+  message ConsumptionStats {
+    string edge_name = 1;
+    uint32 units_consumed = 2;
+  }
+  repeated ProductionStats production_stats = 1;
+  repeated ConsumptionStats consumption_stats = 2;
 }
