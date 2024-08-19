@@ -27,16 +27,10 @@
 #include <iceflow/node-executor.grpc.pb.h>
 #include <iceflow/node-executor.pb.h>
 
+#include "congestion-reporter.hpp"
 #include "iceflow.hpp"
 
 namespace iceflow {
-
-class CongestionReporter {
-public:
-  virtual ~CongestionReporter() {}
-  virtual void reportCongestion(CongestionReason congestionReason,
-                                const std::string &edgeName) = 0;
-};
 
 /**
  * Allows for publishing data to `IceflowConsumer`s.

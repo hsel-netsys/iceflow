@@ -21,6 +21,7 @@
 
 #include <unordered_set>
 
+#include "congestion-reporter.hpp"
 #include "iceflow.hpp"
 
 namespace iceflow {

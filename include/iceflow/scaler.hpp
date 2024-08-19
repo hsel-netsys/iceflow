@@ -19,6 +19,8 @@
 #ifndef ICEFLOW_SCALER_HPP
 #define ICEFLOW_SCALER_HPP
 
+#include "congestion-reporter.hpp"
+
 #include "iceflow.hpp"
 #include "producer.hpp"
 
