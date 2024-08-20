@@ -43,12 +43,12 @@ struct Node {
 };
 
 // Class  for parsing the DAG application
-class DAGApplication {
+class DAGParser {
 public:
   std::string applicationName;
   std::vector<Node> nodes;
 
-  static DAGApplication parseFromFile(const std::string &filename);
+  static DAGParser parseFromFile(const std::string &filename);
 };
 
 #endif // DAGPARSER_HPP
