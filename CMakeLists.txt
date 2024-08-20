@@ -43,7 +43,6 @@ set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
 file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
 set(PROTO_IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}/proto")
 
-#TODO: make it auto CPP detectable
 set(SOURCE_FILES
     src/iceflow.cpp
     src/consumer.cpp
