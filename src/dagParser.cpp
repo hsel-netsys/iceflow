@@ -6,7 +6,7 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.DAGParser);
 
-DAGParser DAGParser::parseFromFile(const std::string &filename) {
+DAGParser parseFromFile(const std::string &filename) {
   DAGParser app;
   std::ifstream file(filename);
   if (!file.is_open()) {
@@ -87,5 +87,5 @@ int printNodeDetails() {
       std::cout << std::endl;
     }
   }
-
+}
 } // namespace iceflow
