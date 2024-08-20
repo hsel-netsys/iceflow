@@ -11,6 +11,8 @@
 
 using json = nlohmann::json;
 
+namespace iceflow {
+
 // Structs for resources, container, scaling parameters, and communication task
 struct Resources {
   uint32_t cpu;
@@ -49,6 +51,9 @@ public:
   std::vector<Node> nodes;
 
   static DAGParser parseFromFile(const std::string &filename);
+  void printNodeDetails();
 };
+
+} // namespace iceflow
 
 #endif // DAGPARSER_HPP
