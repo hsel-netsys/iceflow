@@ -102,3 +102,8 @@ target_include_directories(
 
 install(TARGETS iceflow DESTINATION ${CMAKE_INSTALL_LIBDIR})
 install(DIRECTORY include/iceflow DESTINATION include)
+install(
+  DIRECTORY build/generated/iceflow
+  DESTINATION include
+  FILES_MATCHING
+  PATTERN "*.h")
