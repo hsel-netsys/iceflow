@@ -24,8 +24,8 @@
 #include "consumer.hpp"
 #include "producer.hpp"
 
-#include <iceflow/node-instance.grpc.pb.h>
-#include <iceflow/node-instance.pb.h>
+#include <node-instance.grpc.pb.h>
+#include <node-instance.pb.h>
 
 #include <grpc/grpc.h>
 #include <grpcpp/server_builder.h>
