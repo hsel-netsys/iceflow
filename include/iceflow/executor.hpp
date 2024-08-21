@@ -28,6 +28,11 @@
 
 namespace iceflow {
 
+struct EdgeStats {
+  std::optional<uint64_t> produced;
+  std::optional<uint64_t> consumed;
+};
+
 class ExternalExecutor {
 public:
   virtual ~ExternalExecutor() {}
@@ -47,6 +52,8 @@ public:
                                const std::string &edgeName);
 
   void repartition(uint32_t lowerPartitionBound, uint32_t upperPartitionBound);
+
+  std::unordered_map<std::string, EdgeStats> queryEdgeStats();
 
 private:
   void runGrpcServer(const std::string &address);

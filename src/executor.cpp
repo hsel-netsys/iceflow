@@ -90,4 +90,44 @@ void IceflowExecutor::receiveCongestionReport(CongestionReason congestionReason,
   m_externalExecutor->receiveCongestionReport(congestionReason, edge_name);
 }
 
+std::unordered_map<std::string, EdgeStats> IceflowExecutor::queryEdgeStats() {
+  StatsRequest request;
+  grpc::ClientContext context;
+  StatsResponse response;
+
+  auto status = m_nodeInstanceService->QueryStats(&context, request, &response);
+
+  if (!status.ok()) {
+    NDN_LOG_ERROR("Querying stats failed!");
+    throw std::runtime_error("Failed to query stats from NodeInstance.");
+  }
+
+  auto result = std::unordered_map<std::string, EdgeStats>();
+
+  auto productionStats = response.production_stats();
+  auto consumptionStats = response.consumption_stats();
+
+  for (auto productionStat : productionStats) {
+    auto edgeName = productionStat.edge_name();
+    auto unitsProduced = productionStat.units_produced();
+
+    auto edgeStats = EdgeStats{std::optional(unitsProduced), std::nullopt};
+    result[edgeName] = edgeStats;
+  }
+
+  for (auto consumptionStat : consumptionStats) {
+    auto edgeName = consumptionStat.edge_name();
+    auto unitsConsumed = consumptionStat.units_consumed();
+
+    if (result.contains(edgeName)) {
+      result[edgeName].consumed = unitsConsumed;
+    } else {
+      auto edgeStats = EdgeStats{std::nullopt, std::optional(unitsConsumed)};
+      result[edgeName] = edgeStats;
+    }
+  }
+
+  return result;
+}
+
 } // namespace iceflow
