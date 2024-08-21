@@ -6,8 +6,13 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.DAGParser);
 
+DAGParser::DAGParser(const std::string &appName,
+                     const std::vector<Node> &nodeList)
+    : applicationName(appName), nodes(nodeList) {
+  printNodeDetails();
+}
+
 DAGParser DAGParser::parseFromFile(const std::string &filename) {
-  DAGParser app;
   std::ifstream file(filename);
   if (!file.is_open()) {
     throw std::runtime_error("File can not be opened " + filename);
@@ -17,9 +22,10 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
   file >> dagParam;
 
   // Parsing the application name
-  app.applicationName = dagParam.at("applicationName").get<std::string>();
+  std::string appName = dagParam.at("applicationName").get<std::string>();
 
   // Parsing the node parameters
+  std::vector<Node> nodeList;
   for (const auto &nodeJson : dagParam.at("nodes")) {
     Node nodeInstance;
 
@@ -54,17 +60,16 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
           nodeJson.at("downstream").get<std::vector<std::string>>();
     }
 
-    app.nodes.push_back(nodeInstance);
+    nodeList.push_back(nodeInstance);
   }
 
-  return app;
+  return DAGParser(appName, nodeList);
 }
 
 void DAGParser::printNodeDetails() {
-  DAGParser app = DAGParser::parseFromFile("application-DAG.json");
   std::cout << "Application Name: " << app.applicationName << std::endl;
 
-  for (const auto &node : app.nodes) {
+  for (const auto &node : nodes) {
     std::cout << "Task: " << node.task << ", Name: " << node.name << std::endl;
     std::cout << "  Description: " << node.description << std::endl;
     std::cout << "  Executor: " << node.executor << std::endl;

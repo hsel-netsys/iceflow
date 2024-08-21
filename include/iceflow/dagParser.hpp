@@ -47,11 +47,16 @@ struct Node {
 // Class  for parsing the DAG application
 class DAGParser {
 public:
-  std::string applicationName;
-  std::vector<Node> nodes;
+  DAGParser(const std::string &appName, const std::vector<Node> &nodes);
+
+  ~DAGParser();
 
   static DAGParser parseFromFile(const std::string &filename);
   void printNodeDetails();
+
+private:
+  std::string applicationName;
+  std::vector<Node> nodes;
 };
 
 } // namespace iceflow
