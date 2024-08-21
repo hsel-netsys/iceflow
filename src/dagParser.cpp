@@ -67,7 +67,7 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
 }
 
 void DAGParser::printNodeDetails() {
-  std::cout << "Application Name: " << app.applicationName << std::endl;
+  std::cout << "Application Name: " << applicationName << std::endl;
 
   for (const auto &node : nodes) {
     std::cout << "Task: " << node.task << ", Name: " << node.name << std::endl;
