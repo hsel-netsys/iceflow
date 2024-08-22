@@ -19,7 +19,7 @@
 #ifndef ICEFLOW_CONGESTION_REPORTER_HPP
 #define ICEFLOW_CONGESTION_REPORTER_HPP
 
-#include <node-executor.pb.h>
+#include <iceflow/node-executor.pb.h>
 
 namespace iceflow {
 
