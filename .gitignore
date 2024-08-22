@@ -88,6 +88,7 @@ Makefile
 install_manifest.txt
 iceflow-config-version.cmake
 pkg/iceflow-config.cmake
+generated/
 
 # VS Code files
 .vscode
