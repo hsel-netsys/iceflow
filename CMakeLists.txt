@@ -71,16 +71,7 @@ target_link_libraries(
 option(BUILD_APPS "Build IceFlow examples" ON)
 option(BUILD_TESTS "Build library tests" OFF)
 
-if(BUILD_APPS)
-  message(STATUS "Building IceFlow examples...")
-  add_subdirectory(examples)
-endif()
 
-if(BUILD_TESTS)
-  message(STATUS "Building tests...")
-  add_subdirectory(tests)
-  enable_testing()
-endif()
 
 protobuf_generate(TARGET iceflow IMPORT_DIRS ${PROTO_IMPORT_DIRS}
                   PROTOC_OUT_DIR ${PROTO_BINARY_DIR})
@@ -110,3 +101,13 @@ install(
   DESTINATION include
   FILES_MATCHING
   PATTERN "*.h")
+if(BUILD_APPS)
+  message(STATUS "Building IceFlow examples...")
+  add_subdirectory(examples)
+endif()
+
+if(BUILD_TESTS)
+  message(STATUS "Building tests...")
+  add_subdirectory(tests)
+  enable_testing()
+endif()
