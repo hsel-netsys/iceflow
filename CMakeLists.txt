@@ -16,6 +16,7 @@
 
 cmake_minimum_required(VERSION 3.18)
 set(version 0.1.0)
+set(so_version 0)
 
 project(
   IceFlow
