@@ -55,6 +55,8 @@ set(SOURCE_FILES
 
 add_library(iceflow SHARED ${SOURCE_FILES} proto/node-executor.proto
                            proto/node-instance.proto)
+set_target_properties(iceflow PROPERTIES VERSION ${version} SOVERSION
+                                                            ${so_version})
 
 target_compile_options(iceflow PRIVATE -D_GNU_SOURCE -DBOOST_LOG_DYN_LINK)
 target_link_libraries(
