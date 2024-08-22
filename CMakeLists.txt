@@ -50,8 +50,8 @@ set(SOURCE_FILES
     src/scaler.cpp
     src/executor.cpp)
 
-add_library(iceflow SHARED ${SOURCE_FILES} proto/iceflow/node-executor.proto
-                           proto/iceflow/node-instance.proto)
+add_library(iceflow SHARED ${SOURCE_FILES} proto/node-executor.proto
+                           proto/node-instance.proto)
 
 target_compile_options(iceflow PRIVATE -D_GNU_SOURCE -DBOOST_LOG_DYN_LINK)
 target_link_libraries(

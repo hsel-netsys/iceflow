@@ -24,8 +24,8 @@
 
 #include <time.h>
 
-#include <iceflow/node-executor.grpc.pb.h>
-#include <iceflow/node-executor.pb.h>
+#include <node-executor.grpc.pb.h>
+#include <node-executor.pb.h>
 
 #include "congestion-reporter.hpp"
 #include "iceflow.hpp"
