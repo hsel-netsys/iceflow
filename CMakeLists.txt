@@ -71,7 +71,15 @@ target_link_libraries(
 option(BUILD_APPS "Build IceFlow examples" ON)
 option(BUILD_TESTS "Build library tests" OFF)
 
+configure_file(${IceFlow_SOURCE_DIR}/pkg/iceflow-config.cmake.in
+               ${IceFlow_BINARY_DIR}/pkg/iceflow-config.cmake @ONLY)
 
+configure_file(${IceFlow_SOURCE_DIR}/iceflow-config-version.cmake.in
+               ${IceFlow_BINARY_DIR}/iceflow-config-version.cmake @ONLY)
+
+install(FILES ${IceFlow_BINARY_DIR}/pkg/iceflow-config.cmake
+              ${IceFlow_BINARY_DIR}/iceflow-config-version.cmake
+        DESTINATION lib/iceflow-${version})
 
 protobuf_generate(TARGET iceflow IMPORT_DIRS ${PROTO_IMPORT_DIRS}
                   PROTOC_OUT_DIR ${PROTO_BINARY_DIR})
