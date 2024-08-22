@@ -94,13 +94,26 @@ protobuf_generate(
 target_include_directories(
   iceflow PUBLIC include/iceflow "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
 
-install(TARGETS iceflow DESTINATION ${CMAKE_INSTALL_LIBDIR})
-install(DIRECTORY include/iceflow DESTINATION include)
+install(TARGETS iceflow DESTINATION lib/iceflow-${version})
 install(
-  DIRECTORY build/generated/iceflow
-  DESTINATION include
-  FILES_MATCHING
-  PATTERN "*.h")
+  FILES ${CMAKE_CURRENT_BINARY_DIR}/build/generated/node-executor.grpc.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/build/generated/node-executor.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/build/generated/node-instance.grpc.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/build/generated/node-instance.pb.h
+  DESTINATION include/iceflow-${version})
+install(
+  FILES include/iceflow/congestion-reporter.hpp
+        include/iceflow/consumer.hpp
+        include/iceflow/executor.hpp
+        include/iceflow/iceflow.hpp
+        include/iceflow/measurements.hpp
+        include/iceflow/node-executor-service.hpp
+        include/iceflow/node-instance-service.hpp
+        include/iceflow/producer.hpp
+        include/iceflow/ringbuffer.hpp
+        include/iceflow/scaler.hpp
+  DESTINATION include/iceflow-${version})
+
 if(BUILD_APPS)
   message(STATUS "Building IceFlow examples...")
   add_subdirectory(examples)
