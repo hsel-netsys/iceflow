@@ -33,18 +33,12 @@ struct EdgeStats {
   std::optional<uint64_t> consumed;
 };
 
-class ExternalExecutor {
-public:
-  virtual ~ExternalExecutor() {}
-  virtual void receiveCongestionReport(CongestionReason congestionReason,
-                                       const std::string &edgeName) = 0;
-};
-
 class IceflowExecutor : public std::enable_shared_from_this<IceflowExecutor> {
 public:
   IceflowExecutor(const std::string &serverAddress,
                   const std::string &clientAddress,
-                  std::shared_ptr<ExternalExecutor> externalExecutor);
+                  std::function<void(CongestionReason, const std::string &)>
+                      congestionReportCallback);
 
   ~IceflowExecutor();
 
@@ -69,7 +63,8 @@ private:
 
   std::unique_ptr<NodeInstance::Stub> m_nodeInstanceService;
 
-  std::shared_ptr<ExternalExecutor> m_externalExecutor;
+  std::function<void(CongestionReason, const std::string &)>
+      m_congestionReportCallback;
 };
 } // namespace iceflow
 
