@@ -30,9 +30,10 @@ NDN_LOG_INIT(iceflow.IceflowExecutor);
 
 IceflowExecutor::IceflowExecutor(
     const std::string &serverAddress, const std::string &clientAddress,
-    std::shared_ptr<ExternalExecutor> externalExecutor)
+    std::function<void(CongestionReason, const std::string &)>
+        congestionReportCallback)
     : m_serverAddress(serverAddress), m_clientAddress(clientAddress),
-      m_externalExecutor(externalExecutor) {
+      m_congestionReportCallback(congestionReportCallback) {
   runGrpcServer(m_serverAddress);
   runGrpcClient(m_clientAddress);
 };
@@ -87,7 +88,7 @@ void IceflowExecutor::repartition(uint32_t lowerPartitionBound,
 
 void IceflowExecutor::receiveCongestionReport(CongestionReason congestionReason,
                                               const std::string &edge_name) {
-  m_externalExecutor->receiveCongestionReport(congestionReason, edge_name);
+  m_congestionReportCallback(congestionReason, edge_name);
 }
 
 std::unordered_map<std::string, EdgeStats> IceflowExecutor::queryEdgeStats() {
