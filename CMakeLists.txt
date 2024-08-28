@@ -66,6 +66,12 @@ target_include_directories(proto-objects
 protobuf_generate(TARGET proto-objects IMPORT_DIRS ${PROTO_IMPORT_DIRS}
                   PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
 
+if(CMAKE_CROSSCOMPILING)
+    set(_gRPC_CPP_PLUGIN "protoc-gen-grpc=${gRPC_CPP_PLUGIN_EXECUTABLE}")
+else()
+    set(_gRPC_CPP_PLUGIN "protoc-gen-grpc=\$<TARGET_FILE:gRPC::grpc_cpp_plugin>")
+endif()
+
 protobuf_generate(
   TARGET
   proto-objects
@@ -75,7 +81,7 @@ protobuf_generate(
   .grpc.pb.h
   .grpc.pb.cc
   PLUGIN
-  "protoc-gen-grpc=\$<TARGET_FILE:gRPC::grpc_cpp_plugin>"
+  ${_gRPC_CPP_PLUGIN}
   IMPORT_DIRS
   ${PROTO_IMPORT_DIRS}
   PROTOC_OUT_DIR
