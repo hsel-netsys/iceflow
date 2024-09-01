@@ -9,7 +9,6 @@ NDN_LOG_INIT(iceflow.DAGParser);
 DAGParser::DAGParser(const std::string &appName,
                      const std::vector<Node> &nodeList)
     : applicationName(appName), nodes(nodeList) {
-  printNodeDetails();
 }
 
 DAGParser DAGParser::parseFromFile(const std::string &filename) {
@@ -56,8 +55,16 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
 
     // Optional downstream nodes
     if (nodeJson.contains("downstream")) {
-      nodeInstance.downstream =
-          nodeJson.at("downstream").get<std::vector<std::string>>();
+      std::vector<Edge> edges;
+      for (const auto &edgeJson : nodeJson.at("downstream")) {
+        Edge edgeInstance;
+        edgeInstance.id = edgeJson.at("id").get<std::string>();
+        edgeInstance.target = edgeJson.at("target").get<std::string>();
+        edgeInstance.max_partitions =
+            edgeJson.at("max_partitions").get<uint32_t>();
+        edges.push_back(edgeInstance);
+      }
+      nodeInstance.downstream = edges;
     }
 
     nodeList.push_back(nodeInstance);
@@ -85,12 +92,54 @@ void DAGParser::printNodeDetails() {
     }
 
     if (node.downstream.has_value()) {
-      std::cout << "  Downstream: ";
-      for (const auto &downstreamNode : node.downstream.value()) {
-        std::cout << downstreamNode << " ";
+      std::cout << "  Downstream: " << std::endl;
+      for (const auto &edge : node.downstream.value()) {
+        std::cout << "    Edge ID: " << edge.id << ", Target: " << edge.target
+                  << ", Max Partitions: " << edge.max_partitions << std::endl;
       }
-      std::cout << std::endl;
     }
   }
 }
+
+const std::vector<Node> &DAGParser::getNodes() { return nodes; }
+
+const Node &DAGParser::findNodeByName(const std::string &nodeName) {
+  for (const auto &node : nodes) {
+    if (node.name == nodeName) {
+      return node;
+    }
+  }
+  throw std::runtime_error("Node with name '" + nodeName + "' not found");
+}
+
+const Edge &DAGParser::findEdgeByName(const std::string &edgeId) {
+  for (const auto &node : nodes) {
+    if (node.downstream.has_value()) {
+      for (const auto &edge : node.downstream.value()) {
+        if (edge.id == edgeId) {
+          return edge;
+        }
+      }
+    }
+  }
+  throw std::runtime_error("Edge with ID '" + edgeId + "' not found");
+}
+
+std::vector<std::pair<const Node &, const Edge &>>
+DAGParser::findUpstreamEdges(const std::string &node_name) {
+  std::vector<std::pair<const Node &, const Edge &>> upstreamEdges;
+
+  for (const auto &node : nodes) {
+    if (node.downstream.has_value()) {
+      for (const auto &edge : node.downstream.value()) {
+        if (edge.target == node_name) {
+          upstreamEdges.emplace_back(node, edge);
+        }
+      }
+    }
+  }
+
+  return upstreamEdges;
+}
+
 } // namespace iceflow

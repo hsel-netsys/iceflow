@@ -32,6 +32,12 @@ struct CommunicationTask {
   std::optional<uint32_t> payloadSize;
 };
 
+struct Edge {
+  std::string id;
+  std::string target;
+  uint32_t max_partitions;
+};
+
 // Paramters of a node in the DAG
 struct Node {
   std::string task;
@@ -41,7 +47,7 @@ struct Node {
   Container container;
   ScalingParameters scalingParameters;
   CommunicationTask communicationTask;
-  std::optional<std::vector<std::string>> downstream;
+  std::optional<std::vector<Edge>> downstream;
 };
 
 // Class  for parsing the DAG application
@@ -53,6 +59,15 @@ public:
 
   static DAGParser parseFromFile(const std::string &filename);
   void printNodeDetails();
+
+  const std::vector<Node> &getNodes();
+
+  const Node &findNodeByName(const std::string &nodeName);
+
+  const Edge &findEdgeByName(const std::string &edgeId);
+
+  std::vector<std::pair<const Node &, const Edge &>>
+  findUpstreamEdges(const std::string &node_name);
 
 private:
   std::string applicationName;
