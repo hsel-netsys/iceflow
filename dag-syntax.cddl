@@ -21,5 +21,11 @@ node = {
     communicationTask: {
         ? payloadSize: uint,
     },
-    ? downstream: [ * tstr ],
+    ? downstream: [ + edge ],
+}
+	
+edge = {
+    id: tstr,
+    target: tstr,
+    max_partitions: uint,
 }
