@@ -70,7 +70,9 @@ struct Node {
   std::optional<std::vector<Edge>> downstream;
 };
 
-// Class  for parsing the DAG application
+/**
+ * Class for parsing the application DAG.
+ */
 class DAGParser {
 public:
   DAGParser(const std::string &appName, const std::vector<Node> &nodes);
