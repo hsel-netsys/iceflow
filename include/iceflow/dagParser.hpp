@@ -80,7 +80,6 @@ public:
   ~DAGParser();
 
   static DAGParser parseFromFile(const std::string &filename);
-  void printNodeDetails();
 
   const std::vector<Node> &getNodes();
 

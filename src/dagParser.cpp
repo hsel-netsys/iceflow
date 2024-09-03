@@ -90,34 +90,6 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
   return DAGParser(appName, nodeList);
 }
 
-void DAGParser::printNodeDetails() {
-  std::cout << "Application Name: " << applicationName << std::endl;
-
-  for (const auto &node : nodes) {
-    std::cout << "Task: " << node.task << ", Name: " << node.name << std::endl;
-    std::cout << "  Description: " << node.description << std::endl;
-    std::cout << "  Executor: " << node.executor << std::endl;
-    std::cout << "  Container Image: " << node.container.image << std::endl;
-    std::cout << "  Resources - CPU: " << node.container.resources.cpu
-              << ", Memory: " << node.container.resources.memory << std::endl;
-    std::cout << "  Task Complexity: " << node.scalingParameters.taskComplexity
-              << std::endl;
-
-    if (node.communicationTask.payloadSize.has_value()) {
-      std::cout << "  Payload Size: "
-                << node.communicationTask.payloadSize.value() << std::endl;
-    }
-
-    if (node.downstream.has_value()) {
-      std::cout << "  Downstream: " << std::endl;
-      for (const auto &edge : node.downstream.value()) {
-        std::cout << "    Edge ID: " << edge.id << ", Target: " << edge.target
-                  << ", Max Partitions: " << edge.max_partitions << std::endl;
-      }
-    }
-  }
-}
-
 const std::vector<Node> &DAGParser::getNodes() { return nodes; }
 
 const Node &DAGParser::findNodeByName(const std::string &nodeName) {
