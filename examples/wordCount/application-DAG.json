@@ -23,7 +23,7 @@
         {
           "id": "t2l",
           "target": "2",
-          "max_partitions": 1
+          "maxPartitions": 1
         }
       ]
     },
