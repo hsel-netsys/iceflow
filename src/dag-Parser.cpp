@@ -18,7 +18,7 @@
 
 #include "ndn-cxx/util/logger.hpp"
 
-#include "dagParser.hpp"
+#include "dag-Parser.hpp"
 
 namespace iceflow {
 
@@ -37,10 +37,10 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
   json dagParam;
   file >> dagParam;
 
-  // Parsing the application name
+
   std::string appName = dagParam.at("applicationName").get<std::string>();
 
-  // Parsing the node parameters
+
   std::vector<Node> nodeList;
   for (const auto &nodeJson : dagParam.at("nodes")) {
     Node nodeInstance;
@@ -70,7 +70,7 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
           nodeJson["communicationTask"]["payloadSize"].get<uint32_t>();
     }
 
-    // Optional downstream nodes
+    // downstream edges
     if (nodeJson.contains("downstream")) {
       std::vector<Edge> edges;
       for (const auto &edgeJson : nodeJson.at("downstream")) {
