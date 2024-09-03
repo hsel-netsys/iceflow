@@ -156,7 +156,7 @@ DAGParser::findUpstreamEdges(const std::string &node_name) {
     if (node.downstream.has_value()) {
       auto it = std::find_if(
           node.downstream->begin(), node.downstream->end(),
-          [&node_name](const Edge &edge) { return edge.target == node_name; });
+          [&nodeName](const Edge &edge) { return edge.target == nodeName; });
 
       if (it != node.downstream->end()) {
         upstreamEdges.emplace_back(node, *it);
