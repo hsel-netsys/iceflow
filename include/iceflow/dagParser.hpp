@@ -56,7 +56,9 @@ struct Edge {
   uint32_t maxPartitions;
 };
 
-// Paramters of a node in the DAG
+/**
+ * Parameters of a node in the DAG.
+ */
 struct Node {
   std::string task;
   std::string name;
