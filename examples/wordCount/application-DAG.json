@@ -49,7 +49,7 @@
         {
           "id": "l2w",
           "target": "3",
-          "max_partitions": 1
+          "maxPartitions": 1
         }
       ]
     },
