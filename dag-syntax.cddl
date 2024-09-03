@@ -27,5 +27,5 @@ node = {
 edge = {
     id: tstr,
     target: tstr,
-    max_partitions: uint,
+    maxPartitions: uint,
 }
