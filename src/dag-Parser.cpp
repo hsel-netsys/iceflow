@@ -37,9 +37,7 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
   json dagParam;
   file >> dagParam;
 
-
   std::string appName = dagParam.at("applicationName").get<std::string>();
-
 
   std::vector<Node> nodeList;
   for (const auto &nodeJson : dagParam.at("nodes")) {
