@@ -53,7 +53,7 @@ struct CommunicationTask {
 struct Edge {
   std::string id;
   std::string target;
-  uint32_t max_partitions;
+  uint32_t maxPartitions;
 };
 
 // Paramters of a node in the DAG
