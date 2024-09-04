@@ -18,7 +18,7 @@
 
 #include "ndn-cxx/util/logger.hpp"
 
-#include "dag-Parser.hpp"
+#include "dag-parser.hpp"
 
 namespace iceflow {
 
