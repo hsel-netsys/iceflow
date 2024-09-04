@@ -39,7 +39,7 @@ node = {
     },
     ? downstream: [ + edge ],
 }
-	
+
 edge = {
     id: tstr,
     target: tstr,
