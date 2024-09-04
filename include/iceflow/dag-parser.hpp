@@ -67,7 +67,7 @@ struct Node {
   Container container;
   ScalingParameters scalingParameters;
   CommunicationTask communicationTask;
-  std::optional<std::vector<Edge>> downstream;
+  std::vector<Edge> downstream;
 };
 
 /**

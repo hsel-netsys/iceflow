@@ -107,15 +107,11 @@ const Edge &DAGParser::findEdgeByName(const std::string &edgeId) {
   for (const auto &node : nodes) {
     auto downstream = node.downstream;
 
-    if (!downstream.has_value()) {
-      continue;
-    }
-
     auto it =
-        std::find_if(downstream->begin(), downstream->end(),
+        std::find_if(downstream.begin(), downstream.end(),
                      [&edgeId](const Edge &edge) { return edge.id == edgeId; });
 
-    if (it != downstream->end()) {
+    if (it != downstream.end()) {
       return *it;
     }
   }
@@ -130,15 +126,11 @@ DAGParser::findUpstreamEdges(const std::string &nodeName) {
   for (const auto &node : nodes) {
     auto downstream = node.downstream;
 
-    if (!downstream.has_value()) {
-      continue;
-    }
-
     auto it = std::find_if(
-        downstream->begin(), downstream->end(),
+        downstream.begin(), downstream.end(),
         [&nodeName](const Edge &edge) { return edge.target == nodeName; });
 
-    if (it != downstream->end()) {
+    if (it != downstream.end()) {
       upstreamEdges.emplace_back(node, *it);
     }
   }
