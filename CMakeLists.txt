@@ -52,7 +52,7 @@ set(SOURCE_FILES
     src/services/node-executor-service.cpp
     src/scaler.cpp
     src/executor.cpp
-    src/dag-Parser.cpp)
+    src/dag-parser.cpp)
 
 add_library(
   proto-objects OBJECT
