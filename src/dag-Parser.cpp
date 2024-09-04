@@ -98,23 +98,28 @@ const Node &DAGParser::findNodeByName(const std::string &nodeName) {
 
   if (it != nodes.end()) {
     return *it;
-  } else {
-    throw std::runtime_error("Node with name '" + nodeName + "' not found");
   }
+
+  throw std::runtime_error("Node with name '" + nodeName + "' not found");
 }
 
 const Edge &DAGParser::findEdgeByName(const std::string &edgeId) {
   for (const auto &node : nodes) {
-    if (node.downstream.has_value()) {
-      auto it = std::find_if(
-          node.downstream->begin(), node.downstream->end(),
-          [&edgeId](const Edge &edge) { return edge.id == edgeId; });
+    auto downstream = node.downstream;
 
-      if (it != node.downstream->end()) {
-        return *it;
-      }
+    if (!downstream.has_value()) {
+      continue;
+    }
+
+    auto it =
+        std::find_if(downstream->begin(), downstream->end(),
+                     [&edgeId](const Edge &edge) { return edge.id == edgeId; });
+
+    if (it != downstream->end()) {
+      return *it;
     }
   }
+
   throw std::runtime_error("Edge with ID '" + edgeId + "' not found");
 }
 
@@ -123,14 +128,18 @@ DAGParser::findUpstreamEdges(const std::string &nodeName) {
   std::vector<std::pair<const Node &, const Edge &>> upstreamEdges;
 
   for (const auto &node : nodes) {
-    if (node.downstream.has_value()) {
-      auto it = std::find_if(
-          node.downstream->begin(), node.downstream->end(),
-          [&nodeName](const Edge &edge) { return edge.target == nodeName; });
+    auto downstream = node.downstream;
 
-      if (it != node.downstream->end()) {
-        upstreamEdges.emplace_back(node, *it);
-      }
+    if (!downstream.has_value()) {
+      continue;
+    }
+
+    auto it = std::find_if(
+        downstream->begin(), downstream->end(),
+        [&nodeName](const Edge &edge) { return edge.target == nodeName; });
+
+    if (it != downstream->end()) {
+      upstreamEdges.emplace_back(node, *it);
     }
   }
 
