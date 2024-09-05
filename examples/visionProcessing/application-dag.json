@@ -1,0 +1,196 @@
+{
+    "applicationName": "visionProcessing",
+    "nodes": [
+      {
+        "task": "imageSource",
+        "name": "Image Source",
+        "description": "Provides the source image for processing tasks.",
+        "executor": "container",
+        "container": {
+          "image": "image-source",
+          "resources": {
+            "cpu": 1,
+            "memory": 512
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 2
+        },
+        "communicationTask": {
+          "payloadSize": 200
+        },
+        "downstream": [
+          {
+            "id": "imageSource_to_faceDetection",
+            "target": "faceDetection",
+            "maxPartitions": 1
+          },
+          {
+            "id": "imageSource_to_peopleCounter",
+            "target": "peopleCounter",
+            "maxPartitions": 1
+          }
+        ]
+      },
+      {
+        "task": "faceDetection",
+        "name": "Face Detection",
+        "description": "Detects faces in the provided image.",
+        "executor": "container",
+        "container": {
+          "image": "face-detection",
+          "resources": {
+            "cpu": 1,
+            "memory": 1024
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 4
+        },
+        "communicationTask": {
+          "payloadSize": 400
+        },
+        "downstream": [
+          {
+            "id": "faceDetection_to_ageDetection",
+            "target": "ageDetection",
+            "maxPartitions": 1
+          },
+          {
+            "id": "faceDetection_to_genderDetection",
+            "target": "genderDetection",
+            "maxPartitions": 1
+          },
+          {
+            "id": "faceDetection_to_emotionDetection",
+            "target": "emotionDetection",
+            "maxPartitions": 1
+          }
+        ]
+      },
+      {
+        "task": "ageDetection",
+        "name": "Age Detection",
+        "description": "Detects the age of a person in the provided image.",
+        "executor": "container",
+        "container": {
+          "image": "age-detection",
+          "resources": {
+            "cpu": 2,
+            "memory": 2048
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 5
+        },
+        "communicationTask": {
+          "payloadSize": 500
+        },
+        "downstream": [
+          {
+            "id": "ageDetection_to_aggregate",
+            "target": "aggregate",
+            "maxPartitions": 1
+          }
+        ]
+      },
+      {
+        "task": "genderDetection",
+        "name": "Gender Detection",
+        "description": "Detects the gender of a person in the provided image.",
+        "executor": "container",
+        "container": {
+          "image": "gender-detection",
+          "resources": {
+            "cpu": 1,
+            "memory": 1024
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 4
+        },
+        "communicationTask": {
+          "payloadSize": 400
+        },
+        "downstream": [
+          {
+            "id": "genderDetection_to_aggregate",
+            "target": "aggregate",
+            "maxPartitions": 1
+          }
+        ]
+      },
+      {
+        "task": "emotionDetection",
+        "name": "Emotion Detection",
+        "description": "Detects the emotion of a person in the provided image.",
+        "executor": "container",
+        "container": {
+          "image": "emotion-detection",
+          "resources": {
+            "cpu": 2,
+            "memory": 2048
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 5
+        },
+        "communicationTask": {
+          "payloadSize": 500
+        },
+        "downstream": [
+          {
+            "id": "emotionDetection_to_aggregate",
+            "target": "aggregate",
+            "maxPartitions": 1
+          }
+        ]
+      },
+      {
+        "task": "peopleCounter",
+        "name": "People Counter",
+        "description": "Counts the number of people in the provided image.",
+        "executor": "container",
+        "container": {
+          "image": "people-count",
+          "resources": {
+            "cpu": 1,
+            "memory": 1024
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 3
+        },
+        "communicationTask": {
+          "payloadSize": 300
+        },
+        "downstream": [
+          {
+            "id": "peopleCounter_to_aggregate",
+            "target": "aggregate",
+            "maxPartitions": 1
+          }
+        ]
+      },
+      {
+        "task": "aggregate",
+        "name": "Data Aggregation",
+        "description": "Aggregates data from multiple detection tasks.",
+        "executor": "container",
+        "container": {
+          "image": "aggregate",
+          "resources": {
+            "cpu": 1,
+            "memory": 1024
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 3
+        },
+        "communicationTask": {
+          "payloadSize": 300
+        },
+        "downstream": []
+      }
+    ]
+  }
