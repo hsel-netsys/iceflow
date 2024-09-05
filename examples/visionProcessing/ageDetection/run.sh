@@ -1,0 +1,1 @@
+./build/ageeDetection ./examples/visionProcessing/faceDetection/ageDetection.yaml tm ./examples/visionProcessing/ageDetection/ageDetection_protobuf_uint8.pb ./examples/visionProcessing/ageDetection/ml_model.pbtxt
