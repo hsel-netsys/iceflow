@@ -1,0 +1,76 @@
+{
+  "applicationName": "WordCount",
+  "nodes": [
+    {
+      "task": "1",
+      "name": "text2lines",
+      "description": "Splits text into lines.",
+      "executor": "container",
+      "container": {
+        "image": "text2lines-image",
+        "resources": {
+          "cpu": 1,
+          "memory": 1000000000
+        }
+      },
+      "scalingParameters": {
+        "taskComplexity": 2
+      },
+      "communicationTask": {
+        "payloadSize": 9001
+      },
+      "downstream": [
+        {
+          "id": "t2l",
+          "target": "2",
+          "maxPartitions": 1
+        }
+      ]
+    },
+    {
+      "task": "2",
+      "name": "lines2words",
+      "description": "Splits lines into words.",
+      "executor": "container",
+      "container": {
+        "image": "lines2words-image",
+        "resources": {
+          "cpu": 1,
+          "memory": 1000000000
+        }
+      },
+      "communicationTask": {
+        "payloadSize": 9001
+      },
+      "scalingParameters": {
+        "taskComplexity": 2
+      },
+      "downstream": [
+        {
+          "id": "l2w",
+          "target": "3",
+          "maxPartitions": 1
+        }
+      ]
+    },
+    {
+      "task": "3",
+      "name": "wordcount",
+      "description": "Counts the occurrences of words.",
+      "executor": "container",
+      "container": {
+        "image": "wordcount-image",
+        "resources": {
+          "cpu": 1,
+          "memory": 2000000000
+        }
+      },
+      "scalingParameters": {
+        "taskComplexity": 2
+      },
+      "communicationTask": {
+        "payloadSize": 9001
+      }
+    }
+  ]
+}
