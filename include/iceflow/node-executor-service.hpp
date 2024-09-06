@@ -19,8 +19,8 @@
 #ifndef ICEFLOW_NODE_EXECUTOR_SERVICE_H
 #define ICEFLOW_NODE_EXECUTOR_SERVICE_H
 
-#include <iceflow/node-executor.grpc.pb.h>
-#include <iceflow/node-executor.pb.h>
+#include "node-executor.grpc.pb.h"
+#include "node-executor.pb.h"
 
 #include <grpc/grpc.h>
 #include <grpcpp/server_builder.h>

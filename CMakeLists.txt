@@ -52,19 +52,13 @@ set(SOURCE_FILES
     src/services/node-executor-service.cpp
     src/scaler.cpp
     src/executor.cpp
-    src/dag-parser.cpp)
+    src/dag-parser.cpp
+    proto/node-executor.proto
+    proto/node-instance.proto)
 
-add_library(
-  proto-objects OBJECT
-  "${CMAKE_CURRENT_LIST_DIR}/proto/iceflow/node-executor.proto"
-  "${CMAKE_CURRENT_LIST_DIR}/proto/iceflow/node-instance.proto")
+add_library(iceflow SHARED ${SOURCE_FILES})
 
-target_link_libraries(proto-objects PUBLIC protobuf::libprotobuf gRPC::grpc++)
-
-target_include_directories(proto-objects
-                           PUBLIC "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
-
-protobuf_generate(TARGET proto-objects IMPORT_DIRS ${PROTO_IMPORT_DIRS}
+protobuf_generate(TARGET iceflow IMPORT_DIRS ${PROTO_IMPORT_DIRS}
                   PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
 
 if(CMAKE_CROSSCOMPILING)
@@ -75,7 +69,7 @@ endif()
 
 protobuf_generate(
   TARGET
-  proto-objects
+  iceflow
   LANGUAGE
   grpc
   GENERATE_EXTENSIONS
@@ -88,23 +82,21 @@ protobuf_generate(
   PROTOC_OUT_DIR
   "${PROTO_BINARY_DIR}")
 
-add_library(iceflow SHARED ${SOURCE_FILES})
-add_dependencies(iceflow proto-objects)
 set_target_properties(iceflow PROPERTIES VERSION ${version} SOVERSION
                                                             ${so_version})
 
 target_compile_options(iceflow PRIVATE -D_GNU_SOURCE -DBOOST_LOG_DYN_LINK)
 target_link_libraries(
   iceflow
-  ${Boost_LIBRARIES}
-  proto-objects
-  -lboost_log
-  -lboost_system
-  -lpthread
-  -lndn-cxx
-  -lndn-svs
-  OpenSSL::SSL
-  gRPC::grpc++)
+  PRIVATE ${Boost_LIBRARIES}
+          -lboost_log
+          -lboost_system
+          -lpthread
+          -lndn-cxx
+          -lndn-svs
+          OpenSSL::SSL
+          gRPC::grpc++
+          protobuf::libprotobuf)
 
 option(BUILD_APPS "Build IceFlow examples" ON)
 option(BUILD_TESTS "Build library tests" OFF)
@@ -117,24 +109,11 @@ configure_file(${IceFlow_SOURCE_DIR}/iceflow-config-version.cmake.in
 
 install(FILES ${IceFlow_BINARY_DIR}/pkg/iceflow-config.cmake
               ${IceFlow_BINARY_DIR}/iceflow-config-version.cmake
-        DESTINATION lib/iceflow-${version})
+        DESTINATION lib/iceflow)
 
 target_include_directories(
-  iceflow PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/iceflow>)
-install(
-  TARGETS iceflow
-  DESTINATION lib/iceflow-${version}
-  EXPORT iceflow-targets)
-install(
-  TARGETS proto-objects
-  DESTINATION lib/iceflow-${version}
-  EXPORT iceflow-targets)
-install(
-  FILES ${CMAKE_CURRENT_BINARY_DIR}/generated/iceflow/node-executor.grpc.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/iceflow/node-executor.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/iceflow/node-instance.grpc.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/iceflow/node-instance.pb.h
-  DESTINATION include/iceflow)
+  iceflow PUBLIC $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include/iceflow>
+                 "$<BUILD_INTERFACE:${PROTO_BINARY_DIR}>")
 install(
   FILES include/iceflow/congestion-reporter.hpp
         include/iceflow/consumer.hpp
@@ -147,8 +126,16 @@ install(
         include/iceflow/producer.hpp
         include/iceflow/ringbuffer.hpp
         include/iceflow/scaler.hpp
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-executor.grpc.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-executor.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-instance.grpc.pb.h
+        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-instance.pb.h
   DESTINATION include/iceflow)
-install(EXPORT iceflow-targets DESTINATION lib/iceflow-${version})
+install(
+  TARGETS iceflow
+  DESTINATION lib
+  EXPORT iceflow-targets)
+install(EXPORT iceflow-targets DESTINATION lib/iceflow)
 
 if(BUILD_APPS)
   message(STATUS "Building IceFlow examples...")
