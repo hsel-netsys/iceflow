@@ -124,13 +124,12 @@ DAGParser::findUpstreamEdges(const std::string &nodeName) {
   std::vector<std::pair<const Node &, const Edge &>> upstreamEdges;
 
   for (const auto &node : nodes) {
-    auto downstream = node.downstream;
 
     auto it = std::find_if(
-        downstream.begin(), downstream.end(),
+        node.downstream.begin(), node.downstream.end(),
         [&nodeName](const Edge &edge) { return edge.target == nodeName; });
 
-    if (it != downstream.end()) {
+    if (it != node.downstream.end()) {
       upstreamEdges.emplace_back(node, *it);
     }
   }
