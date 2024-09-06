@@ -138,6 +138,7 @@ install(
 install(
   FILES include/iceflow/congestion-reporter.hpp
         include/iceflow/consumer.hpp
+        include/iceflow/dag-parser.hpp
         include/iceflow/executor.hpp
         include/iceflow/iceflow.hpp
         include/iceflow/measurements.hpp
