@@ -77,8 +77,6 @@ class DAGParser {
 public:
   DAGParser(const std::string &appName, const std::vector<Node> &nodes);
 
-  ~DAGParser();
-
   static DAGParser parseFromFile(const std::string &filename);
 
   const std::vector<Node> &getNodes();
