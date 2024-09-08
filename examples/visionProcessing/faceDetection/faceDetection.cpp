@@ -49,13 +49,11 @@ class FaceDetection {
 public:
   void faceDetection(std::function<cv::Mat()> receive,
                      std::function<void(cv::Mat)> push,
-                     std::string protobufBinaryFileName,
-                     std::string mlModelFileName) {
+                     std::string protobufFile, std::string mlModel) {
 
     cv::Scalar MODEL_MEAN_VALUES =
         cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
-    cv::dnn::Net faceNet =
-        cv::dnn::readNet(mlModelFileName, protobufBinaryFileName);
+    cv::dnn::Net faceNet = cv::dnn::readNet(mlModel, protobufFile);
     cv::Mat frameFace;
     int padding = 20;
     int computeCounter = 0;
@@ -161,8 +159,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
          uint32_t numberOfProducerPartitions,
          std::vector<uint32_t> consumerPartitions,
          std::chrono::milliseconds publishInterval,
-         const std::string &protobufBinaryFileName,
-         const std::string &mlModelFileName) {
+         const std::string &protobufFile, const std::string &mlModel) {
 
   FaceDetection facialDetection;
   ndn::Face face;
@@ -178,8 +175,8 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&facialDetection, &consumer, &producer,
-                        &protobufBinaryFileName, &mlModelFileName]() {
+  threads.emplace_back([&facialDetection, &consumer, &producer, &protobufFile,
+                        &mlModel]() {
     facialDetection.faceDetection(
         [&consumer]() -> cv::Mat {
           auto encodedImage = consumer.receiveData();
@@ -214,7 +211,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
           }
           producer.pushData(encodedCroppedFace);
         },
-        protobufBinaryFileName, mlModelFileName);
+        protobufFile, mlModel);
   });
 
   for (auto &thread : threads) {
@@ -233,8 +230,8 @@ int main(int argc, const char *argv[]) {
 
   std::string configFileName = argv[1];
   std::string measurementFileName = argv[2];
-  std::string protobufBinaryFileName = argv[3];
-  std::string mlModelFileName = argv[4];
+  std::string protobufFile = argv[3];
+  std::string mlModel = argv[4];
 
   YAML::Node config = YAML::LoadFile(configFileName);
   YAML::Node consumerConfig = config["consumer"];
@@ -259,7 +256,7 @@ int main(int argc, const char *argv[]) {
   try {
     run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfProducerPartitions,
         consumerPartitions, std::chrono::milliseconds(publishInterval),
-        protobufBinaryFileName, mlModelFileName);
+        protobufFile, mlModel);
   }
 
   catch (const std::exception &e) {
