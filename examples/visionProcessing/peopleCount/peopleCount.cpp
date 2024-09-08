@@ -31,12 +31,10 @@
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
-#include <opencv2/dnn.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
+#include "opencv2/objdetect.hpp"
 #include <opencv2/opencv.hpp>
 
-NDN_LOG_INIT(iceflow.examples.visionprocessing.ageDetection);
+NDN_LOG_INIT(iceflow.examples.visionprocessing.peopleCounter);
 
 iceflow::Measurement *measurementHandler;
 
@@ -45,71 +43,91 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class AgeDetection {
+class PeopleCounter {
 public:
-  void ageDetection(std::function<cv::Mat()> receive,
-                    std::function<void(std::string)> push,
-                    std::string protobufBinaryFileName,
-                    std::string mlModelFileName) {
-
-    cv::Scalar MODEL_MEAN_VALUES =
-        cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
-    std::vector<std::string> ageList = {"(0-2)",   "(4-6)",   "(8-12)",
-                                        "(15-20)", "(25-32)", "(38-43)",
-                                        "(48-53)", "(60-100)"};
-    cv::dnn::Net ageNet =
-        cv::dnn::readNet(mlModelFileName, protobufBinaryFileName);
+  void peopleCount(std::function<cv::Mat()> receive,
+                   std::function<void(std::string)> push) {
 
     int computeCounter = 0;
+    cv::HOGDescriptor hog;
+    hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
 
     while (true) {
-      auto croppedFace = receive();
+      auto greyFrame = receive();
+
+      // ##### MEASUREMENT #####
 
       measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
                                    0);
 
-      NDN_LOG_INFO("Consumed cropped Face: "
-                   << computeCounter
-                   << croppedFace.total() * croppedFace.elemSize() << " Bytes");
+      NDN_LOG_INFO("Consumed grey frame: "
+                   << computeCounter << greyFrame.total() * greyFrame.elemSize()
+                   << " Bytes");
 
-      if (!croppedFace.empty()) {
-        cv::Mat blob;
-        measurementHandler->setField(std::to_string(computeCounter), "FD->AD",
+      if (!greyFrame.empty()) {
+        measurementHandler->setField(std::to_string(computeCounter), "IS->PC",
                                      0);
-        blob = cv::dnn::blobFromImage(croppedFace, 1, cv::Size(227, 227),
-                                      MODEL_MEAN_VALUES, false);
 
-        ageNet.setInput(blob);
-        std::vector<float> agePreds = ageNet.forward();
-        // finding maximum indiced in the agePreds vector
-        int maxIndiceAge = std::distance(
-            agePreds.begin(), max_element(agePreds.begin(), agePreds.end()));
-        std::string ageAnalytics = ageList[maxIndiceAge];
-        // NDN_LOG_INFO("Age: " << ageAnalytics);
-        std::cout << "Age: " << ageAnalytics << std::endl;
-        push(ageAnalytics);
+        int numPeople = detect(hog, greyFrame);
+        NDN_LOG_INFO("People count: " << numPeople);
+        std::cout << "People Found: " << std::endl;
+
+        // Push the cropped face for further processing
+        push(std::to_string(numPeople));
       }
 
       // ##### MEASUREMENT #####
-      measurementHandler->setField(std::to_string(computeCounter), "AD->AGG",
-                                   0);
+      measurementHandler->setField(std::to_string(computeCounter), "FD->AD", 0);
+      measurementHandler->setField(std::to_string(computeCounter), "FD->GD", 0);
+      measurementHandler->setField(std::to_string(computeCounter), "FD->ED", 0);
       measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
                                    0);
       computeCounter++;
     }
   }
+
+  int detect(const cv::HOGDescriptor &hog, cv::Mat &img) {
+    std::vector<cv::Rect> found, foundFiltered;
+    // Perform HOG detection with optimized parameters
+    hog.detectMultiScale(img, found, 0, cv::Size(8, 8), cv::Size(32, 32), 1.05,
+                         2);
+
+    // Filter overlapping boxes
+    for (size_t i = 0; i < found.size(); i++) {
+      cv::Rect r = found[i];
+      size_t j;
+      for (j = 0; j < found.size(); j++) {
+        if (j != i && (r & found[j]) == r) {
+          break;
+        }
+      }
+      if (j == found.size()) {
+        foundFiltered.push_back(r);
+      }
+    }
+
+    // Draw detections
+    for (size_t i = 0; i < foundFiltered.size(); i++) {
+      cv::Rect r = foundFiltered[i];
+      cv::rectangle(img, r.tl(), r.br(), cv::Scalar(0, 255, 0), 3);
+    }
+
+    return foundFiltered.size();
+  }
+
+private:
+  std::vector<std::vector<int>> bboxes;
 };
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &subTopic, const std::string &pubTopic,
          uint32_t numberOfProducerPartitions,
          std::vector<uint32_t> consumerPartitions,
-         std::chrono::milliseconds publishInterval,
-         const std::string &protobufBinaryFileName,
-         const std::string &mlModelFileName) {
+         std::chrono::milliseconds publishInterval) {
 
-  AgeDetection ageDetection;
+  PeopleCounter peopleCount;
   ndn::Face face;
+
   auto iceflow =
       std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
 
@@ -121,9 +139,8 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&ageDetection, &consumer, &producer,
-                        &protobufBinaryFileName, &mlModelFileName]() {
-    ageDetection.ageDetection(
+  threads.emplace_back([&peopleCount, &consumer, &producer]() {
+    peopleCount.peopleCount(
         [&consumer]() -> cv::Mat {
           auto encodedImage = consumer.receiveData();
 
@@ -133,29 +150,25 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
             return cv::Mat();
           }
 
-          // NDN_LOG_INFO("Received: " << encodedImage.size() << " bytes");
-          std::cout << "Received: " << encodedImage.size() << " bytes"
-                    << std::endl;
-          cv::Mat croppedFace = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
+          NDN_LOG_INFO("Received: " << encodedImage.size() << " bytes");
 
-          if (croppedFace.empty()) {
+          cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
+
+          if (greyImage.empty()) {
             std::cerr << "Error: Could not decode received data into image."
                       << std::endl;
             return cv::Mat();
           }
-          // NDN_LOG_INFO("Decoded: "
-          //              << croppedFace.total() * croppedFace.elemSize()
-          //              << " bytes");
-          std::cout << "Decoded: "
-                    << croppedFace.total() * croppedFace.elemSize() << " bytes"
-                    << std::endl;
-          return croppedFace;
+          NDN_LOG_INFO("Decoded: " << greyImage.total() * greyImage.elemSize()
+                                   << " bytes");
+
+          return greyImage;
         },
-        [&producer](const std::string &data) {
-          std::vector<uint8_t> ageAnalytics(data.begin(), data.end());
-          producer.pushData(ageAnalytics);
-        },
-        protobufBinaryFileName, mlModelFileName);
+        [&producer](const std::string &numberofPeople) {
+          std::vector<uint8_t> count(numberofPeople.begin(),
+                                     numberofPeople.end());
+          producer.pushData(count);
+        });
   });
 
   for (auto &thread : threads) {
@@ -165,17 +178,14 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 
 int main(int argc, const char *argv[]) {
 
-  if (argc != 5) {
+  if (argc != 3) {
     std::cout << "usage: " << argv[0] << " "
-              << "<config-file><test-name><protobuf_binary><ML-Model>"
-              << std::endl;
+              << "<config-file><test-name>" << std::endl;
     return 1;
   }
 
   std::string configFileName = argv[1];
   std::string measurementFileName = argv[2];
-  std::string protobufBinaryFileName = argv[3];
-  std::string mlModelFileName = argv[4];
 
   YAML::Node config = YAML::LoadFile(configFileName);
   YAML::Node consumerConfig = config["consumer"];
@@ -199,8 +209,7 @@ int main(int argc, const char *argv[]) {
 
   try {
     run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfProducerPartitions,
-        consumerPartitions, std::chrono::milliseconds(publishInterval),
-        protobufBinaryFileName, mlModelFileName);
+        consumerPartitions, std::chrono::milliseconds(publishInterval));
   }
 
   catch (const std::exception &e) {

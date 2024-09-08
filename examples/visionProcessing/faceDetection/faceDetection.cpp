@@ -73,17 +73,33 @@ public:
       if (!greyFrame.empty()) {
         measurementHandler->setField(std::to_string(computeCounter), "IS->FD",
                                      0);
-        tie(frameFace, bboxes) = getFaceBox(faceNet, greyFrame, 0.7);
-        for (auto it = begin(bboxes); it != end(bboxes); it++) {
-          cv::Rect rec(it->at(0) - padding, it->at(1) - padding,
-                       it->at(2) - it->at(0) + 2 * padding,
-                       it->at(3) - it->at(1) + 2 * padding);
-          cv::Mat greyface = greyFrame(rec); // take the ROI of box on the frame
-          std::cout << "Detected face: "
-                    << greyface.total() * greyface.elemSize() << " bytes"
-                    << std::endl;
 
-          push(greyface);
+        // Get the bounding boxes of detected faces
+        tie(frameFace, bboxes) = getFaceBox(faceNet, greyFrame, 0.7);
+
+        for (auto it = begin(bboxes); it != end(bboxes); it++) {
+          // Get the bounding box coordinates
+          int x1 = std::max(0, it->at(0) - padding);
+          int y1 = std::max(0, it->at(1) - padding);
+          int x2 = std::min(greyFrame.cols, it->at(2) + padding);
+          int y2 = std::min(greyFrame.rows, it->at(3) + padding);
+
+          // Create a Rect representing the cropped face region
+          cv::Rect faceRect(x1, y1, x2 - x1, y2 - y1);
+
+          // Ensure the rectangle is valid
+          if (faceRect.width > 0 && faceRect.height > 0) {
+            // Crop the face from the grey frame
+            cv::Mat greyface = greyFrame(faceRect);
+
+            // Log the size of the detected face
+            std::cout << "Detected face: "
+                      << greyface.total() * greyface.elemSize() << " bytes"
+                      << std::endl;
+
+            // Push the cropped face for further processing
+            push(greyface);
+          }
         }
       }
 
