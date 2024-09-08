@@ -13,7 +13,10 @@ set(SOURCES
 #wordCount/lines2words/lines2words.cpp
 #wordCount/wordcount/wordcount.cpp
 visionProcessing/imageSource/imageSource.cpp
-visionProcessing/faceDetection/faceDetection.cpp)
+visionProcessing/faceDetection/faceDetection.cpp
+visionProcessing/ageDetection/ageDetection.cpp
+visionProcessing/genderDetection/genderDetection.cpp
+visionProcessing/peopleCount/peopleCount.cpp)
 
 foreach(SOURCE_FILE ${SOURCES})
   get_filename_component(EXECUTABLE_NAME ${SOURCE_FILE} NAME_WE)

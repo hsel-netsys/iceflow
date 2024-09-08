@@ -1,15 +1,15 @@
 syncPrefix: /VP
-nodePrefix: faceDetection
+nodePrefix: genderDetection
 
 consumer:
-  topic: /imageSource/dataMain
+  topic: /faceDetection/dataMain
   inputThreshold: 200 # TODO: This is unused at the moment
-  partitions: [1, 2,3]
+  partitions: [0,1]
 
 producer:
-  topic: /faceDetection/dataMain
+  topic: /genderDetection/dataMain
   publishInterval: 100
-  numberOfPartitions: 3
+  numberOfPartitions: 1
 
 measurements:
   saveThreshold: 100

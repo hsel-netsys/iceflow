@@ -1,0 +1,1 @@
+./build/genderDetection ./examples/visionProcessing/genderDetection/genderDetection.yaml tm ./examples/visionProcessing/genderDetection/genderProtobuf.prototxt ./examples/visionProcessing/genderDetection/mlModel.caffemodel
