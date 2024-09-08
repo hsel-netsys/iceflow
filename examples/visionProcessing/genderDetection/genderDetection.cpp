@@ -36,7 +36,7 @@
 #include <opencv2/imgproc.hpp>
 #include <opencv2/opencv.hpp>
 
-NDN_LOG_INIT(iceflow.examples.visionprocessing.ageDetection);
+NDN_LOG_INIT(iceflow.examples.visionprocessing.GenderDetection);
 
 iceflow::Measurement *measurementHandler;
 
@@ -45,19 +45,18 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class AgeDetection {
+class GenderDetection {
 public:
-  void ageDetection(std::function<cv::Mat()> receive,
-                    std::function<void(std::string)> push,
-                    std::string protobufBinaryFileName,
-                    std::string mlModelFileName) {
+  void genderDetection(std::function<cv::Mat()> receive,
+                       std::function<void(std::string)> push,
+                       std::string protobufBinaryFileName,
+                       std::string mlModelFileName) {
 
     cv::Scalar MODEL_MEAN_VALUES =
         cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
-    std::vector<std::string> ageList = {"(0-2)",   "(4-6)",   "(8-12)",
-                                        "(15-20)", "(25-32)", "(38-43)",
-                                        "(48-53)", "(60-100)"};
-    cv::dnn::Net ageNet =
+    std::vector<std::string> genderList = {"Male", "Female"};
+
+    cv::dnn::Net genderNet =
         cv::dnn::readNet(mlModelFileName, protobufBinaryFileName);
 
     int computeCounter = 0;
@@ -74,24 +73,25 @@ public:
 
       if (!croppedFace.empty()) {
         cv::Mat blob;
-        measurementHandler->setField(std::to_string(computeCounter), "FD->AD",
+        measurementHandler->setField(std::to_string(computeCounter), "FD->GD",
                                      0);
         blob = cv::dnn::blobFromImage(croppedFace, 1, cv::Size(227, 227),
                                       MODEL_MEAN_VALUES, false);
 
-        ageNet.setInput(blob);
-        std::vector<float> agePreds = ageNet.forward();
-        // finding maximum indiced in the agePreds vector
-        int maxIndiceAge = std::distance(
-            agePreds.begin(), max_element(agePreds.begin(), agePreds.end()));
-        std::string ageAnalytics = ageList[maxIndiceAge];
-        // NDN_LOG_INFO("Age: " << ageAnalytics);
-        std::cout << "Age: " << ageAnalytics << std::endl;
-        push(ageAnalytics);
+        genderNet.setInput(blob);
+        std::vector<float> genderPreds = genderNet.forward();
+        // finding maximum indiced in the genderPreds vector
+        int maxIndiceGender =
+            std::distance(genderPreds.begin(),
+                          max_element(genderPreds.begin(), genderPreds.end()));
+        std::string genderAnalytics = genderList[maxIndiceGender];
+        // NDN_LOG_INFO("Gender: " << genderAnalytics);
+        std::cout << "Gender: " << genderAnalytics << std::endl;
+        push(genderAnalytics);
       }
 
       // ##### MEASUREMENT #####
-      measurementHandler->setField(std::to_string(computeCounter), "AD->AGG",
+      measurementHandler->setField(std::to_string(computeCounter), "GD->AGG",
                                    0);
       measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
                                    0);
@@ -108,7 +108,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &protobufBinaryFileName,
          const std::string &mlModelFileName) {
 
-  AgeDetection ageDetection;
+  GenderDetection genderDetection;
   ndn::Face face;
   auto iceflow =
       std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
@@ -121,9 +121,9 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&ageDetection, &consumer, &producer,
+  threads.emplace_back([&genderDetection, &consumer, &producer,
                         &protobufBinaryFileName, &mlModelFileName]() {
-    ageDetection.ageDetection(
+    genderDetection.genderDetection(
         [&consumer]() -> cv::Mat {
           auto encodedImage = consumer.receiveData();
 

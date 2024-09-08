@@ -1,14 +1,14 @@
 syncPrefix: /VP
-nodePrefix: imageSource
+nodePrefix: ageDetection
 
 consumer:
-  topic: /imageSource/dataMain
+  topic: /faceDetection/dataMain
   inputThreshold: 200 # TODO: This is unused at the moment
-  partitions: [1, 3]
+  partitions: [0,1]
 
 producer:
-  topic: /faceDetection/dataMain
-  publishInterval: 500
+  topic: /ageDetection/dataMain
+  publishInterval: 100
   numberOfPartitions: 1
 
 measurements:
