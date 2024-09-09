@@ -50,14 +50,14 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
     nodeInstance.executor = nodeJson.at("executor").get<std::string>();
 
     // Container
-    nodeInstance.container.image =
-        nodeJson.at("container").at("image").get<std::string>();
-    nodeInstance.container.tag =
-        nodeJson.at("container").value("tag", "latest");
+    auto containerJson = nodeJson.at("container");
+
+    nodeInstance.container.image = containerJson.at("image").get<std::string>();
+    nodeInstance.container.tag = containerJson.value("tag", "latest");
     nodeInstance.container.resources.cpu =
-        nodeJson.at("container").at("resources").at("cpu").get<uint32_t>();
+        containerJson.at("resources").at("cpu").get<uint32_t>();
     nodeInstance.container.resources.memory =
-        nodeJson.at("container").at("resources").at("memory").get<uint32_t>();
+        containerJson.at("resources").at("memory").get<uint32_t>();
 
     // Scaling parameters
     nodeInstance.scalingParameters.taskComplexity =
