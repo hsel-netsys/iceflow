@@ -38,6 +38,7 @@ node = {
         ? payloadSize: uint,
     },
     ? downstream: [ + edge ],
+    ? applicationConfiguration: { * text => any }
 }
 
 edge = {
