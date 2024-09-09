@@ -45,7 +45,8 @@ public:
   void receiveCongestionReport(CongestionReason congestionReason,
                                const std::string &edgeName);
 
-  void repartition(uint32_t lowerPartitionBound, uint32_t upperPartitionBound);
+  void repartition(const std::string &edgeName, uint32_t lowerPartitionBound,
+                   uint32_t upperPartitionBound);
 
   std::unordered_map<std::string, EdgeStats> queryEdgeStats();
 

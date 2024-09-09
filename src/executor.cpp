@@ -61,7 +61,8 @@ void IceflowExecutor::runGrpcClient(const std::string &address) {
   m_nodeInstanceService = NodeInstance::NewStub(channel, grpc::StubOptions());
 }
 
-void IceflowExecutor::repartition(uint32_t lowerPartitionBound,
+void IceflowExecutor::repartition(const std::string &edgeName,
+                                  uint32_t lowerPartitionBound,
                                   uint32_t upperPartitionBound) {
   if (!m_nodeInstanceService) {
     NDN_LOG_WARN("NodeInstanceService instance is not available!");
@@ -69,6 +70,7 @@ void IceflowExecutor::repartition(uint32_t lowerPartitionBound,
   }
 
   RepartitionRequest request;
+  request.set_edge_name(edgeName);
   request.set_lower_partition_bound(lowerPartitionBound);
   request.set_upper_partition_bound(upperPartitionBound);
 
