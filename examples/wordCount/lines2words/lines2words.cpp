@@ -1,8 +1,12 @@
 #include "iceflow/consumer.hpp"
+#include "iceflow/dag-parser.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 #include <csignal>
 #include <iostream>
 #include <ndn-cxx/face.hpp>
@@ -11,7 +15,6 @@
 #include <string>
 #include <thread>
 #include <vector>
-#include <yaml-cpp/yaml.h>
 
 NDN_LOG_INIT(iceflow.examples.lines2words);
 
@@ -78,39 +81,69 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   }
 }
 
+std::string generateNodePrefix() {
+  boost::uuids::basic_random_generator<boost::mt19937> gen;
+  boost::uuids::uuid uuid = gen();
+  return to_string(uuid);
+}
+
+std::vector<uint32_t> createConsumerPartitions(iceflow::Edge upstreamEdge,
+                                               uint32_t consumerIndex) {
+  auto maxConsumerPartitions = upstreamEdge.maxPartitions;
+  auto consumerPartitions = std::vector<uint32_t>();
+
+  for (auto i = consumerIndex; i < maxConsumerPartitions; i += consumerIndex) {
+    consumerPartitions.push_back(i);
+  }
+
+  return consumerPartitions;
+}
+
 int main(int argc, const char *argv[]) {
 
   if (argc != 3) {
     std::string command = argv[0];
-    std::cout << "usage: " << command << " <config-file> <measurement-Name>"
-              << std::endl;
+    std::cout << "usage: " << command
+              << " <application-dag-file> <instance-number>" << std::endl;
     return 1;
   }
 
-  std::string configFileName = argv[1];
-  std::string measurementFileName = argv[2];
+  std::string nodeName = "lines2words";
+  std::string dagFileName = argv[1];
+  int consumerIndex = std::stoi(argv[2]);
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
-  YAML::Node config = YAML::LoadFile(configFileName);
-  YAML::Node consumerConfig = config["consumer"];
-  YAML::Node producerConfig = config["producer"];
-  YAML::Node measurementConfig = config["measurements"];
+  std::string syncPrefix = "/" + dagParser.getApplicationName();
+  auto nodePrefix = generateNodePrefix();
+  auto node = dagParser.findNodeByName(nodeName);
+  // TODO: Should this method find edges by node name or task ID?
+  auto upstreamEdges = dagParser.findUpstreamEdges(node.task);
 
-  std::string syncPrefix = config["syncPrefix"].as<std::string>();
-  std::string nodePrefix = config["nodePrefix"].as<std::string>();
-  std::string pubTopic = producerConfig["topic"].as<std::string>();
-  std::string subTopic = consumerConfig["topic"].as<std::string>();
+  // TODO: Do this dynamically for all edges
+  auto downstreamEdge = node.downstream.at(0);
+  auto downstreamEdgeName = downstreamEdge.id;
+  auto numberOfProducerPartitions = downstreamEdge.maxPartitions;
+
+  auto applicationConfiguration = node.applicationConfiguration;
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
+
+  auto upstreamEdge = upstreamEdges.at(0).second;
+  auto upstreamEdgeName = upstreamEdge.id;
   auto consumerPartitions =
-      consumerConfig["partitions"].as<std::vector<uint32_t>>();
-  auto numberOfProducerPartitions =
-      producerConfig["numberOfPartitions"].as<uint32_t>();
-  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
-  uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
+      createConsumerPartitions(upstreamEdge, consumerIndex);
 
   ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,
-                                                saveThreshold, "A");
+  measurementHandler =
+      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
   try {
+    // TODO: Get rid of this variable eventually
+    auto publishInterval = 500;
+
+    std::string subTopic = syncPrefix + "/" + upstreamEdgeName;
+    std::string pubTopic = syncPrefix + "/" + downstreamEdgeName;
+
     run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfProducerPartitions,
         consumerPartitions, std::chrono::milliseconds(publishInterval));
   }

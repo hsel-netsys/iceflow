@@ -23,7 +23,7 @@
         {
           "id": "t2l",
           "target": "2",
-          "maxPartitions": 1
+          "maxPartitions": 3
         }
       ]
     },
@@ -51,7 +51,10 @@
           "target": "3",
           "maxPartitions": 1
         }
-      ]
+      ],
+      "applicationConfiguration": {
+        "measurementsSaveThreshold": 100
+      }
     },
     {
       "task": "3",
