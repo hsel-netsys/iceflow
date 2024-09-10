@@ -39,6 +39,7 @@ struct Resources {
 
 struct Container {
   std::string image;
+  std::string tag;
   Resources resources;
 };
 

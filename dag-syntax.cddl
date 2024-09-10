@@ -26,6 +26,7 @@ node = {
     executor: "container" / "static",
     container: {
         image: tstr,
+        ? tag: tstr, ; Default tag: latest
         resources: {
             cpu: uint,
             memory: uint,
