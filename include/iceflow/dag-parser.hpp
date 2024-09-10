@@ -69,6 +69,7 @@ struct Node {
   ScalingParameters scalingParameters;
   CommunicationTask communicationTask;
   std::vector<Edge> downstream;
+  nlohmann::json::object_t applicationConfiguration;
 };
 
 /**

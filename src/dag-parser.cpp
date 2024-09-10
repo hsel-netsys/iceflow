@@ -84,6 +84,9 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
       nodeInstance.downstream = edges;
     }
 
+    nodeInstance.applicationConfiguration =
+        nodeJson.value("applicationConfiguration", nlohmann::json::object());
+
     nodeList.push_back(nodeInstance);
   }
 
