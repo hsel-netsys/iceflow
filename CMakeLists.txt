@@ -24,12 +24,19 @@ project(
   DESCRIPTION "NDN-based stream processing library written in C++.")
 set(CMAKE_CXX_STANDARD 20)
 
+option(USE_GRPC "Enable gRPC support" ON)
+
 find_package(Boost)
 find_package(PkgConfig)
 find_package(OpenSSL REQUIRED)
-find_package(gRPC CONFIG REQUIRED)
-message(STATUS "Using gRPC ${gRPC_VERSION}")
-find_program(gRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
+
+if(USE_GRPC)
+  add_definitions(-DUSE_GRPC=1)
+  find_package(gRPC CONFIG REQUIRED)
+  message(STATUS "Using gRPC ${gRPC_VERSION}")
+  find_program(gRPC_CPP_PLUGIN_EXECUTABLE grpc_cpp_plugin)
+endif()
+
 pkg_check_modules(NDN_CXX REQUIRED libndn-cxx)
 pkg_check_modules(SVS REQUIRED libndn-svs)
 
@@ -39,48 +46,50 @@ include(cmake/lint.cmake)
 
 include(GNUInstallDirs)
 
-set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
-file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
-set(PROTO_IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}/proto")
+add_library(iceflow SHARED src/iceflow.cpp src/consumer.cpp src/producer.cpp
+                           src/measurements.cpp src/dag-parser.cpp)
 
-set(SOURCE_FILES
-    src/iceflow.cpp
-    src/consumer.cpp
-    src/producer.cpp
-    src/measurements.cpp
-    src/services/node-instance-service.cpp
-    src/services/node-executor-service.cpp
-    src/scaler.cpp
-    src/executor.cpp
-    src/dag-parser.cpp
-    proto/node-executor.proto
-    proto/node-instance.proto)
+if(USE_GRPC)
+  target_sources(
+    iceflow
+    PRIVATE src/services/node-instance-service.cpp
+            src/services/node-executor-service.cpp
+            src/scaler.cpp
+            src/executor.cpp
+            proto/node-executor.proto
+            proto/node-instance.proto)
 
-add_library(iceflow SHARED ${SOURCE_FILES})
+  set(PROTO_BINARY_DIR "${CMAKE_CURRENT_BINARY_DIR}/generated")
+  file(MAKE_DIRECTORY ${PROTO_BINARY_DIR})
+  set(PROTO_IMPORT_DIRS "${CMAKE_CURRENT_LIST_DIR}/proto")
 
-protobuf_generate(TARGET iceflow IMPORT_DIRS ${PROTO_IMPORT_DIRS}
-                  PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
+  protobuf_generate(TARGET iceflow IMPORT_DIRS ${PROTO_IMPORT_DIRS}
+                    PROTOC_OUT_DIR "${PROTO_BINARY_DIR}")
 
-if(CMAKE_CROSSCOMPILING)
+  if(CMAKE_CROSSCOMPILING)
     set(_gRPC_CPP_PLUGIN "protoc-gen-grpc=${gRPC_CPP_PLUGIN_EXECUTABLE}")
-else()
-    set(_gRPC_CPP_PLUGIN "protoc-gen-grpc=\$<TARGET_FILE:gRPC::grpc_cpp_plugin>")
-endif()
+  else()
+    set(_gRPC_CPP_PLUGIN
+        "protoc-gen-grpc=\$<TARGET_FILE:gRPC::grpc_cpp_plugin>")
+  endif()
 
-protobuf_generate(
-  TARGET
-  iceflow
-  LANGUAGE
-  grpc
-  GENERATE_EXTENSIONS
-  .grpc.pb.h
-  .grpc.pb.cc
-  PLUGIN
-  ${_gRPC_CPP_PLUGIN}
-  IMPORT_DIRS
-  ${PROTO_IMPORT_DIRS}
-  PROTOC_OUT_DIR
-  "${PROTO_BINARY_DIR}")
+  protobuf_generate(
+    TARGET
+    iceflow
+    LANGUAGE
+    grpc
+    GENERATE_EXTENSIONS
+    .grpc.pb.h
+    .grpc.pb.cc
+    PLUGIN
+    ${_gRPC_CPP_PLUGIN}
+    IMPORT_DIRS
+    ${PROTO_IMPORT_DIRS}
+    PROTOC_OUT_DIR
+    "${PROTO_BINARY_DIR}")
+
+  target_link_libraries(iceflow PRIVATE gRPC::grpc++ protobuf::libprotobuf)
+endif()
 
 set_target_properties(iceflow PROPERTIES VERSION ${version} SOVERSION
                                                             ${so_version})
@@ -94,9 +103,7 @@ target_link_libraries(
           -lpthread
           -lndn-cxx
           -lndn-svs
-          OpenSSL::SSL
-          gRPC::grpc++
-          protobuf::libprotobuf)
+          OpenSSL::SSL)
 
 option(BUILD_APPS "Build IceFlow examples" ON)
 option(BUILD_TESTS "Build library tests" OFF)
@@ -121,16 +128,22 @@ install(
         include/iceflow/executor.hpp
         include/iceflow/iceflow.hpp
         include/iceflow/measurements.hpp
-        include/iceflow/node-executor-service.hpp
-        include/iceflow/node-instance-service.hpp
         include/iceflow/producer.hpp
         include/iceflow/ringbuffer.hpp
         include/iceflow/scaler.hpp
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-executor.grpc.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-executor.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-instance.grpc.pb.h
-        ${CMAKE_CURRENT_BINARY_DIR}/generated/node-instance.pb.h
   DESTINATION include/iceflow)
+
+if(USE_GRPC)
+  install(
+    FILES include/iceflow/node-executor-service.hpp
+          include/iceflow/node-instance-service.hpp
+          ${CMAKE_CURRENT_BINARY_DIR}/generated/node-executor.grpc.pb.h
+          ${CMAKE_CURRENT_BINARY_DIR}/generated/node-executor.pb.h
+          ${CMAKE_CURRENT_BINARY_DIR}/generated/node-instance.grpc.pb.h
+          ${CMAKE_CURRENT_BINARY_DIR}/generated/node-instance.pb.h
+    DESTINATION include/iceflow)
+endif()
+
 install(
   TARGETS iceflow
   DESTINATION lib

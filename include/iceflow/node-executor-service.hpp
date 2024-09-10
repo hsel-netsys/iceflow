@@ -19,6 +19,8 @@
 #ifndef ICEFLOW_NODE_EXECUTOR_SERVICE_H
 #define ICEFLOW_NODE_EXECUTOR_SERVICE_H
 
+#ifdef USE_GRPC
+
 #include "node-executor.grpc.pb.h"
 #include "node-executor.pb.h"
 
@@ -42,5 +44,7 @@ private:
   std::weak_ptr<IceflowExecutor> m_executor;
 };
 } // namespace iceflow
+
+#endif // USE_GRPC
 
 #endif // ICEFLOW_NODE_EXECUTOR_SERVICE_H
