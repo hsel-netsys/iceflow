@@ -25,7 +25,11 @@
           "target": "2",
           "maxPartitions": 3
         }
-      ]
+      ],
+      "applicationConfiguration": {
+        "sourceTextFileName": "sourcetext.txt",
+        "measurementsSaveThreshold": 100
+      }
     },
     {
       "task": "2",
