@@ -65,12 +65,23 @@ public:
     while (true) {
       // Receive TLV-encoded data and deserialize it into JSON
       std::vector<uint8_t> encodedJson = receive();
+
+      // for (auto &byte : encodedJson) {
+      //   std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
+      //             << (int)byte << " ";
+      // }
+      // std::cout << std::endl;
+
       size_t offset = 0;
-      nlohmann::json deserializedData = Serde::deserialize(encodedJson);
+      // nlohmann::json deserializedData = Serde::deserialize(encodedJson);
+      auto deserializedData = nlohmann::json::from_cbor(encodedJson);
 
       // Extract frameID and encodedImage from the deserialized JSON
       int frameID = deserializedData["frameID"];
-      std::vector<uint8_t> encodedImage = deserializedData["image"];
+      std::vector<uint8_t> encodedImage =
+          deserializedData["image"].get_binary();
+
+      std::cout << encodedImage.size() << std::endl;
 
       // Decode the image (JPEG format) using OpenCV
       cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
@@ -122,7 +133,7 @@ public:
 
             nlohmann::json resultData;
             resultData["frameID"] = frameID;
-            resultData["image"] = encodedCroppedFace;
+            resultData["image"] = nlohmann::json::binary(encodedCroppedFace);
 
             std::vector<uint8_t> serializedData = Serde::serialize(resultData);
 

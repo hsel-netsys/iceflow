@@ -98,9 +98,16 @@ public:
       // Create a nlohmann::json object to store frameID and encoded video
       nlohmann::json resultData;
       resultData["frameID"] = frameID;
-      resultData["image"] = encodedVideo;
+      resultData["image"] = nlohmann::json::binary(encodedVideo);
 
-      std::vector<uint8_t> serializedData = Serde::serialize(resultData);
+      // std::vector<uint8_t> serializedData = Serde::serialize(resultData);
+      auto serializedData = nlohmann::json::to_cbor(resultData);
+
+      // for (auto &byte : serializedData) {
+      //   std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
+      //             << (int)byte << " ";
+      // }
+      // std::cout << std::endl;
 
       push(serializedData);
 
