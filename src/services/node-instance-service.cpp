@@ -24,24 +24,13 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.services.NodeInstanceService);
 
-NodeInstanceService::NodeInstanceService(
-    std::unordered_map<std::string, std::shared_ptr<IceflowConsumer>>
-        &consumerMap,
-    std::unordered_map<std::string, std::shared_ptr<IceflowProducer>>
-        &producerMap)
-    : m_consumerMap(consumerMap), m_producerMap(producerMap){};
+NodeInstanceService::NodeInstanceService(std::shared_ptr<IceFlow> iceflow)
+    : m_iceflow(iceflow){};
 
 grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
                                               const RepartitionRequest *request,
                                               RepartitionResponse *response) {
   auto edgeName = request->edge_name();
-
-  if (!m_consumerMap.contains(edgeName)) {
-    return grpc::Status(grpc::StatusCode::NOT_FOUND,
-                        "No consumer defined for edge.");
-  }
-
-  auto consumer = m_consumerMap[edgeName];
 
   auto lowerPartitionBound = request->lower_partition_bound();
   auto upperPartitionBound = request->upper_partition_bound();
@@ -53,31 +42,40 @@ grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
   auto partitions =
       std::vector<uint32_t>(lowerPartitionBound, upperPartitionBound);
 
-  auto isSuccess = consumer->repartition(partitions);
-
-  response->set_success(isSuccess);
   response->set_lower_partition_bound(lowerPartitionBound);
   response->set_upper_partition_bound(upperPartitionBound);
 
-  return grpc::Status::OK;
+  try {
+    m_iceflow->repartitionConsumer(edgeName, partitions);
+
+    // TODO: Maybe this field is actually obsolete
+    response->set_success(true);
+
+    return grpc::Status::OK;
+  } catch (...) {
+    // TODO: Improve error handling
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "Consumer repartitioning has failed.");
+  }
 }
 
 grpc::Status NodeInstanceService::QueryStats(grpc::ServerContext *context,
                                              const StatsRequest *request,
                                              StatsResponse *response) {
 
-  for (auto consumerMapEntry : m_consumerMap) {
+  auto consumerStats = m_iceflow->getConsumerStats();
+  auto producerStats = m_iceflow->getProducerStats();
+
+  for (auto consumerStat : consumerStats) {
     auto consumptionStats = response->add_consumption_stats();
-    consumptionStats->set_edge_name(consumerMapEntry.first);
-    consumptionStats->set_units_consumed(
-        consumerMapEntry.second->getConsumptionStats());
+    consumptionStats->set_edge_name(consumerStat.first);
+    consumptionStats->set_units_consumed(consumerStat.second);
   }
 
-  for (auto producerMapEntry : m_producerMap) {
+  for (auto producerStat : producerStats) {
     auto productionStats = response->add_production_stats();
-    productionStats->set_edge_name(producerMapEntry.first);
-    productionStats->set_units_produced(
-        producerMapEntry.second->getProductionStats());
+    productionStats->set_edge_name(producerStat.first);
+    productionStats->set_units_produced(producerStat.second);
   }
 
   return grpc::Status::OK;

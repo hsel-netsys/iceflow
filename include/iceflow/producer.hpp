@@ -19,6 +19,8 @@
 #ifndef ICEFLOW_PRODUCER_HPP
 #define ICEFLOW_PRODUCER_HPP
 
+#include "ndn-svs/svspubsub.hpp"
+
 #include <random>
 #include <unordered_set>
 
@@ -32,7 +34,6 @@
 #endif // USE_GRPC
 
 #include "congestion-reporter.hpp"
-#include "iceflow.hpp"
 
 namespace iceflow {
 
@@ -44,61 +45,40 @@ namespace iceflow {
  */
 class IceflowProducer {
 public:
-  IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  uint32_t numberOfPartitions,
-                  std::chrono::milliseconds publishInterval);
-
-  IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  uint32_t numberOfPartitions,
-                  std::chrono::milliseconds publishInterval,
-                  std::shared_ptr<CongestionReporter> congestionReporter);
+  IceflowProducer(
+      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      const std::string &nodePrefix, const std::string &syncPrefix,
+      const std::string &upstreamEdgeName, uint32_t numberOfPartitions,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
   ~IceflowProducer();
 
   void pushData(const std::vector<uint8_t> &data);
-
-  void setPublishInterval(std::chrono::milliseconds publishInterval);
 
   void setTopicPartitions(uint64_t numberOfPartitions);
 
   uint32_t getProductionStats();
 
 private:
-  IceflowProducer(
-      std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-      uint32_t numberOfPartitions, std::chrono::milliseconds publishInterval,
-      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
-
   uint32_t getNextPartitionNumber();
 
-  QueueEntry popQueueValue();
-
-  bool hasQueueValue();
-
-  void resetLastPublishTimePoint();
-
-  std::chrono::time_point<std::chrono::steady_clock> getNextPublishTimePoint();
-
-  void reportCongestion(CongestionReason congestionReason,
-                        const std::string &edgeName);
+  void reportCongestion(CongestionReason congestionReason);
 
   void saveTimestamp(std::chrono::steady_clock::time_point timestamp);
 
   void cleanUpTimestamps(
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
+  ndn::Name prepareDataName(uint32_t partitionNumber);
+
 private:
-  const std::weak_ptr<IceFlow> m_iceflow;
+  const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
   const std::string m_pubTopic;
-  RingBuffer<std::vector<uint8_t>> m_outputQueue;
+
+  std::string m_nodePrefix;
 
   uint32_t m_numberOfPartitions;
   std::unordered_set<uint32_t> m_topicPartitions;
-
-  std::chrono::nanoseconds m_publishInterval;
-  std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
-
-  uint64_t m_subscriberId;
 
   std::mt19937 m_randomNumberGenerator;
 
@@ -109,6 +89,8 @@ private:
 
   // TODO: Make configurable
   std::chrono::seconds m_maxProductionTimestampAge = std::chrono::seconds(1);
+
+  const std::string &m_downstreamEdgeName;
 };
 } // namespace iceflow
 

@@ -19,13 +19,17 @@
 #ifndef ICEFLOW_CONSUMER_HPP
 #define ICEFLOW_CONSUMER_HPP
 
+#include "ndn-svs/svspubsub.hpp"
+
 #include <chrono>
 #include <unordered_map>
+#include <vector>
 
 #include "congestion-reporter.hpp"
-#include "iceflow.hpp"
 
 namespace iceflow {
+
+typedef std::function<void(std::vector<uint8_t>)> ConsumerCallback;
 
 /**
  * Allows for subscribing to data published by `IceflowProducer`s.
@@ -33,17 +37,14 @@ namespace iceflow {
 class IceflowConsumer {
 
 public:
-  IceflowConsumer(std::shared_ptr<IceFlow> iceflow, const std::string &subTopic,
-                  std::vector<uint32_t> partitions);
+  IceflowConsumer(
+      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      const std::string &syncPrefix, const std::string &upstreamEdgeName,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
   ~IceflowConsumer();
 
-  std::vector<uint8_t> receiveData();
-
-  /**
-   * Indicates whether the queue of this IceflowConsumer contains data.
-   */
-  bool hasData();
+  void setConsumerCallback(ConsumerCallback consumerCallback);
 
   bool repartition(std::vector<uint32_t> partitions);
 
@@ -56,6 +57,10 @@ private:
                                       uint32_t consumerPartitionIndex,
                                       uint32_t totalNumberOfConsumers);
 
+  void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData);
+
+  ndn::Name prepareDataName(uint32_t partitionNumber);
+
   /**
    * Updates the topic partitions this IceflowConsumer is subscribed to.
    *
@@ -66,7 +71,7 @@ private:
                           uint32_t consumerPartitionIndex,
                           uint32_t totalNumberOfConsumers);
 
-  uint32_t subscribeToTopicPartition(uint64_t topicPartition);
+  void subscribeToTopicPartition(uint64_t topicPartition);
 
   void unsubscribeFromAllPartitions();
 
@@ -75,21 +80,27 @@ private:
   void cleanUpTimestamps(
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
+  void reportCongestion(CongestionReason congestionReason);
+
 private:
-  const std::weak_ptr<IceFlow> m_iceflow;
+  const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
   const std::string m_subTopic;
 
   std::vector<uint32_t> m_partitions;
 
-  std::unordered_map<uint32_t, uint32_t> m_subscriptionHandles;
-
-  RingBuffer<std::vector<uint8_t>> m_inputQueue;
+  std::vector<uint32_t> m_subscriptionHandles;
 
   std::deque<std::chrono::time_point<std::chrono::steady_clock>>
       m_consumptionTimestamps;
 
   // TODO: Make configurable
   std::chrono::seconds m_maxConsumptionAge = std::chrono::seconds(1);
+
+  std::optional<ConsumerCallback> m_consumerCallback;
+
+  std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
+
+  const std::string &m_upstreamEdgeName;
 };
 } // namespace iceflow
 

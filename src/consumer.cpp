@@ -26,23 +26,15 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.IceflowConsumer);
 
-IceflowConsumer::IceflowConsumer(std::shared_ptr<IceFlow> iceflow,
-                                 const std::string &subTopic,
-                                 std::vector<uint32_t> partitions)
-    : m_iceflow(iceflow), m_subTopic(subTopic), m_partitions(partitions) {
-
-  repartition(partitions);
-}
+IceflowConsumer::IceflowConsumer(
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+    const std::string &syncPrefix, const std::string &upstreamEdgeName,
+    std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
+    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName),
+      m_upstreamEdgeName(upstreamEdgeName),
+      m_congestionReporter(congestionReporter){};
 
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
-
-std::vector<uint8_t> IceflowConsumer::receiveData() {
-  auto value = m_inputQueue.waitAndPopValue();
-
-  saveTimestamp();
-
-  return value;
-}
 
 void IceflowConsumer::saveTimestamp() {
   auto timestamp = std::chrono::steady_clock::now();
@@ -68,37 +60,6 @@ void IceflowConsumer::cleanUpTimestamps(
   }
 }
 
-/**
- * Indicates whether the queue of this IceflowConsumer contains data.
- */
-bool IceflowConsumer::hasData() { return !m_inputQueue.empty(); }
-
-void IceflowConsumer::validatePartitionConfiguration(
-    uint32_t numberOfPartitions, uint32_t consumerPartitionIndex,
-    uint32_t totalNumberOfConsumers) {
-  if (numberOfPartitions == 0) {
-    throw std::invalid_argument(
-        "At least one topic partition has to be defined!");
-  }
-
-  if (totalNumberOfConsumers <= consumerPartitionIndex) {
-    throw std::invalid_argument(
-        "The total number of consumers has to be larger "
-        "than the consumerPartitionIndex.");
-  }
-
-  if (numberOfPartitions < totalNumberOfConsumers) {
-    throw std::invalid_argument(
-        "The numberOfPartitions has to be at least as large as the "
-        "totalNumberOfConsumers.");
-  }
-
-  if (numberOfPartitions <= consumerPartitionIndex) {
-    throw std::invalid_argument("The numberOfPartitions has to be at least "
-                                "as large as the consumerPartitionIndex.");
-  }
-}
-
 bool IceflowConsumer::repartition(std::vector<uint32_t> partitions) {
   unsubscribeFromAllPartitions();
 
@@ -121,26 +82,71 @@ uint32_t IceflowConsumer::getConsumptionStats() {
   return m_consumptionTimestamps.size();
 }
 
-uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
-  if (auto validIceflow = m_iceflow.lock()) {
+void IceflowConsumer::subscribeCallBack(
+    const ndn::svs::SVSPubSub::SubscriptionData &subData) {
+  NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
+                                    << subData.seqNo << "] : " << subData.name
+                                    << " : ");
 
-    std::function<void(std::vector<uint8_t>)> pushDataCallback =
-        std::bind(&RingBuffer<std::vector<uint8_t>>::push, &m_inputQueue,
-                  std::placeholders::_1);
+  std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
 
-    return validIceflow->subscribeToTopicPartition(m_subTopic, topicPartition,
-                                                   pushDataCallback);
+  // TODO: Discuss if this is the right way to handle this.
+  if (m_consumerCallback) {
+    m_consumerCallback.value()(data);
+    saveTimestamp();
+    return;
+  }
+
+  NDN_LOG_WARN("No consumer callback defined for upstream edge "
+               << "TODO");
+}
+
+ndn::Name IceflowConsumer::prepareDataName(uint32_t partitionNumber) {
+  return ndn::Name(m_subTopic).appendNumber(partitionNumber);
+}
+
+void IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
+    // TODO: For now I got rid of the output queue. I guess we can discuss if
+    //       we actually need one or if the consumer application's callback
+    //       should always be invoked directly.
+
+    auto dataId = prepareDataName(topicPartition);
+    // TODO: Consider using subscribeToProducer here instead
+    auto subscriptionHandle = validSvsPubSub->subscribe(
+        dataId, std::bind(&IceflowConsumer::subscribeCallBack, this,
+                          std::placeholders::_1));
+
+    m_subscriptionHandles.push_back(subscriptionHandle);
   } else {
-    throw std::runtime_error("Iceflow instance has already expired.");
+    throw std::runtime_error("SVS instance has already expired.");
   }
 }
 
 void IceflowConsumer::unsubscribeFromAllPartitions() {
-  if (auto validIceflow = m_iceflow.lock()) {
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
     for (auto subscriptionHandle : m_subscriptionHandles) {
-      validIceflow->unsubscribe(subscriptionHandle.second);
+      validSvsPubSub->unsubscribe(subscriptionHandle);
     }
   }
   m_subscriptionHandles.clear();
 }
+
+void IceflowConsumer::setConsumerCallback(ConsumerCallback consumerCallback) {
+  m_consumerCallback = std::optional(consumerCallback);
+}
+
+// TODO: Determine where to use this method.
+void IceflowConsumer::reportCongestion(CongestionReason congestionReason) {
+  if (!m_congestionReporter) {
+    NDN_LOG_WARN(
+        "Detected a congestion, but no congestion reporter is defined.");
+    return;
+  }
+
+  auto congestionReporter = m_congestionReporter.value();
+
+  congestionReporter->reportCongestion(congestionReason, m_upstreamEdgeName);
+}
+
 } // namespace iceflow

@@ -21,10 +21,7 @@
 
 #ifdef USE_GRPC
 
-#include <unordered_map>
-
-#include "consumer.hpp"
-#include "producer.hpp"
+#include "iceflow.hpp"
 
 #include "node-instance.grpc.pb.h"
 #include "node-instance.pb.h"
@@ -36,11 +33,7 @@ namespace iceflow {
 
 class NodeInstanceService final : public NodeInstance::Service {
 public:
-  explicit NodeInstanceService(
-      std::unordered_map<std::string, std::shared_ptr<IceflowConsumer>>
-          &consumerMap,
-      std::unordered_map<std::string, std::shared_ptr<IceflowProducer>>
-          &producerMap);
+  explicit NodeInstanceService(std::shared_ptr<IceFlow> iceflow);
 
 public:
   virtual grpc::Status Repartition(grpc::ServerContext *context,
@@ -52,11 +45,7 @@ public:
                                   StatsResponse *response);
 
 private:
-  std::unordered_map<std::string, std::shared_ptr<IceflowConsumer>>
-      &m_consumerMap;
-
-  std::unordered_map<std::string, std::shared_ptr<IceflowProducer>>
-      &m_producerMap;
+  std::shared_ptr<IceFlow> m_iceflow;
 };
 } // namespace iceflow
 

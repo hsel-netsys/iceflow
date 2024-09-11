@@ -22,13 +22,9 @@ void signalCallbackHandler(int signum) {
 
 class LineSplitter {
 public:
-  void text2lines(const std::string &applicationName,
-                  const std::string &fileName,
+  void text2lines(const std::string &fileName,
                   std::function<void(std::string)> push) {
 
-    auto application = applicationName;
-    std::cout << "Starting " << application << " Application - - - - "
-              << std::endl;
     std::ifstream file;
     file.open(fileName);
 
@@ -56,39 +52,41 @@ public:
   }
 };
 
-void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &pubTopic, uint32_t numberOfPartitions,
-         const std::string &filename,
-         std::chrono::milliseconds publishInterval) {
+void run(const std::string &nodeName, const std::string &dagFileName) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
   LineSplitter lineSplitter;
   ndn::Face face;
 
-  auto iceflow = std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix,
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
-                                                    face);
-  auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
-                                           numberOfPartitions, publishInterval);
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+  auto node = dagParser.findNodeByName(nodeName);
+  auto downstreamEdgeName = node.downstream.at(0).id;
+
+  auto applicationConfiguration = node.applicationConfiguration;
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
+  auto sourceTextFileName =
+      applicationConfiguration.at("sourceTextFileName").get<std::string>();
+
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler = new iceflow::Measurement(
+      nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&lineSplitter, &producer, &nodePrefix, &filename]() {
-    lineSplitter.text2lines(
-        nodePrefix, filename, [&producer](const std::string &data) {
-          std::vector<uint8_t> encodedString(data.begin(), data.end());
-          producer.pushData(encodedString);
-        });
+  threads.emplace_back([&lineSplitter, &iceflow, &sourceTextFileName,
+                        &downstreamEdgeName]() {
+    lineSplitter.text2lines(sourceTextFileName, [&iceflow, &downstreamEdgeName](
+                                                    const std::string &data) {
+      std::vector<uint8_t> encodedString(data.begin(), data.end());
+      iceflow->pushData(downstreamEdgeName, encodedString);
+    });
   });
 
   for (auto &thread : threads) {
     thread.join();
   }
-}
-
-std::string generateNodePrefix() {
-  boost::uuids::basic_random_generator<boost::mt19937> gen;
-  boost::uuids::uuid uuid = gen();
-  return to_string(uuid);
 }
 
 int main(int argc, const char *argv[]) {
@@ -99,39 +97,11 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
 
-  std::string nodeName = "text2lines";
-  std::string dagFileName = argv[1];
-  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
-
-  std::string syncPrefix = "/" + dagParser.getApplicationName();
-  auto nodePrefix = generateNodePrefix();
-  auto node = dagParser.findNodeByName(nodeName);
-
-  // TODO: Do this dynamically for all edges
-  auto downstreamEdge = node.downstream.at(0);
-  auto downstreamEdgeName = downstreamEdge.id;
-  auto numberOfPartitions = downstreamEdge.maxPartitions;
-
-  auto applicationConfiguration = node.applicationConfiguration;
-
-  auto saveThreshold =
-      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler =
-      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
-
   try {
-    // TODO: Get rid of this variable eventually
-    auto publishInterval = 500;
+    std::string nodeName = "text2lines";
+    std::string dagFileName = argv[1];
 
-    std::string pubTopic = syncPrefix + "/" + downstreamEdgeName;
-
-    auto sourceTextFileName =
-        applicationConfiguration.at("sourceTextFileName").get<std::string>();
-
-    run(syncPrefix, nodePrefix, pubTopic, numberOfPartitions,
-        sourceTextFileName, std::chrono::milliseconds(publishInterval));
+    run(nodeName, dagFileName);
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
   }
