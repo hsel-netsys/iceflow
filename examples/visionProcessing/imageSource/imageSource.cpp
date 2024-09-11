@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The IceFlow Authors.
+ * Copyright 2024 The IceFlow Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -16,13 +16,16 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include "contentType.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
+#include "serde.hpp"
 
 #include <csignal>
 #include <fstream>
 #include <iostream>
+#include <nlohmann/json.hpp>
 #include <thread>
 #include <vector>
 #include <yaml-cpp/yaml.h>
@@ -43,7 +46,7 @@ class ImageSource {
 public:
   void imageSource(const std::string &applicationName,
                    const std::string &videoFilename,
-                   std::function<void(cv::Mat)> push) {
+                   std::function<void(std::vector<uint8_t>)> push) {
 
     auto application = applicationName;
     std::cout << "Starting " << application << " Application - - - - "
@@ -54,12 +57,6 @@ public:
     cv::VideoCapture cap;
 
     cap.open(videoFilename);
-    //		cout << "Video Frame Rate: " << cap.get(cv::CAP_PROP_FPS) <<
-    // endl;
-    //	    cout<<"Number of Frames of the input video: " <<
-    // cap.get(cv::CAP_PROP_FRAME_COUNT)<<endl; 		cout << "Frame
-    // Processing Rate: "
-    //<< frame_rate << endl;
 
     int computeCounter = 0;
 
@@ -75,35 +72,51 @@ public:
         break;
       }
 
-      // Calculate and print original frame size in bytes
-      //   size_t frameSizeInBytes = frame.total() * frame.elemSize();
-      //   std::cout << "Original Frame size: " << frameSizeInBytes << " bytes"
-      //             << std::endl;
-
-      // Create grayscale frame from the captured frame
+      // Convert the frame to grayscale
       cv::cvtColor(frame, grayFrame, cv::COLOR_BGR2GRAY);
 
-      // Calculate and print frame size in bytes
+      // Calculate the size of the grayscale image
       size_t frameSizeInBytes_after = grayFrame.total() * grayFrame.elemSize();
 
       NDN_LOG_INFO(computeCounter << "th Grey Frame size: "
                                   << frameSizeInBytes_after << " bytes");
-      // Save the grayscale frame to the current directory
-      // std::string grayFilename = "gray_frame_" +
-      // std::to_string(computeCounter) + ".png";
-      // cv::imwrite(grayFilename, grayFrame);
-      //   std::cout << "Saved grayscale frame as " << grayFilename <<
-      //   std::endl;
 
-      push(grayFrame);
+      // Check if the grayscale image is valid
+      if (grayFrame.empty()) {
+        std::cerr << "Error: Received empty image data." << std::endl;
+        return;
+      }
 
+      // Encode the grayscale image into JPEG format
+      std::vector<uint8_t> encodedVideo;
+      if (!cv::imencode(".jpeg", grayFrame, encodedVideo)) {
+        std::cerr << "Error: Could not encode image to JPEG format."
+                  << std::endl;
+        return;
+      }
+
+      // Create a nlohmann::json object to store frameID and encoded video
+      nlohmann::json resultData;
+      resultData["frameID"] = frameID;
+      resultData["image"] = encodedVideo;
+
+      std::vector<uint8_t> serializedData = Serde::serialize(resultData);
+
+      push(serializedData);
+
+      // Log measurements
       measurementHandler->setField(std::to_string(computeCounter), "IS->FD", 0);
       measurementHandler->setField(std::to_string(computeCounter), "IS->PC", 0);
       measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
                                    0);
+
       computeCounter++;
+      frameID++;
     }
   }
+
+private:
+  int frameID = 1;
 };
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
@@ -114,34 +127,18 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   ImageSource inputImage;
   ndn::Face face;
 
-  auto iceflow = std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix,
-
-                                                    face);
+  auto iceflow =
+      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
   auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
                                            numberOfPartitions, publishInterval);
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
   threads.emplace_back([&inputImage, &producer, &nodePrefix, &videoFile]() {
-    inputImage.imageSource(
-        nodePrefix, videoFile, [&producer](const cv::Mat &data) {
-          // Check if data is empty
-          if (data.empty()) {
-            std::cerr << "Error: Received empty image data." << std::endl;
-            return;
-          }
-
-          // Encode the grayscale image to a specified format, e.g., JPEG
-          std::vector<uint8_t> encodedVideo;
-          if (!cv::imencode(".jpg", data, encodedVideo)) {
-            std::cerr << "Error: Could not encode image to JPEG format."
-                      << std::endl;
-            return;
-          }
-
-          // Push the encoded data to the producer
-          producer.pushData(encodedVideo);
-        });
+    inputImage.imageSource(nodePrefix, videoFile,
+                           [&producer](const std::vector<uint8_t> &data) {
+                             producer.pushData(data);
+                           });
   });
 
   for (auto &thread : threads) {
@@ -159,7 +156,6 @@ int main(int argc, const char *argv[]) {
   }
 
   std::string configFileName = argv[1];
-
   std::string measurementFileName = argv[3];
 
   YAML::Node config = YAML::LoadFile(configFileName);

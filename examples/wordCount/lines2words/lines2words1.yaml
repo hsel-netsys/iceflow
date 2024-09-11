@@ -1,5 +1,5 @@
 syncPrefix: /wordcount
-nodePrefix: text2lines1
+nodePrefix: lines2words1
 
 consumer:
   topic: /text2lines/dataMain

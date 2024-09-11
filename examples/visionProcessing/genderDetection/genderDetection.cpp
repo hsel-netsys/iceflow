@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 The IceFlow Authors.
+ * Copyright 2024 The IceFlow Authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -124,7 +124,6 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
         [&consumer]() -> cv::Mat {
           auto encodedImage = consumer.receiveData();
 
-          // Check if the received image data is empty
           if (encodedImage.empty()) {
             std::cerr << "Received empty data, cannot decode." << std::endl;
             return cv::Mat();

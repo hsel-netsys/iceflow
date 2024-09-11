@@ -3,7 +3,7 @@ nodePrefix: imageSource
 
 producer:
   topic: /imageSource/dataMain
-  publishInterval: 100
+  publishInterval: 0
   numberOfPartitions: 3
 
 measurements:
