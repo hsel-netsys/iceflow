@@ -16,7 +16,8 @@ visionProcessing/imageSource/imageSource.cpp
 visionProcessing/faceDetection/faceDetection.cpp
 visionProcessing/ageDetection/ageDetection.cpp
 visionProcessing/genderDetection/genderDetection.cpp
-visionProcessing/peopleCount/peopleCount.cpp)
+visionProcessing/peopleCount/peopleCount.cpp
+visionProcessing/aggregate/aggregate.cpp)
 
 foreach(SOURCE_FILE ${SOURCES})
   get_filename_component(EXECUTABLE_NAME ${SOURCE_FILE} NAME_WE)

@@ -4,11 +4,11 @@ nodePrefix: genderDetection
 consumer:
   topic: /faceDetection/dataMain
   inputThreshold: 200 # TODO: This is unused at the moment
-  partitions: [0,1]
+  partitions: [1,2,3]
 
 producer:
   topic: /genderDetection/dataMain
-  publishInterval: 100
+  publishInterval: 0
   numberOfPartitions: 1
 
 measurements:
