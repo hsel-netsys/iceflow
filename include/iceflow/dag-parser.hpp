@@ -83,6 +83,8 @@ public:
 
   const std::vector<Node> &getNodes();
 
+  const std::string &getApplicationName();
+
   const Node &findNodeByName(const std::string &nodeName);
 
   const Edge &findEdgeByName(const std::string &edgeId);
@@ -91,7 +93,7 @@ public:
   findUpstreamEdges(const std::string &node_name);
 
 private:
-  std::string applicationName;
+  std::string m_applicationName;
   std::vector<Node> nodes;
 };
 

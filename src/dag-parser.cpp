@@ -26,7 +26,7 @@ NDN_LOG_INIT(iceflow.DAGParser);
 
 DAGParser::DAGParser(const std::string &appName,
                      const std::vector<Node> &nodeList)
-    : applicationName(appName), nodes(nodeList) {}
+    : m_applicationName(appName), nodes(nodeList) {}
 
 DAGParser DAGParser::parseFromFile(const std::string &filename) {
   std::ifstream file(filename);
@@ -94,6 +94,8 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
 }
 
 const std::vector<Node> &DAGParser::getNodes() { return nodes; }
+
+const std::string &DAGParser::getApplicationName() { return m_applicationName; }
 
 const Node &DAGParser::findNodeByName(const std::string &nodeName) {
   auto it =

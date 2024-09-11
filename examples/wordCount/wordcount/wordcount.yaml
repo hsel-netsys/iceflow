@@ -1,9 +1,0 @@
-syncPrefix: /wordcount
-nodePrefix: wordcount
-
-consumer:
-  topic: /lines2words/dataMain
-  partitions: [1]
-
-measurements:
-  saveThreshold: 100

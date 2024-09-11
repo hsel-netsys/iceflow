@@ -23,9 +23,13 @@
         {
           "id": "t2l",
           "target": "2",
-          "maxPartitions": 1
+          "maxPartitions": 3
         }
-      ]
+      ],
+      "applicationConfiguration": {
+        "sourceTextFileName": "sourcetext.txt",
+        "measurementsSaveThreshold": 100
+      }
     },
     {
       "task": "2",
@@ -51,7 +55,10 @@
           "target": "3",
           "maxPartitions": 1
         }
-      ]
+      ],
+      "applicationConfiguration": {
+        "measurementsSaveThreshold": 100
+      }
     },
     {
       "task": "3",
@@ -70,6 +77,9 @@
       },
       "communicationTask": {
         "payloadSize": 9001
+      },
+      "applicationConfiguration": {
+        "measurementsSaveThreshold": 100
       }
     }
   ]
