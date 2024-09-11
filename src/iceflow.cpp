@@ -115,7 +115,7 @@ uint32_t IceFlow::subscribeToTopicPartition(
       subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
                                  pushDataCallback, std::placeholders::_1));
 
-  std::cout << "Subscribed to " << topic << std::endl;
+  NDN_LOG_INFO("Subscribed to " << subscribedTopic);
 
   return subscriptionHandle;
 }
