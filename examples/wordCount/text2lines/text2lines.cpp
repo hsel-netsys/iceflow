@@ -56,17 +56,40 @@ public:
   }
 };
 
-void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &pubTopic, uint32_t numberOfPartitions,
-         const std::string &filename,
-         std::chrono::milliseconds publishInterval) {
+void run(const std::string &nodeName, const std::string &dagFileName) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
   LineSplitter lineSplitter;
   ndn::Face face;
 
-  auto iceflow = std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix,
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
-                                                    face);
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+
+  std::string syncPrefix = "/" + dagParser.getApplicationName();
+  auto nodePrefix = generateNodePrefix();
+  auto node = dagParser.findNodeByName(nodeName);
+
+  // TODO: Do this dynamically for all edges
+  auto downstreamEdge = node.downstream.at(0);
+  auto downstreamEdgeName = downstreamEdge.id;
+  auto numberOfPartitions = downstreamEdge.maxPartitions;
+
+  auto applicationConfiguration = node.applicationConfiguration;
+
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
+
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler =
+      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
+  // TODO: Get rid of this variable eventually
+  auto publishInterval = 500;
+
+  std::string pubTopic = syncPrefix + "/" + downstreamEdgeName;
+
+  auto sourceTextFileName =
+      applicationConfiguration.at("sourceTextFileName").get<std::string>();
+
   auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
                                            numberOfPartitions, publishInterval);
 
@@ -103,33 +126,7 @@ int main(int argc, const char *argv[]) {
   std::string dagFileName = argv[1];
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
-  std::string syncPrefix = "/" + dagParser.getApplicationName();
-  auto nodePrefix = generateNodePrefix();
-  auto node = dagParser.findNodeByName(nodeName);
-
-  // TODO: Do this dynamically for all edges
-  auto downstreamEdge = node.downstream.at(0);
-  auto downstreamEdgeName = downstreamEdge.id;
-  auto numberOfPartitions = downstreamEdge.maxPartitions;
-
-  auto applicationConfiguration = node.applicationConfiguration;
-
-  auto saveThreshold =
-      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler =
-      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
-
   try {
-    // TODO: Get rid of this variable eventually
-    auto publishInterval = 500;
-
-    std::string pubTopic = syncPrefix + "/" + downstreamEdgeName;
-
-    auto sourceTextFileName =
-        applicationConfiguration.at("sourceTextFileName").get<std::string>();
-
     run(syncPrefix, nodePrefix, pubTopic, numberOfPartitions,
         sourceTextFileName, std::chrono::milliseconds(publishInterval));
   } catch (const std::exception &e) {
