@@ -16,17 +16,32 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include "ndn-cxx/util/logger.hpp"
 
 #include "iceflow.hpp"
 
 namespace iceflow {
 
+std::string generateNodePrefix() {
+  boost::uuids::basic_random_generator<boost::mt19937> gen;
+  boost::uuids::uuid uuid = gen();
+  return to_string(uuid);
+}
+
 NDN_LOG_INIT(iceflow.IceFlow);
 
-IceFlow::IceFlow(const std::string &syncPrefix, const std::string &nodePrefix,
+IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
                  ndn::Face &face)
-    : m_syncPrefix(syncPrefix), m_nodePrefix(nodePrefix), m_face(face) {
+    : m_face(face) {
+  m_nodePrefix = generateNodePrefix();
+  m_syncPrefix = "/" + dagParser.getApplicationName();
+
+  auto node = dagParser.findNodeByName(nodeName);
+
   ndn::svs::SecurityOptions secOpts(m_keyChain);
 
   ndn::svs::SVSPubSubOptions opts;

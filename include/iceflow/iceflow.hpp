@@ -19,6 +19,7 @@
 #ifndef ICEFLOW_HPP
 #define ICEFLOW_HPP
 
+#include "dag-parser.hpp"
 #include "ringbuffer.hpp"
 
 #include "ndn-svs/security-options.hpp"
@@ -62,8 +63,7 @@ public:
    * Generates a new IceFlow object from a `syncPrefix`, a `nodePrefix`, and a
    * custom `face`.
    */
-  IceFlow(const std::string &syncPrefix, const std::string &nodePrefix,
-          ndn::Face &face);
+  IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face);
 
 public:
   void run();
@@ -108,8 +108,8 @@ private:
 
   std::shared_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
 
-  const std::string m_nodePrefix;
-  const std::string m_syncPrefix;
+  std::string m_nodePrefix;
+  std::string m_syncPrefix;
 
   std::unordered_map<uint32_t, ProducerRegistrationInfo>
       m_producerRegistrations;
