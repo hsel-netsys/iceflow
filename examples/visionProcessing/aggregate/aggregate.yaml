@@ -1,0 +1,16 @@
+syncPrefix: /VP
+nodePrefix: aggregate
+
+consumer:
+  topic1: /ageDetection/dataMain
+  partitions1: [1]
+  topic2: /genderDetection/dataMain
+  partitions2: [1]
+  topic3: /peopleCount/dataMain
+  partitions3: [1]
+  inputThreshold: 200 # TODO: This is unused at the moment
+
+
+measurements:
+  saveThreshold: 100
+  

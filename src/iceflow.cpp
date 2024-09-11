@@ -96,7 +96,7 @@ void IceFlow::run() {
   std::thread svsThread([this] {
     while (m_running) {
       try {
-        m_face.processEvents(ndn::time::milliseconds(5000), true);
+        m_face.processEvents(ndn::time::milliseconds(0), true);
       } catch (std::exception &e) {
         NDN_LOG_ERROR("Error in event handling loop: " << e.what());
       }
