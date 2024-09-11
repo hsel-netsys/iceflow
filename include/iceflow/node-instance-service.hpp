@@ -19,6 +19,8 @@
 #ifndef ICEFLOW_NODE_INSTANCE_SERVICE_H
 #define ICEFLOW_NODE_INSTANCE_SERVICE_H
 
+#ifdef USE_GRPC
+
 #include <unordered_map>
 
 #include "consumer.hpp"
@@ -57,5 +59,7 @@ private:
       &m_producerMap;
 };
 } // namespace iceflow
+
+#endif // USE_GRPC
 
 #endif // ICEFLOW_NODE_INSTANCE_SERVICE_H

@@ -19,7 +19,18 @@
 #ifndef ICEFLOW_CONGESTION_REPORTER_HPP
 #define ICEFLOW_CONGESTION_REPORTER_HPP
 
+#ifdef USE_GRPC
+
 #include "node-executor.pb.h"
+
+#else // !USE_GRPC
+
+enum CongestionReason : int {
+  CONGESTION_REASON_NETWORK = 0,
+  CONGESTION_REASON_PROCESSING = 1
+};
+
+#endif // USE_GRPC
 
 namespace iceflow {
 

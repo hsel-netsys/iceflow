@@ -24,8 +24,12 @@
 
 #include <time.h>
 
+#ifdef USE_GRPC
+
 #include "node-executor.grpc.pb.h"
 #include "node-executor.pb.h"
+
+#endif // USE_GRPC
 
 #include "congestion-reporter.hpp"
 #include "iceflow.hpp"
