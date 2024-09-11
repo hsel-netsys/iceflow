@@ -48,17 +48,47 @@ public:
   }
 };
 
-void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &subTopic, const std::string &pubTopic,
-         uint32_t numberOfProducerPartitions,
-         std::vector<uint32_t> consumerPartitions,
-         std::chrono::milliseconds publishInterval) {
+std::vector<uint32_t> createConsumerPartitions(iceflow::Edge upstreamEdge,
+                                               uint32_t consumerIndex) {
+  auto maxConsumerPartitions = upstreamEdge.maxPartitions;
+  auto consumerPartitions = std::vector<uint32_t>();
+
+  for (auto i = consumerIndex; i < maxConsumerPartitions; i += consumerIndex) {
+    consumerPartitions.push_back(i);
+  }
+
+  return consumerPartitions;
+}
+
+void run(const std::string &nodeName, const std::string &dagFileName,
+         uint32_t consumerIndex) {
   WordSplitter wordSplitter;
   ndn::Face face;
-  auto iceflow =
-      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
-  auto producer = iceflow::IceflowProducer(
-      iceflow, pubTopic, numberOfProducerPartitions, publishInterval);
+
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
+  auto node = dagParser.findNodeByName(nodeName);
+
+  auto upstreamEdges = dagParser.findUpstreamEdges(node);
+  auto upstreamEdge = upstreamEdges.at(0).second;
+  auto upstreamEdgeName = upstreamEdge.id;
+  auto consumerPartitions =
+      createConsumerPartitions(upstreamEdge, consumerIndex);
+
+  // TODO: Do this dynamically for all edges
+  auto downstreamEdge = node.downstream.at(0);
+  auto downstreamEdgeName = downstreamEdge.id;
+  auto numberOfPartitions = downstreamEdge.maxPartitions;
+
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+
+  std::string subTopic = iceflow->getSyncPrefix() + "/" + upstreamEdgeName;
+  std::string pubTopic = iceflow->getSyncPrefix() + "/" + downstreamEdgeName;
+
+  // TODO: Get rid of this variable eventually
+  auto publishInterval = std::chrono::milliseconds(500);
+
+  auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
+                                           numberOfPartitions, publishInterval);
   auto consumer =
       iceflow::IceflowConsumer(iceflow, subTopic, consumerPartitions);
 
@@ -81,24 +111,6 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   }
 }
 
-std::string generateNodePrefix() {
-  boost::uuids::basic_random_generator<boost::mt19937> gen;
-  boost::uuids::uuid uuid = gen();
-  return to_string(uuid);
-}
-
-std::vector<uint32_t> createConsumerPartitions(iceflow::Edge upstreamEdge,
-                                               uint32_t consumerIndex) {
-  auto maxConsumerPartitions = upstreamEdge.maxPartitions;
-  auto consumerPartitions = std::vector<uint32_t>();
-
-  for (auto i = consumerIndex; i < maxConsumerPartitions; i += consumerIndex) {
-    consumerPartitions.push_back(i);
-  }
-
-  return consumerPartitions;
-}
-
 int main(int argc, const char *argv[]) {
 
   if (argc != 3) {
@@ -111,40 +123,9 @@ int main(int argc, const char *argv[]) {
   std::string nodeName = "lines2words";
   std::string dagFileName = argv[1];
   int consumerIndex = std::stoi(argv[2]);
-  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
-
-  std::string syncPrefix = "/" + dagParser.getApplicationName();
-  auto nodePrefix = generateNodePrefix();
-  auto node = dagParser.findNodeByName(nodeName);
-  auto upstreamEdges = dagParser.findUpstreamEdges(node);
-
-  // TODO: Do this dynamically for all edges
-  auto downstreamEdge = node.downstream.at(0);
-  auto downstreamEdgeName = downstreamEdge.id;
-  auto numberOfProducerPartitions = downstreamEdge.maxPartitions;
-
-  auto applicationConfiguration = node.applicationConfiguration;
-  auto saveThreshold =
-      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
-
-  auto upstreamEdge = upstreamEdges.at(0).second;
-  auto upstreamEdgeName = upstreamEdge.id;
-  auto consumerPartitions =
-      createConsumerPartitions(upstreamEdge, consumerIndex);
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler =
-      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
   try {
-    // TODO: Get rid of this variable eventually
-    auto publishInterval = 500;
-
-    std::string subTopic = syncPrefix + "/" + upstreamEdgeName;
-    std::string pubTopic = syncPrefix + "/" + downstreamEdgeName;
-
-    run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfProducerPartitions,
-        consumerPartitions, std::chrono::milliseconds(publishInterval));
+    run(nodeName, dagFileName, consumerIndex);
   }
 
   catch (const std::exception &e) {

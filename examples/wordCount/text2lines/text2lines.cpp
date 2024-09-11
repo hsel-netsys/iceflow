@@ -64,10 +64,8 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
-
-  std::string syncPrefix = "/" + dagParser.getApplicationName();
-  auto nodePrefix = generateNodePrefix();
   auto node = dagParser.findNodeByName(nodeName);
+  auto nodePrefix = iceflow->getNodePrefix();
 
   // TODO: Do this dynamically for all edges
   auto downstreamEdge = node.downstream.at(0);
@@ -83,9 +81,9 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   measurementHandler =
       new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
   // TODO: Get rid of this variable eventually
-  auto publishInterval = 500;
+  auto publishInterval = std::chrono::milliseconds(500);
 
-  std::string pubTopic = syncPrefix + "/" + downstreamEdgeName;
+  std::string pubTopic = iceflow->getSyncPrefix() + "/" + downstreamEdgeName;
 
   auto sourceTextFileName =
       applicationConfiguration.at("sourceTextFileName").get<std::string>();
@@ -95,9 +93,10 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&lineSplitter, &producer, &nodePrefix, &filename]() {
+  threads.emplace_back([&lineSplitter, &producer, &nodePrefix,
+                        &sourceTextFileName]() {
     lineSplitter.text2lines(
-        nodePrefix, filename, [&producer](const std::string &data) {
+        nodePrefix, sourceTextFileName, [&producer](const std::string &data) {
           std::vector<uint8_t> encodedString(data.begin(), data.end());
           producer.pushData(encodedString);
         });
@@ -106,12 +105,6 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   for (auto &thread : threads) {
     thread.join();
   }
-}
-
-std::string generateNodePrefix() {
-  boost::uuids::basic_random_generator<boost::mt19937> gen;
-  boost::uuids::uuid uuid = gen();
-  return to_string(uuid);
 }
 
 int main(int argc, const char *argv[]) {
@@ -124,11 +117,9 @@ int main(int argc, const char *argv[]) {
 
   std::string nodeName = "text2lines";
   std::string dagFileName = argv[1];
-  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
   try {
-    run(syncPrefix, nodePrefix, pubTopic, numberOfPartitions,
-        sourceTextFileName, std::chrono::milliseconds(publishInterval));
+    run(nodeName, dagFileName);
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
   }

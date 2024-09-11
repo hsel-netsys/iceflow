@@ -196,4 +196,7 @@ void IceFlow::deregisterProducer(u_int64_t producerId) {
   }
 }
 
+const std::string &IceFlow::getNodePrefix() { return m_nodePrefix; }
+const std::string &IceFlow::getSyncPrefix() { return m_syncPrefix; }
+
 } // namespace iceflow

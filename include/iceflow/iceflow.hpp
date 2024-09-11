@@ -70,6 +70,10 @@ public:
 
   void shutdown();
 
+  const std::string &getNodePrefix();
+
+  const std::string &getSyncPrefix();
+
   friend IceflowConsumer;
   friend IceflowProducer;
 

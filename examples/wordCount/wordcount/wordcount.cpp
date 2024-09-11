@@ -65,14 +65,22 @@ private:
   std::unordered_map<std::string, int> wordCountMap;
 };
 
-void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &subTopic,
-         std::vector<uint32_t> consumerPartitions) {
+void run(const std::string &nodeName, const std::string &dagFileName) {
   WordCounter compute;
   ndn::Face face;
 
-  auto iceflow =
-      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
+  auto node = dagParser.findNodeByName(nodeName);
+
+  auto upstreamEdges = dagParser.findUpstreamEdges(node);
+  auto upstreamEdge = upstreamEdges.at(0).second;
+  auto upstreamEdgeName = upstreamEdge.id;
+  std::vector<uint32_t> consumerPartitions = {0};
+
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+
+  std::string subTopic = iceflow->getSyncPrefix() + "/" + upstreamEdgeName;
+
   auto consumer =
       iceflow::IceflowConsumer(iceflow, subTopic, consumerPartitions);
 
@@ -90,12 +98,6 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   }
 }
 
-std::string generateNodePrefix() {
-  boost::uuids::basic_random_generator<boost::mt19937> gen;
-  boost::uuids::uuid uuid = gen();
-  return to_string(uuid);
-}
-
 int main(int argc, const char *argv[]) {
 
   if (argc != 2) {
@@ -107,29 +109,9 @@ int main(int argc, const char *argv[]) {
 
   std::string nodeName = "wordcount";
   std::string dagFileName = argv[1];
-  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
-
-  std::string syncPrefix = "/" + dagParser.getApplicationName();
-  auto nodePrefix = generateNodePrefix();
-  auto node = dagParser.findNodeByName(nodeName);
-
-  auto upstreamEdges = dagParser.findUpstreamEdges(node);
-  auto upstreamEdge = upstreamEdges.at(0).second;
-  auto upstreamEdgeName = upstreamEdge.id;
-
-  auto applicationConfiguration = node.applicationConfiguration;
-  auto saveThreshold =
-      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler =
-      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
   try {
-    std::string subTopic = syncPrefix + "/" + upstreamEdgeName;
-    std::vector<uint32_t> consumerPartitions{0};
-
-    run(syncPrefix, nodePrefix, subTopic, consumerPartitions);
+    run(nodeName, dagFileName);
   }
 
   catch (const std::exception &e) {
