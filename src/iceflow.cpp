@@ -128,6 +128,26 @@ void IceFlow::registerConsumerCallback(const std::string &upstreamEdgeName,
   m_iceflowConsumers.at(upstreamEdgeName).setConsumerCallback(consumerCallback);
 }
 
+void IceFlow::registerProsumerCallback(
+    const std::string &upstreamEdgeName, const std::string &downstreamEdgeName,
+    std::function<void(std::vector<uint8_t>,
+                       std::function<void(std::vector<uint8_t>)>)>
+        pushDataCallback) {
+
+  auto producerCallback = [this,
+                           &downstreamEdgeName](std::vector<uint8_t> data) {
+    pushData(downstreamEdgeName, data);
+  };
+
+  auto internalConsumerCallback =
+      [&downstreamEdgeName, this, &pushDataCallback,
+       &producerCallback](std::vector<uint8_t> data) {
+        pushDataCallback(data, producerCallback);
+      };
+
+  registerConsumerCallback(upstreamEdgeName, internalConsumerCallback);
+}
+
 const std::string &IceFlow::getNodePrefix() { return m_nodePrefix; }
 
 const std::string &IceFlow::getSyncPrefix() { return m_syncPrefix; }

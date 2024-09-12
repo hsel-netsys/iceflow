@@ -33,17 +33,6 @@
 
 namespace iceflow {
 
-struct QueueEntry {
-  std::string topic;
-  uint32_t partitionNumber;
-  std::vector<uint8_t> data;
-};
-
-struct ProducerRegistrationInfo {
-  std::function<QueueEntry(void)> popQueueValue;
-  std::function<bool(void)> hasQueueValue;
-};
-
 /**
  * Central building block for IceFlow-based consumers and producers.
  *
@@ -74,6 +63,13 @@ public:
 
   void registerConsumerCallback(const std::string &upstreamEdgeName,
                                 ConsumerCallback consumerCallback);
+
+  void registerProsumerCallback(
+      const std::string &upstreamEdgeName,
+      const std::string &downstreamEdgeName,
+      std::function<void(std::vector<uint8_t>,
+                         std::function<void(std::vector<uint8_t>)>)>
+          pushDataCallback);
 
   void repartitionConsumer(const std::string &upstreamEdgeName,
                            std::vector<uint32_t> partitions);

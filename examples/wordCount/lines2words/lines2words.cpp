@@ -28,13 +28,14 @@ void signalCallbackHandler(int signum) {
 class WordSplitter {
 public:
   void lines2words(const std::string &line,
-                   std::function<void(std::string)> push) {
+                   std::function<void(std::vector<uint8_t>)> push) {
     measurementHandler->setField(std::to_string(m_computeCounter), "CMP_START",
                                  0);
     std::stringstream streamedLines(line);
     std::string word;
     while (streamedLines >> word) {
-      push(word);
+      std::vector<uint8_t> data(word.begin(), word.end());
+      push(data);
       measurementHandler->setField(std::to_string(m_computeCounter),
                                    "lines1->words", 0);
       measurementHandler->setField(std::to_string(m_computeCounter),
@@ -88,20 +89,16 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   measurementHandler =
       new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
-  auto producerCallback = [&iceflow,
-                           &downstreamEdgeName](const std::string &word) {
-    std::vector<uint8_t> data(word.begin(), word.end());
+  auto prosumerCallback =
+      [&iceflow, &wordSplitter](
+          std::vector<uint8_t> data,
+          std::function<void(std::vector<uint8_t>)> pushDataCallback) {
+        std::string line(data.begin(), data.end());
+        wordSplitter.lines2words(line, pushDataCallback);
+      };
 
-    iceflow->pushData(downstreamEdgeName, data);
-  };
-
-  auto consumerCallback = [&iceflow, &wordSplitter,
-                           &producerCallback](std::vector<uint8_t> data) {
-    std::string line(data.begin(), data.end());
-    wordSplitter.lines2words(line, producerCallback);
-  };
-
-  iceflow->registerConsumerCallback(upstreamEdgeName, consumerCallback);
+  iceflow->registerProsumerCallback(upstreamEdgeName, downstreamEdgeName,
+                                    prosumerCallback);
 
   iceflow->repartitionConsumer(upstreamEdgeName, consumerPartitions);
   iceflow->run();
