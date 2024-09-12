@@ -26,13 +26,10 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.IceflowConsumer);
 
-IceflowConsumer::IceflowConsumer(
-    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-    const std::string &syncPrefix, const std::string &upstreamEdgeName,
-    const std::function<void(std::vector<uint8_t>)> &consumerCallback)
-    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName),
-      m_consumerCallback(consumerCallback) {
-}
+IceflowConsumer::IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+                                 const std::string &syncPrefix,
+                                 const std::string &upstreamEdgeName)
+    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName) {}
 
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
 
@@ -118,7 +115,15 @@ void IceflowConsumer::subscribeCallBack(
   std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
 
   saveTimestamp();
-  m_consumerCallback(data);
+
+  // TODO: Discuss if this is the right way to handle this.
+  if (m_consumerCallback) {
+    m_consumerCallback.value()(data);
+    return;
+  }
+
+  NDN_LOG_WARN("No consumer callback defined for upstream edge "
+               << "TODO");
 }
 
 uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
@@ -142,4 +147,9 @@ void IceflowConsumer::unsubscribeFromAllPartitions() {
   }
   m_subscriptionHandles.clear();
 }
+
+void IceflowConsumer::setConsumerCallback(ConsumerCallback consumerCallback) {
+  m_consumerCallback = std::optional(consumerCallback);
+}
+
 } // namespace iceflow

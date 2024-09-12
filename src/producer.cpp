@@ -41,9 +41,7 @@ IceflowProducer::IceflowProducer(
 IceflowProducer::IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
                                  const std::string &syncPrefix,
                                  const std::string &downstreamEdgeName,
-                                 uint32_t numberOfPartitions
-
-                                 )
+                                 uint32_t numberOfPartitions)
     : IceflowProducer(svsPubSub, syncPrefix, downstreamEdgeName,
                       numberOfPartitions, std::nullopt){};
 

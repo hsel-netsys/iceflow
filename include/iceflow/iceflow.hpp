@@ -60,11 +60,6 @@ public:
    */
   IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face);
 
-  IceFlow(
-      DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
-      std::unordered_map<std::string, std::function<void(std::vector<uint8_t>)>>
-          consumerCallbacks);
-
 public:
   void run();
 
@@ -74,8 +69,11 @@ public:
 
   const std::string &getSyncPrefix();
 
-  void pushData(const std::string &producerEdgeName,
+  void pushData(const std::string &downstreamEdgeName,
                 std::vector<uint8_t> payload);
+
+  void registerConsumerCallback(const std::string &upstreamEdgeName,
+                                ConsumerCallback consumerCallback);
 
 private:
   void unsubscribe(const std::string &consumerEdgeName);

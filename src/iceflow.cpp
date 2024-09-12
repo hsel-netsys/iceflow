@@ -34,17 +34,15 @@ std::string generateNodePrefix() {
 
 NDN_LOG_INIT(iceflow.IceFlow);
 
-IceFlow::IceFlow(
-    DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
-    std::unordered_map<std::string, std::function<void(std::vector<uint8_t>)>>
-        consumerCallbacks)
+IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
+                 ndn::Face &face)
     : m_face(face) {
   m_nodePrefix = generateNodePrefix();
   m_syncPrefix = "/" + dagParser.getApplicationName();
 
   auto node = dagParser.findNodeByName(nodeName);
   auto downstreamEdges = node.downstream;
-  auto upstreamEdges = dagParser.findUpstreamEdges(node.task);
+  auto upstreamEdges = dagParser.findUpstreamEdges(node);
 
   ndn::svs::SecurityOptions secOpts(m_keyChain);
 
@@ -57,36 +55,24 @@ IceFlow::IceFlow(
   for (auto downstreamEdge : downstreamEdges) {
     auto downstreamEdgeName = downstreamEdge.id;
     std::cout << downstreamEdgeName << std::endl;
-    auto producer =
+
+    auto iceflowProducer =
         IceflowProducer(m_svsPubSub, m_syncPrefix, downstreamEdgeName,
                         downstreamEdge.maxPartitions);
+
+    m_iceflowProducers.emplace(downstreamEdgeName, iceflowProducer);
   }
 
   for (auto upstreamEdge : upstreamEdges) {
     auto upstreamEdgeName = upstreamEdge.second.id;
     std::cout << upstreamEdgeName << std::endl;
 
-    // TODO: Decide if this the right way to handle this.
-    if (!consumerCallbacks.contains(upstreamEdgeName)) {
-      NDN_LOG_WARN("No callback for upstream edge "
-                   << upstreamEdgeName
-                   << " was provided, skipping initialization of this edge.");
-      continue;
-    }
+    auto iceflowConsumer =
+        IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName);
 
-    auto consumerCallback = consumerCallbacks.at(upstreamEdgeName);
-
-    auto consumer = IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName,
-                                    consumerCallback);
+    m_iceflowConsumers.emplace(upstreamEdgeName, iceflowConsumer);
   }
 };
-
-IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
-                 ndn::Face &face)
-    : IceFlow(
-          dagParser, nodeName, face,
-          std::unordered_map<std::string,
-                             std::function<void(std::vector<uint8_t>)>>()){};
 
 void IceFlow::run() {
   if (m_running) {
@@ -109,7 +95,7 @@ void IceFlow::run() {
 void IceFlow::shutdown() { m_running = false; }
 
 void IceFlow::unsubscribe(const std::string &consumerEdgeName) {
-  auto consumer = m_iceflowConsumers.at(consumerEdgeName);
+  // auto consumer = m_iceflowConsumers.at(consumerEdgeName);
   // TODO: Do something here.
 }
 
@@ -124,7 +110,21 @@ void IceFlow::pushData(const std::string &producerEdgeName,
   producer.pushData(payload);
 }
 
+void IceFlow::registerConsumerCallback(const std::string &upstreamEdgeName,
+                                       ConsumerCallback consumerCallback) {
+  if (!m_iceflowConsumers.contains(upstreamEdgeName)) {
+    throw std::runtime_error("Consumer for upstream edge " + upstreamEdgeName +
+                             " does not exist!");
+  }
+
+  m_iceflowConsumers.at(upstreamEdgeName).setConsumerCallback(consumerCallback);
+}
+
 const std::string &IceFlow::getNodePrefix() { return m_nodePrefix; }
+
 const std::string &IceFlow::getSyncPrefix() { return m_syncPrefix; }
 
+std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
+
+std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
 } // namespace iceflow

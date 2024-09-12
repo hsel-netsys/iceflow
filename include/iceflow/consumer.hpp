@@ -30,27 +30,21 @@
 
 namespace iceflow {
 
+typedef std::function<void(std::vector<uint8_t>)> ConsumerCallback;
+
 /**
  * Allows for subscribing to data published by `IceflowProducer`s.
  */
 class IceflowConsumer {
 
 public:
-  IceflowConsumer(
-      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-      const std::string &syncPrefix, const std::string &upstreamEdgeName,
-      const std::function<void(std::vector<uint8_t>)> &consumerCallback
-      // , std::vector<uint32_t> partitions
-  );
+  IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+                  const std::string &syncPrefix,
+                  const std::string &upstreamEdgeName);
 
   ~IceflowConsumer();
 
-  std::vector<uint8_t> receiveData();
-
-  /**
-   * Indicates whether the queue of this IceflowConsumer contains data.
-   */
-  bool hasData();
+  void setConsumerCallback(ConsumerCallback consumerCallback);
 
   bool repartition(std::vector<uint32_t> partitions);
 
@@ -104,7 +98,7 @@ private:
   // TODO: Make configurable
   std::chrono::seconds m_maxConsumptionAge = std::chrono::seconds(1);
 
-  const std::function<void(std::vector<uint8_t>)> &m_consumerCallback;
+  std::optional<ConsumerCallback> m_consumerCallback;
 };
 } // namespace iceflow
 

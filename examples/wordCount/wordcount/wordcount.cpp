@@ -71,17 +71,14 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
 
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
-  std::unordered_map<std::string, std::function<void(std::vector<uint8_t>)>>
-      consumerCallbacks = {{"l2w", [&compute](std::vector<uint8_t> data) {
-                              compute.countWord([&data]() -> std::string {
-                                return std::string(data.begin(), data.end());
-                              });
-                            }}};
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
 
-  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face,
-                                                    consumerCallbacks
-
-  );
+  iceflow->registerConsumerCallback(
+      "l2w", [&compute](std::vector<uint8_t> data) {
+        compute.countWord([&data]() -> std::string {
+          return std::string(data.begin(), data.end());
+        });
+      });
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
