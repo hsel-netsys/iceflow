@@ -56,8 +56,8 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
     auto downstreamEdgeName = downstreamEdge.id;
 
     auto iceflowProducer =
-        IceflowProducer(m_svsPubSub, m_syncPrefix, downstreamEdgeName,
-                        downstreamEdge.maxPartitions);
+        IceflowProducer(m_svsPubSub, m_nodePrefix, m_syncPrefix,
+                        downstreamEdgeName, downstreamEdge.maxPartitions);
 
     m_iceflowProducers.emplace(downstreamEdgeName, iceflowProducer);
   }

@@ -85,10 +85,6 @@ private:
   ndn::KeyChain m_keyChain;
   ndn::Face &m_face;
 
-  std::mutex m_producerRegistrationMutex;
-  std::condition_variable m_producerRegistrationConditionVariable;
-  bool m_producersAvailable = false;
-
   bool m_running = false;
 
   std::shared_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
@@ -98,8 +94,6 @@ private:
 
   std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
   std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
-
-  uint32_t m_nextProducerId = 0;
 };
 
 } // namespace iceflow

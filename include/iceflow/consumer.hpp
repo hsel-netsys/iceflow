@@ -26,7 +26,6 @@
 #include <vector>
 
 #include "congestion-reporter.hpp"
-#include "ringbuffer.hpp"
 
 namespace iceflow {
 
@@ -92,8 +91,6 @@ private:
   std::vector<uint32_t> m_partitions;
 
   std::unordered_map<uint32_t, uint32_t> m_subscriptionHandles;
-
-  RingBuffer<std::vector<uint8_t>> m_inputQueue;
 
   std::deque<std::chrono::time_point<std::chrono::steady_clock>>
       m_consumptionTimestamps;

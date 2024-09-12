@@ -46,12 +46,12 @@ namespace iceflow {
 class IceflowProducer {
 public:
   IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &syncPrefix,
+                  const std::string &nodePrefix, const std::string &syncPrefix,
                   const std::string &upstreamEdgeName,
                   uint32_t numberOfPartitions);
 
   IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &syncPrefix,
+                  const std::string &nodePrefix, const std::string &syncPrefix,
                   const std::string &upstreamEdgeName,
                   uint32_t numberOfPartitions,
                   std::shared_ptr<CongestionReporter> congestionReporter);
@@ -67,8 +67,8 @@ public:
 private:
   IceflowProducer(
       std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-      const std::string &syncPrefix, const std::string &upstreamEdgeName,
-      uint32_t numberOfPartitions,
+      const std::string &nodePrefix, const std::string &syncPrefix,
+      const std::string &upstreamEdgeName, uint32_t numberOfPartitions,
       std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
   uint32_t getNextPartitionNumber();
@@ -88,13 +88,9 @@ private:
   const std::string m_pubTopic;
 
   std::string m_nodePrefix;
-  std::string m_syncPrefix;
 
   uint32_t m_numberOfPartitions;
   std::unordered_set<uint32_t> m_topicPartitions;
-
-  std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
-  uint64_t m_subscriberId;
 
   std::mt19937 m_randomNumberGenerator;
 
