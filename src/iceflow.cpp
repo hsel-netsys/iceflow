@@ -77,8 +77,10 @@ void IceFlow::run() {
     throw std::runtime_error("Iceflow instance is already running!");
   }
 
+  m_running = true;
+
   std::thread svsThread([this] {
-    while (true) {
+    while (m_running) {
       try {
         m_face.processEvents(ndn::time::milliseconds(5000), true);
       } catch (std::exception &e) {
@@ -101,21 +103,17 @@ void IceFlow::repartitionConsumer(const std::string &upstreamEdgeName,
 }
 
 void IceFlow::repartitionProducer(const std::string &downstreamEdgeName,
-                                          uint64_t numberOfPartitions) {
+                                  uint64_t numberOfPartitions) {
   if (!m_iceflowProducers.contains(downstreamEdgeName)) {
     throw std::runtime_error("Producer for downstream edge " +
                              downstreamEdgeName + " does not exist!");
   }
 
-  m_iceflowProducers.at(downstreamEdgeName).setTopicPartitions(numberOfPartitions);
+  m_iceflowProducers.at(downstreamEdgeName)
+      .setTopicPartitions(numberOfPartitions);
 }
 
 void IceFlow::shutdown() { m_running = false; }
-
-void IceFlow::unsubscribe(const std::string &consumerEdgeName) {
-  // auto consumer = m_iceflowConsumers.at(consumerEdgeName);
-  // TODO: Do something here.
-}
 
 void IceFlow::onMissingData(
     const std::vector<ndn::svs::MissingDataInfo> &missing_data) {

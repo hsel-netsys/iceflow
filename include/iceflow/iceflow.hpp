@@ -78,8 +78,6 @@ public:
                            uint64_t numberOfPartitions);
 
 private:
-  void unsubscribe(const std::string &consumerEdgeName);
-
   void
   onMissingData(const std::vector<ndn::svs::MissingDataInfo> &missing_data);
 
