@@ -92,6 +92,16 @@ void IceFlow::run() {
   svsThread.join();
 }
 
+void IceFlow::repartitionConsumer(const std::string &upstreamEdgeName,
+                                  std::vector<uint32_t> partitions) {
+  if (!m_iceflowConsumers.contains(upstreamEdgeName)) {
+    throw std::runtime_error("Consumer for upstream edge " + upstreamEdgeName +
+                             " does not exist!");
+  }
+
+  m_iceflowConsumers.at(upstreamEdgeName).repartition(partitions);
+}
+
 void IceFlow::shutdown() { m_running = false; }
 
 void IceFlow::unsubscribe(const std::string &consumerEdgeName) {

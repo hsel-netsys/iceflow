@@ -27,25 +27,25 @@ void signalCallbackHandler(int signum) {
 
 class WordSplitter {
 public:
-  void lines2words(std::function<std::string()> receive,
+  void lines2words(const std::string &line,
                    std::function<void(std::string)> push) {
-    int computeCounter = 0;
-    while (true) {
-      auto line = receive();
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
-                                   0);
-      std::stringstream streamedLines(line);
-      std::string word;
-      while (streamedLines >> word) {
-        std::cout << word << std::endl;
-        push(word);
-        measurementHandler->setField(std::to_string(computeCounter),
-                                     "lines1->words", 0);
-        measurementHandler->setField(std::to_string(computeCounter),
-                                     "CMP_FINISH", 0);
-      }
+    measurementHandler->setField(std::to_string(m_computeCounter), "CMP_START",
+                                 0);
+    std::stringstream streamedLines(line);
+    std::string word;
+    while (streamedLines >> word) {
+      std::cout << word << std::endl;
+      push(word);
+      measurementHandler->setField(std::to_string(m_computeCounter),
+                                   "lines1->words", 0);
+      measurementHandler->setField(std::to_string(m_computeCounter),
+                                   "CMP_FINISH", 0);
+      m_computeCounter++;
     }
   }
+
+private:
+  int m_computeCounter = 0;
 };
 
 std::vector<uint32_t> createConsumerPartitions(iceflow::Edge upstreamEdge,
@@ -77,38 +77,35 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   // TODO: Do this dynamically for all edges
   auto downstreamEdge = node.downstream.at(0);
   auto downstreamEdgeName = downstreamEdge.id;
-  auto numberOfPartitions = downstreamEdge.maxPartitions;
+
+  auto applicationConfiguration = node.applicationConfiguration;
+
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
 
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+  auto nodePrefix = iceflow->getNodePrefix();
 
-  std::string subTopic = iceflow->getSyncPrefix() + "/" + upstreamEdgeName;
-  std::string pubTopic = iceflow->getSyncPrefix() + "/" + downstreamEdgeName;
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler =
+      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
-  // TODO: Get rid of this variable eventually
-  auto publishInterval = std::chrono::milliseconds(500);
+  auto producerCallback = [&iceflow,
+                           &downstreamEdgeName](const std::string &word) {
+    std::vector<uint8_t> data(word.begin(), word.end());
 
-  auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
-                                           numberOfPartitions, publishInterval);
-  auto consumer =
-      iceflow::IceflowConsumer(iceflow, subTopic, consumerPartitions);
+    iceflow->pushData(downstreamEdgeName, data);
+  };
 
-  std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&wordSplitter, &consumer, &producer]() {
-    wordSplitter.lines2words(
-        [&consumer]() -> std::string {
-          auto data = consumer.receiveData();
-          return std::string(data.begin(), data.end());
-        },
-        [&producer](const std::string &data) {
-          std::vector<uint8_t> encodedString(data.begin(), data.end());
-          producer.pushData(encodedString);
-        });
-  });
+  auto consumerCallback = [&iceflow, &wordSplitter,
+                           &producerCallback](std::vector<uint8_t> data) {
+    std::string line(data.begin(), data.end());
+    wordSplitter.lines2words(line, producerCallback);
+  };
 
-  for (auto &thread : threads) {
-    thread.join();
-  }
+  iceflow->registerConsumerCallback(upstreamEdgeName, consumerCallback);
+  iceflow->repartitionConsumer(upstreamEdgeName, {1, 2, 3});
+  iceflow->run();
 }
 
 int main(int argc, const char *argv[]) {

@@ -75,6 +75,9 @@ public:
   void registerConsumerCallback(const std::string &upstreamEdgeName,
                                 ConsumerCallback consumerCallback);
 
+  void repartitionConsumer(const std::string &upstreamEdgeName,
+                           std::vector<uint32_t> partitions);
+
 private:
   void unsubscribe(const std::string &consumerEdgeName);
 

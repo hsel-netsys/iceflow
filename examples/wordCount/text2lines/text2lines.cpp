@@ -67,10 +67,8 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   auto node = dagParser.findNodeByName(nodeName);
   auto nodePrefix = iceflow->getNodePrefix();
 
-  // // TODO: Do this dynamically for all edges
-  // auto downstreamEdge = node.downstream.at(0);
-  // auto downstreamEdgeName = downstreamEdge.id;
-  // auto numberOfPartitions = downstreamEdge.maxPartitions;
+  auto downstreamEdge = node.downstream.at(0);
+  auto downstreamEdgeName = downstreamEdge.id;
 
   auto applicationConfiguration = node.applicationConfiguration;
 
@@ -81,23 +79,19 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   measurementHandler =
       new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
-  // std::string pubTopic = iceflow->getSyncPrefix() + "/" + downstreamEdgeName;
-
   auto sourceTextFileName =
       applicationConfiguration.at("sourceTextFileName").get<std::string>();
 
-  // auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
-  //                                          numberOfPartitions,
-  //                                          publishInterval);
-
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&lineSplitter, &producer, &nodePrefix,
-                        &sourceTextFileName]() {
+  threads.emplace_back([&lineSplitter, &iceflow, &nodePrefix,
+                        &sourceTextFileName, &downstreamEdgeName]() {
     lineSplitter.text2lines(
-        nodePrefix, sourceTextFileName, [&producer](const std::string &data) {
+        nodePrefix, sourceTextFileName,
+        [&iceflow, &downstreamEdgeName](const std::string &data) {
+          std::cout << "PUSHING!" << std::endl;
           std::vector<uint8_t> encodedString(data.begin(), data.end());
-          producer.pushData(encodedString);
+          iceflow->pushData(downstreamEdgeName, encodedString);
         });
   });
 

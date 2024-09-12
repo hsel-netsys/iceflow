@@ -72,6 +72,17 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+  auto node = dagParser.findNodeByName(nodeName);
+  auto nodePrefix = iceflow->getNodePrefix();
+
+  auto applicationConfiguration = node.applicationConfiguration;
+
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
+
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler =
+      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
   iceflow->registerConsumerCallback(
       "l2w", [&compute](std::vector<uint8_t> data) {
@@ -79,6 +90,8 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
           return std::string(data.begin(), data.end());
         });
       });
+
+  iceflow->repartitionConsumer("l2w", {0});
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
