@@ -127,14 +127,19 @@ const Edge &DAGParser::findEdgeByName(const std::string &edgeId) {
 }
 
 std::vector<std::pair<const Node &, const Edge &>>
-DAGParser::findUpstreamEdges(const std::string &nodeName) {
+DAGParser::findUpstreamEdges(const Node &node) {
+  return findUpstreamEdges(node.task);
+}
+
+std::vector<std::pair<const Node &, const Edge &>>
+DAGParser::findUpstreamEdges(const std::string &taskId) {
   std::vector<std::pair<const Node &, const Edge &>> upstreamEdges;
 
   for (const auto &node : nodes) {
 
     auto it = std::find_if(
         node.downstream.begin(), node.downstream.end(),
-        [&nodeName](const Edge &edge) { return edge.target == nodeName; });
+        [&taskId](const Edge &edge) { return edge.target == taskId; });
 
     if (it != node.downstream.end()) {
       upstreamEdges.emplace_back(node, *it);

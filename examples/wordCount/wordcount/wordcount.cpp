@@ -113,8 +113,7 @@ int main(int argc, const char *argv[]) {
   auto nodePrefix = generateNodePrefix();
   auto node = dagParser.findNodeByName(nodeName);
 
-  // TODO: Should this method find edges by node name or task ID?
-  auto upstreamEdges = dagParser.findUpstreamEdges(node.task);
+  auto upstreamEdges = dagParser.findUpstreamEdges(node);
   auto upstreamEdge = upstreamEdges.at(0).second;
   auto upstreamEdgeName = upstreamEdge.id;
 

@@ -90,7 +90,10 @@ public:
   const Edge &findEdgeByName(const std::string &edgeId);
 
   std::vector<std::pair<const Node &, const Edge &>>
-  findUpstreamEdges(const std::string &node_name);
+  findUpstreamEdges(const std::string &taskId);
+
+  std::vector<std::pair<const Node &, const Edge &>>
+  findUpstreamEdges(const Node &node);
 
 private:
   std::string m_applicationName;
