@@ -126,10 +126,18 @@ void IceflowConsumer::subscribeCallBack(
                << "TODO");
 }
 
+ndn::Name IceflowConsumer::prepareDataName(const std::string &topic,
+                                           uint32_t partitionNumber) {
+  return ndn::Name(topic).appendNumber(partitionNumber);
+}
+
 uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
   if (auto validSvsPubSub = m_svsPubSub.lock()) {
-    // TODO: Do we actually need an internal queue here...?
+    // TODO: For now I got rid of the output queue. I guess we can discuss if
+    //       we actually need one or if the consumer application's callback
+    //       should always be invoked directly.
 
+    auto dataID = prepareDataName(m_subTopic, topicPartition);
     // TODO: Consider using subscribeToProducer here instead
     return validSvsPubSub->subscribe(
         m_subTopic, std::bind(&IceflowConsumer::subscribeCallBack, this,

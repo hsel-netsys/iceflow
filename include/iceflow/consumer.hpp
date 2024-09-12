@@ -63,6 +63,9 @@ private:
 
   void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData);
 
+  // TODO: Get rid of duplicate
+  ndn::Name prepareDataName(const std::string &topic, uint32_t partitionNumber);
+
   /**
    * Updates the topic partitions this IceflowConsumer is subscribed to.
    *
