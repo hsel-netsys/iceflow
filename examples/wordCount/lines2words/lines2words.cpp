@@ -116,7 +116,7 @@ int main(int argc, const char *argv[]) {
   std::string syncPrefix = "/" + dagParser.getApplicationName();
   auto nodePrefix = generateNodePrefix();
   auto node = dagParser.findNodeByName(nodeName);
-  auto upstreamEdges = dagParser.findUpstreamEdges(node.task);
+  auto upstreamEdges = dagParser.findUpstreamEdges(node);
 
   // TODO: Do this dynamically for all edges
   auto downstreamEdge = node.downstream.at(0);
