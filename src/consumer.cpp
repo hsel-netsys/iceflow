@@ -143,19 +143,15 @@ uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
     return validSvsPubSub->subscribe(
         m_subTopic, std::bind(&IceflowConsumer::subscribeCallBack, this,
                               pushDataCallback, std::placeholders::_1));
-
-    // return validSvsPubSub->subscribeToTopicPartition(m_subTopic,
-    // topicPartition,
-    //                                                pushDataCallback);
   } else {
     throw std::runtime_error("SVS instance has already expired.");
   }
 }
 
 void IceflowConsumer::unsubscribeFromAllPartitions() {
-  if (auto validIceflow = m_iceflow.lock()) {
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
     for (auto subscriptionHandle : m_subscriptionHandles) {
-      validIceflow->unsubscribe(subscriptionHandle.second);
+      validSvsPubSub->unsubscribe(subscriptionHandle.second);
     }
   }
   m_subscriptionHandles.clear();
