@@ -22,13 +22,9 @@ void signalCallbackHandler(int signum) {
 
 class LineSplitter {
 public:
-  void text2lines(const std::string &applicationName,
-                  const std::string &fileName,
+  void text2lines(const std::string &fileName,
                   std::function<void(std::string)> push) {
 
-    auto application = applicationName;
-    std::cout << "Starting " << application << " Application - - - - "
-              << std::endl;
     std::ifstream file;
     file.open(fileName);
 
@@ -65,33 +61,27 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
 
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
   auto node = dagParser.findNodeByName(nodeName);
-  auto nodePrefix = iceflow->getNodePrefix();
-
-  auto downstreamEdge = node.downstream.at(0);
-  auto downstreamEdgeName = downstreamEdge.id;
+  auto downstreamEdgeName = node.downstream.at(0).id;
 
   auto applicationConfiguration = node.applicationConfiguration;
-
   auto saveThreshold =
       applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler =
-      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
-
   auto sourceTextFileName =
       applicationConfiguration.at("sourceTextFileName").get<std::string>();
 
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler = new iceflow::Measurement(
+      nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
+
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&lineSplitter, &iceflow, &nodePrefix,
-                        &sourceTextFileName, &downstreamEdgeName]() {
-    lineSplitter.text2lines(
-        nodePrefix, sourceTextFileName,
-        [&iceflow, &downstreamEdgeName](const std::string &data) {
-          std::vector<uint8_t> encodedString(data.begin(), data.end());
-          iceflow->pushData(downstreamEdgeName, encodedString);
-        });
+  threads.emplace_back([&lineSplitter, &iceflow, &sourceTextFileName,
+                        &downstreamEdgeName]() {
+    lineSplitter.text2lines(sourceTextFileName, [&iceflow, &downstreamEdgeName](
+                                                    const std::string &data) {
+      std::vector<uint8_t> encodedString(data.begin(), data.end());
+      iceflow->pushData(downstreamEdgeName, encodedString);
+    });
   });
 
   for (auto &thread : threads) {

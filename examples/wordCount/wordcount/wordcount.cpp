@@ -37,11 +37,10 @@ public:
     std::istringstream stream(words);
     std::string word;
     while (stream >> word) {
-      std::cout << "Word occurrences:\n";
+      std::cout << "Word occurrences:" << std::endl;
       std::transform(word.begin(), word.end(), word.begin(),
                      [](unsigned char c) { return std::tolower(c); });
 
-      // Increment the count for the word in the map
       wordCountMap[word]++;
       measurementHandler->setField(std::to_string(m_computeCounter),
                                    "lines2->wordcount", 0);
@@ -54,7 +53,7 @@ public:
   void printOccurances() {
 
     for (const auto &pair : wordCountMap) {
-      std::cout << pair.first << ": " << pair.second << " times\n";
+      std::cout << pair.first << ": " << pair.second << " times" << std::endl;
     }
   }
 
@@ -71,20 +70,15 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
 
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
   auto node = dagParser.findNodeByName(nodeName);
-  auto nodePrefix = iceflow->getNodePrefix();
-
-  auto upstreamEdges = dagParser.findUpstreamEdges(node);
-  auto upstreamEdge = upstreamEdges.at(0).second;
-  auto upstreamEdgeName = upstreamEdge.id;
+  auto upstreamEdgeName = dagParser.findUpstreamEdges(node).at(0).second.id;
 
   auto applicationConfiguration = node.applicationConfiguration;
-
   auto saveThreshold =
       applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
 
   ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler =
-      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
+  measurementHandler = new iceflow::Measurement(
+      nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
 
   iceflow->registerConsumerCallback(
       upstreamEdgeName, [&compute](std::vector<uint8_t> data) {
@@ -93,7 +87,7 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
         });
       });
 
-  iceflow->repartitionConsumer("l2w", {0});
+  iceflow->repartitionConsumer(upstreamEdgeName, {0});
 
   iceflow->run();
 }
