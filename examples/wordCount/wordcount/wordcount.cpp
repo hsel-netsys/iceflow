@@ -107,10 +107,10 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
 
-  std::string nodeName = "wordcount";
-  std::string dagFileName = argv[1];
-
   try {
+    std::string nodeName = "wordcount";
+    std::string dagFileName = argv[1];
+
     run(nodeName, dagFileName);
   }
 
