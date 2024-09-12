@@ -26,7 +26,7 @@ NDN_LOG_INIT(iceflow.IceflowProducer);
 
 IceflowProducer::IceflowProducer(
     std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-    uint32_t numberOfPartitions, std::chrono::milliseconds publishInterval,
+    uint32_t numberOfPartitions,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_iceflow(iceflow), m_numberOfPartitions(numberOfPartitions),
       m_pubTopic(pubTopic),
@@ -35,24 +35,16 @@ IceflowProducer::IceflowProducer(
       m_congestionReporter(congestionReporter) {
 
   setTopicPartitions(numberOfPartitions);
-  setPublishInterval(publishInterval);
 
   if (auto validIceflow = m_iceflow.lock()) {
     std::function<QueueEntry(void)> popQueueValueCallback =
         std::bind(&IceflowProducer::popQueueValue, this);
     std::function<bool(void)> hasQueueValueCallback =
         std::bind(&IceflowProducer::hasQueueValue, this);
-    std::function<std::chrono::time_point<std::chrono::steady_clock>(void)>
-        getNextPublishTimePointCallback =
-            std::bind(&IceflowProducer::getNextPublishTimePoint, this);
-    std::function<void(void)> resetLastPublishTimepointCallback =
-        std::bind(&IceflowProducer::resetLastPublishTimePoint, this);
 
     ProducerRegistrationInfo producerRegistration = {
         popQueueValueCallback,
         hasQueueValueCallback,
-        getNextPublishTimePointCallback,
-        resetLastPublishTimepointCallback,
     };
 
     m_subscriberId = validIceflow->registerProducer(producerRegistration);
@@ -63,16 +55,17 @@ IceflowProducer::IceflowProducer(
 
 IceflowProducer::IceflowProducer(std::shared_ptr<IceFlow> iceflow,
                                  const std::string &pubTopic,
-                                 uint32_t numberOfPartitions,
-                                 std::chrono::milliseconds publishInterval)
-    : IceflowProducer(iceflow, pubTopic, numberOfPartitions, publishInterval,
+                                 uint32_t numberOfPartitions
+
+                                 )
+    : IceflowProducer(iceflow, pubTopic, numberOfPartitions,
                       std::nullopt){};
 
 IceflowProducer::IceflowProducer(
     std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-    uint32_t numberOfPartitions, std::chrono::milliseconds publishInterval,
+    uint32_t numberOfPartitions,
     std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceflowProducer(iceflow, pubTopic, numberOfPartitions, publishInterval,
+    : IceflowProducer(iceflow, pubTopic, numberOfPartitions,
                       std::optional(congestionReporter)){};
 
 IceflowProducer::~IceflowProducer() {
@@ -106,15 +99,6 @@ void IceflowProducer::cleanUpTimestamps(
 
     m_productionTimestamps.pop_front();
   }
-}
-
-void IceflowProducer::setPublishInterval(
-    std::chrono::milliseconds publishInterval) {
-  if (publishInterval.count() < 0) {
-    throw std::invalid_argument("Publish interval has to be positive.");
-  }
-
-  m_publishInterval = publishInterval;
 }
 
 void IceflowProducer::setTopicPartitions(uint64_t numberOfPartitions) {
@@ -170,12 +154,4 @@ QueueEntry IceflowProducer::popQueueValue() {
 
 bool IceflowProducer::hasQueueValue() { return !m_outputQueue.empty(); }
 
-void IceflowProducer::resetLastPublishTimePoint() {
-  m_lastPublishTimePoint = std::chrono::steady_clock::now();
-}
-
-std::chrono::time_point<std::chrono::steady_clock>
-IceflowProducer::getNextPublishTimePoint() {
-  return m_lastPublishTimePoint + m_publishInterval;
-}
 } // namespace iceflow

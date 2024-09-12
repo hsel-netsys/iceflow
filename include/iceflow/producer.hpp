@@ -45,19 +45,15 @@ namespace iceflow {
 class IceflowProducer {
 public:
   IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  uint32_t numberOfPartitions,
-                  std::chrono::milliseconds publishInterval);
+                  uint32_t numberOfPartitions);
 
   IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
                   uint32_t numberOfPartitions,
-                  std::chrono::milliseconds publishInterval,
                   std::shared_ptr<CongestionReporter> congestionReporter);
 
   ~IceflowProducer();
 
   void pushData(const std::vector<uint8_t> &data);
-
-  void setPublishInterval(std::chrono::milliseconds publishInterval);
 
   void setTopicPartitions(uint64_t numberOfPartitions);
 
@@ -66,7 +62,7 @@ public:
 private:
   IceflowProducer(
       std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-      uint32_t numberOfPartitions, std::chrono::milliseconds publishInterval,
+      uint32_t numberOfPartitions,
       std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
   uint32_t getNextPartitionNumber();
@@ -74,10 +70,6 @@ private:
   QueueEntry popQueueValue();
 
   bool hasQueueValue();
-
-  void resetLastPublishTimePoint();
-
-  std::chrono::time_point<std::chrono::steady_clock> getNextPublishTimePoint();
 
   void reportCongestion(CongestionReason congestionReason,
                         const std::string &edgeName);
@@ -95,9 +87,7 @@ private:
   uint32_t m_numberOfPartitions;
   std::unordered_set<uint32_t> m_topicPartitions;
 
-  std::chrono::nanoseconds m_publishInterval;
   std::chrono::time_point<std::chrono::steady_clock> m_lastPublishTimePoint;
-
   uint64_t m_subscriberId;
 
   std::mt19937 m_randomNumberGenerator;

@@ -44,14 +44,6 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
   auto downstreamEdges = node.downstream;
   auto upstreamEdges = dagParser.findUpstreamEdges(node.task);
 
-  for (auto downstreamEdge : downstreamEdges) {
-    std::cout << downstreamEdge.id << std::endl;
-  }
-
-  for (auto upstreamEdge : upstreamEdges) {
-    std::cout << upstreamEdge.second.id << std::endl;
-  }
-
   ndn::svs::SecurityOptions secOpts(m_keyChain);
 
   ndn::svs::SVSPubSubOptions opts;
@@ -59,6 +51,14 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
   m_svsPubSub = std::make_shared<ndn::svs::SVSPubSub>(
       ndn::Name(m_syncPrefix), ndn::Name(m_nodePrefix), m_face,
       std::bind(&IceFlow::onMissingData, this, _1), opts, secOpts);
+
+  for (auto downstreamEdge : downstreamEdges) {
+    std::cout << downstreamEdge.id << std::endl;
+  }
+
+  for (auto upstreamEdge : upstreamEdges) {
+    std::cout << upstreamEdge.second.id << std::endl;
+  }
 };
 
 void IceFlow::run() {
@@ -80,6 +80,7 @@ void IceFlow::run() {
   while (m_running) {
     NDN_LOG_INFO("Checking if producers are registered...");
     std::unique_lock lock(m_producerRegistrationMutex);
+    // TODO: Change so that this operates on the producer queues
     m_producerRegistrationConditionVariable.wait(
         lock, [this] { return m_producersAvailable; });
     NDN_LOG_INFO("At least one producer is registered, continuing "
@@ -91,35 +92,11 @@ void IceFlow::run() {
     for (auto producerRegistrationTuple : m_producerRegistrations) {
       auto producerRegistration = std::get<1>(producerRegistrationTuple);
 
-      auto nextPublishTimePoint =
-          producerRegistration.getNextPublishTimePoint();
-      auto timeUntilNextPublish =
-          nextPublishTimePoint - std::chrono::steady_clock::now();
-
-      if (nextPublishTimePoint < closestNextPublishTimePoint) {
-        closestNextPublishTimePoint = nextPublishTimePoint;
-      }
-
-      if (timeUntilNextPublish.count() > 0) {
-        continue;
-      }
-
       if (producerRegistration.hasQueueValue()) {
         auto queueEntry = producerRegistration.popQueueValue();
         publishMsg(queueEntry.data, queueEntry.topic,
                    queueEntry.partitionNumber);
       }
-
-      producerRegistration.resetLastPublishTimepoint();
-    }
-
-    auto minimalTimeUntilNextPublish =
-        closestNextPublishTimePoint - std::chrono::steady_clock::now();
-
-    if (minimalTimeUntilNextPublish.count() > 0) {
-      NDN_LOG_INFO("Sleeping for " << minimalTimeUntilNextPublish.count()
-                                   << " nanoseconds...");
-      std::this_thread::sleep_for(minimalTimeUntilNextPublish);
     }
   }
 

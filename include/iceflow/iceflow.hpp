@@ -41,9 +41,6 @@ struct QueueEntry {
 struct ProducerRegistrationInfo {
   std::function<QueueEntry(void)> popQueueValue;
   std::function<bool(void)> hasQueueValue;
-  std::function<std::chrono::time_point<std::chrono::steady_clock>(void)>
-      getNextPublishTimePoint;
-  std::function<void(void)> resetLastPublishTimepoint;
 };
 
 class IceflowProducer;
