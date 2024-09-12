@@ -74,6 +74,9 @@ public:
   void repartitionConsumer(const std::string &upstreamEdgeName,
                            std::vector<uint32_t> partitions);
 
+  void repartitionProducer(const std::string &downstreamEdgeName,
+                           uint64_t numberOfPartitions);
+
 private:
   void unsubscribe(const std::string &consumerEdgeName);
 

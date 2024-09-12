@@ -99,6 +99,8 @@ void IceflowProducer::setTopicPartitions(uint64_t numberOfPartitions) {
         "At least one topic partition has to be defined!");
   }
 
+  m_topicPartitions.clear();
+
   for (uint64_t i = 0; i < numberOfPartitions; ++i) {
     m_topicPartitions.emplace_hint(m_topicPartitions.end(), i);
   }

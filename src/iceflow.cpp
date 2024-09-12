@@ -100,6 +100,16 @@ void IceFlow::repartitionConsumer(const std::string &upstreamEdgeName,
   m_iceflowConsumers.at(upstreamEdgeName).repartition(partitions);
 }
 
+void IceFlow::repartitionProducer(const std::string &downstreamEdgeName,
+                                          uint64_t numberOfPartitions) {
+  if (!m_iceflowProducers.contains(downstreamEdgeName)) {
+    throw std::runtime_error("Producer for downstream edge " +
+                             downstreamEdgeName + " does not exist!");
+  }
+
+  m_iceflowProducers.at(downstreamEdgeName).setTopicPartitions(numberOfPartitions);
+}
+
 void IceFlow::shutdown() { m_running = false; }
 
 void IceFlow::unsubscribe(const std::string &consumerEdgeName) {
