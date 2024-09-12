@@ -81,38 +81,10 @@ void IceFlow::run() {
 
 void IceFlow::shutdown() { m_running = false; }
 
-// uint32_t IceFlow::subscribeToTopicPartition(
-//     const std::string &topic, uint32_t partitionNumber,
-//     std::function<void(std::vector<uint8_t>)> &pushDataCallback) {
-
-//   auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
-
-//   auto subscriptionHandle = m_svsPubSub->subscribe(
-//       subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
-//                                  pushDataCallback, std::placeholders::_1));
-
-//   NDN_LOG_INFO("Subscribed to " << subscribedTopic);
-
-//   return subscriptionHandle;
-// }
-
 void IceFlow::unsubscribe(const std::string &consumerEdgeName) {
   auto consumer = m_iceflowConsumers.at(consumerEdgeName);
   // TODO: Do something here.
 }
-
-// void IceFlow::subscribeCallBack(
-//     const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
-//     const ndn::svs::SVSPubSub::SubscriptionData &subData) {
-//   NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
-//                                     << subData.seqNo << "] : " <<
-//                                     subData.name
-//                                     << " : ");
-
-//   std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
-
-//   pushDataCallback(data);
-// }
 
 void IceFlow::onMissingData(
     const std::vector<ndn::svs::MissingDataInfo> &missing_data) {
