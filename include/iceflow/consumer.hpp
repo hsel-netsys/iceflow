@@ -37,8 +37,10 @@ class IceflowConsumer {
 
 public:
   IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &subTopic,
-                  std::vector<uint32_t> partitions);
+                  const std::string &syncPrefix,
+                  const std::string &upstreamEdgeName
+                  // , std::vector<uint32_t> partitions
+  );
 
   ~IceflowConsumer();
 

@@ -25,11 +25,12 @@ namespace iceflow {
 NDN_LOG_INIT(iceflow.IceflowProducer);
 
 IceflowProducer::IceflowProducer(
-    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub, const std::string &pubTopic,
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+    const std::string &syncPrefix, const std::string &downstreamEdgeName,
     uint32_t numberOfPartitions,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_svsPubSub(svsPubSub), m_numberOfPartitions(numberOfPartitions),
-      m_pubTopic(pubTopic),
+      m_pubTopic(syncPrefix + "/" + downstreamEdgeName),
       m_lastPublishTimePoint(std::chrono::steady_clock::now()),
       m_randomNumberGenerator(std::mt19937(time(nullptr))),
       m_congestionReporter(congestionReporter) {
@@ -38,18 +39,21 @@ IceflowProducer::IceflowProducer(
 }
 
 IceflowProducer::IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                                 const std::string &pubTopic,
+                                 const std::string &syncPrefix,
+                                 const std::string &downstreamEdgeName,
                                  uint32_t numberOfPartitions
 
                                  )
-    : IceflowProducer(svsPubSub, pubTopic, numberOfPartitions, std::nullopt){};
+    : IceflowProducer(svsPubSub, syncPrefix, downstreamEdgeName,
+                      numberOfPartitions, std::nullopt){};
 
 IceflowProducer::IceflowProducer(
-    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub, const std::string &pubTopic,
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+    const std::string &syncPrefix, const std::string &downstreamEdgeName,
     uint32_t numberOfPartitions,
     std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceflowProducer(svsPubSub, pubTopic, numberOfPartitions,
-                      std::optional(congestionReporter)){};
+    : IceflowProducer(svsPubSub, syncPrefix, downstreamEdgeName,
+                      numberOfPartitions, std::optional(congestionReporter)){};
 
 IceflowProducer::~IceflowProducer() {}
 

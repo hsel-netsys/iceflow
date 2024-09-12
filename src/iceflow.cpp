@@ -53,11 +53,18 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
       std::bind(&IceFlow::onMissingData, this, _1), opts, secOpts);
 
   for (auto downstreamEdge : downstreamEdges) {
-    std::cout << downstreamEdge.id << std::endl;
+    auto downstreamEdgeName = downstreamEdge.id;
+    std::cout << downstreamEdgeName << std::endl;
+    auto producer =
+        IceflowProducer(m_svsPubSub, m_syncPrefix, downstreamEdgeName,
+                        downstreamEdge.maxPartitions);
   }
 
   for (auto upstreamEdge : upstreamEdges) {
-    std::cout << upstreamEdge.second.id << std::endl;
+    auto upstreamEdgeName = upstreamEdge.second.id;
+    std::cout << upstreamEdgeName << std::endl;
+    auto consumer =
+        IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName);
   }
 };
 

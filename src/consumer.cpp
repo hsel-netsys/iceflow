@@ -27,11 +27,11 @@ namespace iceflow {
 NDN_LOG_INIT(iceflow.IceflowConsumer);
 
 IceflowConsumer::IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                                 const std::string &subTopic,
-                                 std::vector<uint32_t> partitions)
-    : m_svsPubSub(svsPubSub), m_subTopic(subTopic), m_partitions(partitions) {
+                                 const std::string &syncPrefix,
+                                 const std::string &upstreamEdgeName)
+    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName) {
 
-  repartition(partitions);
+  // repartition(partitions);
 }
 
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
