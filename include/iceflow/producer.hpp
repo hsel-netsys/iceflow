@@ -19,6 +19,8 @@
 #ifndef ICEFLOW_PRODUCER_HPP
 #define ICEFLOW_PRODUCER_HPP
 
+#include "ndn-svs/svspubsub.hpp"
+
 #include <random>
 #include <unordered_set>
 
@@ -32,7 +34,6 @@
 #endif // USE_GRPC
 
 #include "congestion-reporter.hpp"
-#include "iceflow.hpp"
 
 namespace iceflow {
 
@@ -44,11 +45,11 @@ namespace iceflow {
  */
 class IceflowProducer {
 public:
-  IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  uint32_t numberOfPartitions);
+  IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+                  const std::string &pubTopic, uint32_t numberOfPartitions);
 
-  IceflowProducer(std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-                  uint32_t numberOfPartitions,
+  IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+                  const std::string &pubTopic, uint32_t numberOfPartitions,
                   std::shared_ptr<CongestionReporter> congestionReporter);
 
   ~IceflowProducer();
@@ -61,15 +62,11 @@ public:
 
 private:
   IceflowProducer(
-      std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
-      uint32_t numberOfPartitions,
+      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      const std::string &pubTopic, uint32_t numberOfPartitions,
       std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
   uint32_t getNextPartitionNumber();
-
-  QueueEntry popQueueValue();
-
-  bool hasQueueValue();
 
   void reportCongestion(CongestionReason congestionReason,
                         const std::string &edgeName);

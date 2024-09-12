@@ -25,46 +25,30 @@ namespace iceflow {
 NDN_LOG_INIT(iceflow.IceflowProducer);
 
 IceflowProducer::IceflowProducer(
-    std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub, const std::string &pubTopic,
     uint32_t numberOfPartitions,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
-    : m_iceflow(iceflow), m_numberOfPartitions(numberOfPartitions),
+    : m_svsPubSub(svsPubSub), m_numberOfPartitions(numberOfPartitions),
       m_pubTopic(pubTopic),
       m_lastPublishTimePoint(std::chrono::steady_clock::now()),
       m_randomNumberGenerator(std::mt19937(time(nullptr))),
       m_congestionReporter(congestionReporter) {
 
   setTopicPartitions(numberOfPartitions);
-
-  if (auto validIceflow = m_iceflow.lock()) {
-    std::function<QueueEntry(void)> popQueueValueCallback =
-        std::bind(&IceflowProducer::popQueueValue, this);
-    std::function<bool(void)> hasQueueValueCallback =
-        std::bind(&IceflowProducer::hasQueueValue, this);
-
-    ProducerRegistrationInfo producerRegistration = {
-        popQueueValueCallback,
-        hasQueueValueCallback,
-    };
-
-    m_subscriberId = validIceflow->registerProducer(producerRegistration);
-  } else {
-    throw std::runtime_error("Iceflow instance has already expired.");
-  }
 }
 
-IceflowProducer::IceflowProducer(std::shared_ptr<IceFlow> iceflow,
+IceflowProducer::IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
                                  const std::string &pubTopic,
                                  uint32_t numberOfPartitions
 
                                  )
-    : IceflowProducer(iceflow, pubTopic, numberOfPartitions, std::nullopt){};
+    : IceflowProducer(svsPubSub, pubTopic, numberOfPartitions, std::nullopt){};
 
 IceflowProducer::IceflowProducer(
-    std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub, const std::string &pubTopic,
     uint32_t numberOfPartitions,
     std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceflowProducer(iceflow, pubTopic, numberOfPartitions,
+    : IceflowProducer(svsPubSub, pubTopic, numberOfPartitions,
                       std::optional(congestionReporter)){};
 
 IceflowProducer::~IceflowProducer() {}
@@ -143,21 +127,5 @@ void IceflowProducer::reportCongestion(CongestionReason congestionReason,
 
   congestionReporter->reportCongestion(congestionReason, edgeName);
 }
-
-QueueEntry IceflowProducer::popQueueValue() {
-  auto data = m_outputQueue.waitAndPopValue();
-  uint32_t partitionNumber = getNextPartitionNumber();
-  m_lastPublishTimePoint = std::chrono::steady_clock::now();
-
-  saveTimestamp(m_lastPublishTimePoint);
-
-  return {
-      m_pubTopic,
-      partitionNumber,
-      data,
-  };
-};
-
-bool IceflowProducer::hasQueueValue() { return !m_outputQueue.empty(); }
 
 } // namespace iceflow

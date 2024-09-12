@@ -19,7 +19,9 @@
 #ifndef ICEFLOW_HPP
 #define ICEFLOW_HPP
 
+#include "consumer.hpp"
 #include "dag-parser.hpp"
+#include "producer.hpp"
 #include "ringbuffer.hpp"
 
 #include "ndn-svs/security-options.hpp"
@@ -74,9 +76,6 @@ public:
   void pushData(const std::string &producerEdgeName,
                 std::vector<uint8_t> payload);
 
-  friend IceflowConsumer;
-  friend IceflowProducer;
-
 private:
   uint32_t subscribeToTopicPartition(
       const std::string &topic, uint32_t partitionNumber,
@@ -109,8 +108,8 @@ private:
   std::string m_nodePrefix;
   std::string m_syncPrefix;
 
-  std::unordered_map<std::string, &IceflowProducer> m_iceflowProducers;
-  std::unordered_map<std::string, &IceflowConsumer> m_iceflowConsumers;
+  std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
+  std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
 
   uint32_t m_nextProducerId = 0;
 };

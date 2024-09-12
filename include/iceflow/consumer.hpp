@@ -23,7 +23,6 @@
 #include <unordered_map>
 
 #include "congestion-reporter.hpp"
-#include "iceflow.hpp"
 
 namespace iceflow {
 
