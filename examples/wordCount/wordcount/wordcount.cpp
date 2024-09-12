@@ -29,29 +29,26 @@ void signalCallbackHandler(int signum) {
 class WordCounter {
 public:
   void countWord(std::function<std::string()> receive) {
-    int computeCounter = 0;
-    while (true) {
-      std::string words = receive();
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
-                                   0);
-      measurementHandler->setField(std::to_string(computeCounter),
-                                   "text->wordcount", 0);
-      std::istringstream stream(words);
-      std::string word;
-      while (stream >> word) {
-        std::cout << "Word occurrences:\n";
-        std::transform(word.begin(), word.end(), word.begin(),
-                       [](unsigned char c) { return std::tolower(c); });
+    std::string words = receive();
+    measurementHandler->setField(std::to_string(m_computeCounter), "CMP_START",
+                                 0);
+    measurementHandler->setField(std::to_string(m_computeCounter),
+                                 "text->wordcount", 0);
+    std::istringstream stream(words);
+    std::string word;
+    while (stream >> word) {
+      std::cout << "Word occurrences:\n";
+      std::transform(word.begin(), word.end(), word.begin(),
+                     [](unsigned char c) { return std::tolower(c); });
 
-        // Increment the count for the word in the map
-        wordCountMap[word]++;
-        measurementHandler->setField(std::to_string(computeCounter),
-                                     "lines2->wordcount", 0);
-        measurementHandler->setField(std::to_string(computeCounter),
-                                     "CMP_FINISH", 0);
-        computeCounter++;
-        printOccurances();
-      }
+      // Increment the count for the word in the map
+      wordCountMap[word]++;
+      measurementHandler->setField(std::to_string(m_computeCounter),
+                                   "lines2->wordcount", 0);
+      measurementHandler->setField(std::to_string(m_computeCounter),
+                                   "CMP_FINISH", 0);
+      m_computeCounter++;
+      printOccurances();
     }
   }
   void printOccurances() {
@@ -63,17 +60,22 @@ public:
 
 private:
   std::unordered_map<std::string, int> wordCountMap;
+  int m_computeCounter = 0;
 };
 
 void run(const std::string &nodeName, const std::string &dagFileName) {
   WordCounter compute;
-  ndn::Face face;
+  ndn::Face face("localhost", "6363");
 
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
   auto node = dagParser.findNodeByName(nodeName);
   auto nodePrefix = iceflow->getNodePrefix();
+
+  auto upstreamEdges = dagParser.findUpstreamEdges(node);
+  auto upstreamEdge = upstreamEdges.at(0).second;
+  auto upstreamEdgeName = upstreamEdge.id;
 
   auto applicationConfiguration = node.applicationConfiguration;
 
@@ -85,7 +87,7 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
       new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
 
   iceflow->registerConsumerCallback(
-      "l2w", [&compute](std::vector<uint8_t> data) {
+      upstreamEdgeName, [&compute](std::vector<uint8_t> data) {
         compute.countWord([&data]() -> std::string {
           return std::string(data.begin(), data.end());
         });
@@ -93,12 +95,7 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
 
   iceflow->repartitionConsumer("l2w", {0});
 
-  std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-
-  for (auto &thread : threads) {
-    thread.join();
-  }
+  iceflow->run();
 }
 
 int main(int argc, const char *argv[]) {

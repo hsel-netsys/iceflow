@@ -54,7 +54,6 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
 
   for (auto downstreamEdge : downstreamEdges) {
     auto downstreamEdgeName = downstreamEdge.id;
-    std::cout << downstreamEdgeName << std::endl;
 
     auto iceflowProducer =
         IceflowProducer(m_svsPubSub, m_syncPrefix, downstreamEdgeName,
@@ -65,7 +64,6 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
 
   for (auto upstreamEdge : upstreamEdges) {
     auto upstreamEdgeName = upstreamEdge.second.id;
-    std::cout << upstreamEdgeName << std::endl;
 
     auto iceflowConsumer =
         IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName);

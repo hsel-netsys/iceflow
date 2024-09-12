@@ -89,7 +89,6 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
     lineSplitter.text2lines(
         nodePrefix, sourceTextFileName,
         [&iceflow, &downstreamEdgeName](const std::string &data) {
-          std::cout << "PUSHING!" << std::endl;
           std::vector<uint8_t> encodedString(data.begin(), data.end());
           iceflow->pushData(downstreamEdgeName, encodedString);
         });

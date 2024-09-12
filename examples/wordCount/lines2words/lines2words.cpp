@@ -34,7 +34,6 @@ public:
     std::stringstream streamedLines(line);
     std::string word;
     while (streamedLines >> word) {
-      std::cout << word << std::endl;
       push(word);
       measurementHandler->setField(std::to_string(m_computeCounter),
                                    "lines1->words", 0);
@@ -74,7 +73,6 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   auto consumerPartitions =
       createConsumerPartitions(upstreamEdge, consumerIndex);
 
-  // TODO: Do this dynamically for all edges
   auto downstreamEdge = node.downstream.at(0);
   auto downstreamEdgeName = downstreamEdge.id;
 
@@ -104,7 +102,8 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   };
 
   iceflow->registerConsumerCallback(upstreamEdgeName, consumerCallback);
-  iceflow->repartitionConsumer(upstreamEdgeName, {1, 2, 3});
+
+  iceflow->repartitionConsumer(upstreamEdgeName, consumerPartitions);
   iceflow->run();
 }
 
