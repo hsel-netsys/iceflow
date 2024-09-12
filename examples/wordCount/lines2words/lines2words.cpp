@@ -91,7 +91,7 @@ void run(const std::string &nodeName, const std::string &dagFileName,
 
   auto prosumerCallback =
       [&iceflow, &wordSplitter](
-          std::vector<uint8_t> data,
+          const std::vector<uint8_t> &data,
           std::function<void(std::vector<uint8_t>)> pushDataCallback) {
         std::string line(data.begin(), data.end());
         wordSplitter.lines2words(line, pushDataCallback);
