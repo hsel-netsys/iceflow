@@ -34,8 +34,10 @@ std::string generateNodePrefix() {
 
 NDN_LOG_INIT(iceflow.IceFlow);
 
-IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
-                 ndn::Face &face)
+IceFlow::IceFlow(
+    DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+    std::unordered_map<std::string, std::function<void(std::vector<uint8_t>)>>
+        consumerCallbacks)
     : m_face(face) {
   m_nodePrefix = generateNodePrefix();
   m_syncPrefix = "/" + dagParser.getApplicationName();
@@ -63,10 +65,26 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
   for (auto upstreamEdge : upstreamEdges) {
     auto upstreamEdgeName = upstreamEdge.second.id;
     std::cout << upstreamEdgeName << std::endl;
+
+    // TODO: Decide if this the right way to handle this.
+    if (!consumerCallbacks.contains(upstreamEdgeName)) {
+      NDN_LOG_WARN("No callback for upstream edge "
+                   << upstreamEdgeName
+                   << " was provided, skipping initialization of this edge.");
+      continue;
+    }
+
     auto consumer =
         IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName);
   }
 };
+
+IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
+                 ndn::Face &face)
+    : IceFlow(
+          dagParser, nodeName, face,
+          std::unordered_map<std::string,
+                             std::function<void(std::vector<uint8_t>)>>()){};
 
 void IceFlow::run() {
   if (m_running) {

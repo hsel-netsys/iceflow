@@ -70,28 +70,21 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   ndn::Face face;
 
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
-  auto node = dagParser.findNodeByName(nodeName);
 
-  auto upstreamEdges = dagParser.findUpstreamEdges(node);
-  auto upstreamEdge = upstreamEdges.at(0).second;
-  auto upstreamEdgeName = upstreamEdge.id;
-  std::vector<uint32_t> consumerPartitions = {0};
+  std::unordered_map<std::string, std::function<void(std::vector<uint8_t>)>>
+      consumerCallbacks = {{"l2w", [&compute](std::vector<uint8_t> data) {
+                              compute.countWord([&data]() -> std::string {
+                                return std::string(data.begin(), data.end());
+                              });
+                            }}};
 
-  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face,
+                                                    consumerCallbacks
 
-  std::string subTopic = iceflow->getSyncPrefix() + "/" + upstreamEdgeName;
-
-  auto consumer =
-      iceflow::IceflowConsumer(iceflow, subTopic, consumerPartitions);
+  );
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&compute, &consumer]() {
-    compute.countWord([&consumer]() -> std::string {
-      auto data = consumer.receiveData();
-      return std::string(data.begin(), data.end());
-    });
-  });
 
   for (auto &thread : threads) {
     thread.join();

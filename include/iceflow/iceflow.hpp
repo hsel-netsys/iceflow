@@ -60,6 +60,11 @@ public:
    */
   IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face);
 
+  IceFlow(
+      DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+      std::unordered_map<std::string, std::function<void(std::vector<uint8_t>)>>
+          consumerCallbacks);
+
 public:
   void run();
 
