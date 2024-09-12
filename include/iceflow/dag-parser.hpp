@@ -92,6 +92,9 @@ public:
   std::vector<std::pair<const Node &, const Edge &>>
   findUpstreamEdges(const std::string &taskId);
 
+  std::vector<std::pair<const Node &, const Edge &>>
+  findUpstreamEdges(const Node &node);
+
 private:
   std::string m_applicationName;
   std::vector<Node> nodes;

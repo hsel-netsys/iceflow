@@ -127,6 +127,11 @@ const Edge &DAGParser::findEdgeByName(const std::string &edgeId) {
 }
 
 std::vector<std::pair<const Node &, const Edge &>>
+DAGParser::findUpstreamEdges(const Node &node) {
+  return findUpstreamEdges(node.task);
+}
+
+std::vector<std::pair<const Node &, const Edge &>>
 DAGParser::findUpstreamEdges(const std::string &taskId) {
   std::vector<std::pair<const Node &, const Edge &>> upstreamEdges;
 
