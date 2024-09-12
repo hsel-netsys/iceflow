@@ -113,11 +113,11 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
 
-  std::string nodeName = "lines2words";
-  std::string dagFileName = argv[1];
-  int consumerIndex = std::stoi(argv[2]);
-
   try {
+    std::string nodeName = "lines2words";
+    std::string dagFileName = argv[1];
+    int consumerIndex = std::stoi(argv[2]);
+
     run(nodeName, dagFileName, consumerIndex);
   }
 

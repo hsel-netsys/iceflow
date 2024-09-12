@@ -107,10 +107,10 @@ int main(int argc, const char *argv[]) {
     return 1;
   }
 
-  std::string nodeName = "text2lines";
-  std::string dagFileName = argv[1];
-
   try {
+    std::string nodeName = "text2lines";
+    std::string dagFileName = argv[1];
+
     run(nodeName, dagFileName);
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
