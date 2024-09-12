@@ -79,10 +79,14 @@ private:
   void cleanUpTimestamps(
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
+  ndn::Name prepareDataName(const std::string &topic, uint32_t partitionNumber);
+
 private:
-  const std::weak_ptr<IceFlow> m_iceflow;
+  const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
   const std::string m_pubTopic;
-  RingBuffer<std::vector<uint8_t>> m_outputQueue;
+
+  std::string m_nodePrefix;
+  std::string m_syncPrefix;
 
   uint32_t m_numberOfPartitions;
   std::unordered_set<uint32_t> m_topicPartitions;

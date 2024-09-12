@@ -143,11 +143,6 @@ void IceFlow::onMissingData(
   // TODO: Implement if needed
 }
 
-ndn::Name IceFlow::prepareDataName(const std::string &topic,
-                                   uint32_t partitionNumber) {
-  return ndn::Name(topic).appendNumber(partitionNumber);
-}
-
 void IceFlow::publishMsg(std::vector<uint8_t> payload, const std::string &topic,
                          uint32_t partitionNumber) {
   auto dataID = prepareDataName(topic, partitionNumber);
@@ -156,31 +151,10 @@ void IceFlow::publishMsg(std::vector<uint8_t> payload, const std::string &topic,
   NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
 }
 
-uint32_t
-IceFlow::registerProducer(ProducerRegistrationInfo producerRegistration) {
-  std::lock_guard lock(m_producerRegistrationMutex);
-
-  uint32_t producerId = m_nextProducerId++;
-  m_producerRegistrations.insert({producerId, producerRegistration});
-
-  if (!m_producersAvailable) {
-    m_producersAvailable = true;
-    NDN_LOG_INFO("Producer has been registered, resuming producer procedure.");
-    m_producerRegistrationConditionVariable.notify_one();
-  }
-
-  return producerId;
-}
-
-void IceFlow::deregisterProducer(u_int64_t producerId) {
-  std::lock_guard lock(m_producerRegistrationMutex);
-
-  m_producerRegistrations.erase(producerId);
-
-  if (m_producerRegistrations.empty()) {
-    m_producersAvailable = false;
-    m_producerRegistrationConditionVariable.notify_one();
-  }
+void IceFlow::pushData(const std::string &producerEdgeName,
+                       std::vector<uint8_t> payload) {
+  auto producer = m_iceflowProducers[producerEdgeName];
+  producer.pushData(payload);
 }
 
 const std::string &IceFlow::getNodePrefix() { return m_nodePrefix; }

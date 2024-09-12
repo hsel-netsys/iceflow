@@ -58,8 +58,7 @@ IceflowProducer::IceflowProducer(std::shared_ptr<IceFlow> iceflow,
                                  uint32_t numberOfPartitions
 
                                  )
-    : IceflowProducer(iceflow, pubTopic, numberOfPartitions,
-                      std::nullopt){};
+    : IceflowProducer(iceflow, pubTopic, numberOfPartitions, std::nullopt){};
 
 IceflowProducer::IceflowProducer(
     std::shared_ptr<IceFlow> iceflow, const std::string &pubTopic,
@@ -68,14 +67,21 @@ IceflowProducer::IceflowProducer(
     : IceflowProducer(iceflow, pubTopic, numberOfPartitions,
                       std::optional(congestionReporter)){};
 
-IceflowProducer::~IceflowProducer() {
-  if (auto validIceflow = m_iceflow.lock()) {
-    validIceflow->deregisterProducer(m_subscriberId);
-  }
+IceflowProducer::~IceflowProducer() {}
+
+ndn::Name IceflowProducer::prepareDataName(const std::string &topic,
+                                           uint32_t partitionNumber) {
+  return ndn::Name(topic).appendNumber(partitionNumber);
 }
 
 void IceflowProducer::pushData(const std::vector<uint8_t> &data) {
-  m_outputQueue.push(data);
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
+    auto partitionNumber = getNextPartitionNumber();
+    auto dataID = prepareDataName(m_pubTopic, partitionNumber);
+    auto sequenceNo = validSvsPubSub->publish(
+        dataID, data, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
+    NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
+  }
 }
 
 void IceflowProducer::saveTimestamp(

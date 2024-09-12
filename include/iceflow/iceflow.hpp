@@ -71,6 +71,9 @@ public:
 
   const std::string &getSyncPrefix();
 
+  void pushData(const std::string &producerEdgeName,
+                std::vector<uint8_t> payload);
+
   friend IceflowConsumer;
   friend IceflowProducer;
 
@@ -88,14 +91,8 @@ private:
   void
   onMissingData(const std::vector<ndn::svs::MissingDataInfo> &missing_data);
 
-  ndn::Name prepareDataName(const std::string &topic, uint32_t partitionNumber);
-
   void publishMsg(std::vector<uint8_t> payload, const std::string &topic,
                   uint32_t partitionNumber);
-
-  uint32_t registerProducer(ProducerRegistrationInfo producerRegistration);
-
-  void deregisterProducer(u_int64_t producerId);
 
 private:
   ndn::KeyChain m_keyChain;
@@ -112,8 +109,8 @@ private:
   std::string m_nodePrefix;
   std::string m_syncPrefix;
 
-  std::unordered_map<uint32_t, ProducerRegistrationInfo>
-      m_producerRegistrations;
+  std::unordered_map<std::string, &IceflowProducer> m_iceflowProducers;
+  std::unordered_map<std::string, &IceflowConsumer> m_iceflowConsumers;
 
   uint32_t m_nextProducerId = 0;
 };
