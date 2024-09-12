@@ -65,8 +65,8 @@ public:
                                 ConsumerCallback consumerCallback);
 
   void registerProsumerCallback(
-      const std::string &upstreamEdgeName,
       const std::string &downstreamEdgeName,
+      const std::string &upstreamEdgeName,
       std::function<void(std::vector<uint8_t>,
                          std::function<void(std::vector<uint8_t>)>)>
           pushDataCallback);

@@ -112,10 +112,15 @@ void IceFlow::onMissingData(
   // TODO: Implement if needed
 }
 
-void IceFlow::pushData(const std::string &producerEdgeName,
+void IceFlow::pushData(const std::string &downstreamEdgeName,
                        std::vector<uint8_t> payload) {
-  auto producer = m_iceflowProducers.at(producerEdgeName);
-  producer.pushData(payload);
+
+  if (!m_iceflowProducers.contains(downstreamEdgeName)) {
+    throw std::runtime_error("Producer for downstream edge " +
+                             downstreamEdgeName + " does not exist!");
+  }
+
+  m_iceflowProducers.at(downstreamEdgeName).pushData(payload);
 }
 
 void IceFlow::registerConsumerCallback(const std::string &upstreamEdgeName,
@@ -129,21 +134,20 @@ void IceFlow::registerConsumerCallback(const std::string &upstreamEdgeName,
 }
 
 void IceFlow::registerProsumerCallback(
-    const std::string &upstreamEdgeName, const std::string &downstreamEdgeName,
+    const std::string &downstreamEdgeName, const std::string &upstreamEdgeName,
     std::function<void(std::vector<uint8_t>,
                        std::function<void(std::vector<uint8_t>)>)>
         pushDataCallback) {
 
   auto producerCallback = [this,
-                           &downstreamEdgeName](std::vector<uint8_t> data) {
+                           downstreamEdgeName](std::vector<uint8_t> data) {
     pushData(downstreamEdgeName, data);
   };
 
-  auto internalConsumerCallback =
-      [&downstreamEdgeName, this, &pushDataCallback,
-       &producerCallback](std::vector<uint8_t> data) {
-        pushDataCallback(data, producerCallback);
-      };
+  auto internalConsumerCallback = [this, &pushDataCallback, producerCallback](
+                                      const std::vector<uint8_t> &data) {
+    pushDataCallback(data, producerCallback);
+  };
 
   registerConsumerCallback(upstreamEdgeName, internalConsumerCallback);
 }

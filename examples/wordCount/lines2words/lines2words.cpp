@@ -97,7 +97,7 @@ void run(const std::string &nodeName, const std::string &dagFileName,
         wordSplitter.lines2words(line, pushDataCallback);
       };
 
-  iceflow->registerProsumerCallback(upstreamEdgeName, downstreamEdgeName,
+  iceflow->registerProsumerCallback(downstreamEdgeName, upstreamEdgeName,
                                     prosumerCallback);
 
   iceflow->repartitionConsumer(upstreamEdgeName, consumerPartitions);
