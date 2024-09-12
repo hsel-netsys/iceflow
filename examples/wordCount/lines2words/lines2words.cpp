@@ -48,9 +48,8 @@ private:
   int m_computeCounter = 0;
 };
 
-std::vector<uint32_t> createConsumerPartitions(iceflow::Edge upstreamEdge,
+std::vector<uint32_t> createConsumerPartitions(uint32_t maxConsumerPartitions,
                                                uint32_t consumerIndex) {
-  auto maxConsumerPartitions = upstreamEdge.maxPartitions;
   auto consumerPartitions = std::vector<uint32_t>();
 
   for (auto i = consumerIndex; i < maxConsumerPartitions; i += consumerIndex) {
@@ -68,26 +67,22 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
   auto node = dagParser.findNodeByName(nodeName);
 
-  auto upstreamEdges = dagParser.findUpstreamEdges(node);
-  auto upstreamEdge = upstreamEdges.at(0).second;
+  auto upstreamEdge = dagParser.findUpstreamEdges(node).at(0).second;
   auto upstreamEdgeName = upstreamEdge.id;
-  auto consumerPartitions =
-      createConsumerPartitions(upstreamEdge, consumerIndex);
+  auto downstreamEdgeName = node.downstream.at(0).id;
 
-  auto downstreamEdge = node.downstream.at(0);
-  auto downstreamEdgeName = downstreamEdge.id;
+  auto consumerPartitions =
+      createConsumerPartitions(upstreamEdge.maxPartitions, consumerIndex);
 
   auto applicationConfiguration = node.applicationConfiguration;
-
   auto saveThreshold =
       applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
 
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
-  auto nodePrefix = iceflow->getNodePrefix();
 
   ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler =
-      new iceflow::Measurement(nodeName, nodePrefix, saveThreshold, "A");
+  measurementHandler = new iceflow::Measurement(
+      nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
 
   auto prosumerCallback =
       [&iceflow, &wordSplitter](
