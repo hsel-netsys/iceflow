@@ -55,7 +55,7 @@ public:
    *@param other The instance to be copied from
    */
   RingBuffer(RingBuffer const &other) {
-    std::lock_guard<std::mutex> lock(other->m__mutex);
+    std::lock_guard<std::mutex> lock(other.m_mutex);
     m_queue = other.m_queue;
   }
 
