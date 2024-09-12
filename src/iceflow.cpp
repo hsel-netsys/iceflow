@@ -74,8 +74,10 @@ IceFlow::IceFlow(
       continue;
     }
 
-    auto consumer =
-        IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName);
+    auto consumerCallback = consumerCallbacks.at(upstreamEdgeName);
+
+    auto consumer = IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName,
+                                    consumerCallback);
   }
 };
 

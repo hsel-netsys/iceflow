@@ -26,23 +26,15 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.IceflowConsumer);
 
-IceflowConsumer::IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                                 const std::string &syncPrefix,
-                                 const std::string &upstreamEdgeName)
-    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName) {
-
-  // repartition(partitions);
+IceflowConsumer::IceflowConsumer(
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+    const std::string &syncPrefix, const std::string &upstreamEdgeName,
+    const std::function<void(std::vector<uint8_t>)> &consumerCallback)
+    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName),
+      m_consumerCallback(consumerCallback) {
 }
 
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
-
-std::vector<uint8_t> IceflowConsumer::receiveData() {
-  auto value = m_inputQueue.waitAndPopValue();
-
-  saveTimestamp();
-
-  return value;
-}
 
 void IceflowConsumer::saveTimestamp() {
   auto timestamp = std::chrono::steady_clock::now();
@@ -67,11 +59,6 @@ void IceflowConsumer::cleanUpTimestamps(
     m_consumptionTimestamps.pop_front();
   }
 }
-
-/**
- * Indicates whether the queue of this IceflowConsumer contains data.
- */
-bool IceflowConsumer::hasData() { return !m_inputQueue.empty(); }
 
 void IceflowConsumer::validatePartitionConfiguration(
     uint32_t numberOfPartitions, uint32_t consumerPartitionIndex,
@@ -104,6 +91,7 @@ bool IceflowConsumer::repartition(std::vector<uint32_t> partitions) {
 
   try {
     for (auto partition : partitions) {
+      // TODO: Deal with the return value
       subscribeToTopicPartition(partition);
     }
   } catch (const std::runtime_error &error) {
@@ -122,7 +110,6 @@ uint32_t IceflowConsumer::getConsumptionStats() {
 }
 
 void IceflowConsumer::subscribeCallBack(
-    const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
     const ndn::svs::SVSPubSub::SubscriptionData &subData) {
   NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
                                     << subData.seqNo << "] : " << subData.name
@@ -130,19 +117,18 @@ void IceflowConsumer::subscribeCallBack(
 
   std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
 
-  pushDataCallback(data);
+  saveTimestamp();
+  m_consumerCallback(data);
 }
 
 uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
   if (auto validSvsPubSub = m_svsPubSub.lock()) {
+    // TODO: Do we actually need an internal queue here...?
 
-    std::function<void(std::vector<uint8_t>)> pushDataCallback =
-        std::bind(&RingBuffer<std::vector<uint8_t>>::push, &m_inputQueue,
-                  std::placeholders::_1);
     // TODO: Consider using subscribeToProducer here instead
     return validSvsPubSub->subscribe(
         m_subTopic, std::bind(&IceflowConsumer::subscribeCallBack, this,
-                              pushDataCallback, std::placeholders::_1));
+                              std::placeholders::_1));
   } else {
     throw std::runtime_error("SVS instance has already expired.");
   }

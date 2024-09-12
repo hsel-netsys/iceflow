@@ -36,10 +36,11 @@ namespace iceflow {
 class IceflowConsumer {
 
 public:
-  IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &syncPrefix,
-                  const std::string &upstreamEdgeName
-                  // , std::vector<uint32_t> partitions
+  IceflowConsumer(
+      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      const std::string &syncPrefix, const std::string &upstreamEdgeName,
+      const std::function<void(std::vector<uint8_t>)> &consumerCallback
+      // , std::vector<uint32_t> partitions
   );
 
   ~IceflowConsumer();
@@ -66,9 +67,7 @@ private:
       const std::string &topic, uint32_t partitionNumber,
       std::function<void(std::vector<uint8_t>)> &pushDataCallback);
 
-  void subscribeCallBack(
-      const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
-      const ndn::svs::SVSPubSub::SubscriptionData &subData);
+  void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData);
 
   /**
    * Updates the topic partitions this IceflowConsumer is subscribed to.
@@ -104,6 +103,8 @@ private:
 
   // TODO: Make configurable
   std::chrono::seconds m_maxConsumptionAge = std::chrono::seconds(1);
+
+  const std::function<void(std::vector<uint8_t>)> &m_consumerCallback;
 };
 } // namespace iceflow
 
