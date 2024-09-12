@@ -26,10 +26,10 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.IceflowConsumer);
 
-IceflowConsumer::IceflowConsumer(std::shared_ptr<IceFlow> iceflow,
+IceflowConsumer::IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
                                  const std::string &subTopic,
                                  std::vector<uint32_t> partitions)
-    : m_iceflow(iceflow), m_subTopic(subTopic), m_partitions(partitions) {
+    : m_svsPubSub(svsPubSub), m_subTopic(subTopic), m_partitions(partitions) {
 
   repartition(partitions);
 }
@@ -121,17 +121,34 @@ uint32_t IceflowConsumer::getConsumptionStats() {
   return m_consumptionTimestamps.size();
 }
 
+void IceflowConsumer::subscribeCallBack(
+    const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
+    const ndn::svs::SVSPubSub::SubscriptionData &subData) {
+  NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
+                                    << subData.seqNo << "] : " << subData.name
+                                    << " : ");
+
+  std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
+
+  pushDataCallback(data);
+}
+
 uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
-  if (auto validIceflow = m_iceflow.lock()) {
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
 
     std::function<void(std::vector<uint8_t>)> pushDataCallback =
         std::bind(&RingBuffer<std::vector<uint8_t>>::push, &m_inputQueue,
                   std::placeholders::_1);
+    // TODO: Consider using subscribeToProducer here instead
+    return validSvsPubSub->subscribe(
+        m_subTopic, std::bind(&IceflowConsumer::subscribeCallBack, this,
+                              pushDataCallback, std::placeholders::_1));
 
-    return validIceflow->subscribeToTopicPartition(m_subTopic, topicPartition,
-                                                   pushDataCallback);
+    // return validSvsPubSub->subscribeToTopicPartition(m_subTopic,
+    // topicPartition,
+    //                                                pushDataCallback);
   } else {
-    throw std::runtime_error("Iceflow instance has already expired.");
+    throw std::runtime_error("SVS instance has already expired.");
   }
 }
 

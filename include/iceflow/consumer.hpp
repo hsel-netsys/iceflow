@@ -19,10 +19,13 @@
 #ifndef ICEFLOW_CONSUMER_HPP
 #define ICEFLOW_CONSUMER_HPP
 
+#include "ndn-svs/svspubsub.hpp"
+
 #include <chrono>
 #include <unordered_map>
 
 #include "congestion-reporter.hpp"
+#include "ringbuffer.hpp"
 
 namespace iceflow {
 
@@ -32,7 +35,8 @@ namespace iceflow {
 class IceflowConsumer {
 
 public:
-  IceflowConsumer(std::shared_ptr<IceFlow> iceflow, const std::string &subTopic,
+  IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+                  const std::string &subTopic,
                   std::vector<uint32_t> partitions);
 
   ~IceflowConsumer();
@@ -55,6 +59,14 @@ private:
                                       uint32_t consumerPartitionIndex,
                                       uint32_t totalNumberOfConsumers);
 
+  uint32_t subscribeToTopicPartition(
+      const std::string &topic, uint32_t partitionNumber,
+      std::function<void(std::vector<uint8_t>)> &pushDataCallback);
+
+  void subscribeCallBack(
+      const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
+      const ndn::svs::SVSPubSub::SubscriptionData &subData);
+
   /**
    * Updates the topic partitions this IceflowConsumer is subscribed to.
    *
@@ -75,7 +87,7 @@ private:
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
 private:
-  const std::weak_ptr<IceFlow> m_iceflow;
+  const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
   const std::string m_subTopic;
 
   std::vector<uint32_t> m_partitions;

@@ -76,84 +76,52 @@ void IceFlow::run() {
     }
   });
 
-  m_running = true;
-  while (m_running) {
-    NDN_LOG_INFO("Checking if producers are registered...");
-    std::unique_lock lock(m_producerRegistrationMutex);
-    // TODO: Change so that this operates on the producer queues
-    m_producerRegistrationConditionVariable.wait(
-        lock, [this] { return m_producersAvailable; });
-    NDN_LOG_INFO("At least one producer is registered, continuing "
-                 "publishing thread.");
-
-    auto closestNextPublishTimePoint =
-        std::chrono::time_point<std::chrono::steady_clock>::max();
-
-    for (auto producerRegistrationTuple : m_producerRegistrations) {
-      auto producerRegistration = std::get<1>(producerRegistrationTuple);
-
-      if (producerRegistration.hasQueueValue()) {
-        auto queueEntry = producerRegistration.popQueueValue();
-        publishMsg(queueEntry.data, queueEntry.topic,
-                   queueEntry.partitionNumber);
-      }
-    }
-  }
-
-  m_face.shutdown();
-
   svsThread.join();
 }
 
 void IceFlow::shutdown() { m_running = false; }
 
-uint32_t IceFlow::subscribeToTopicPartition(
-    const std::string &topic, uint32_t partitionNumber,
-    std::function<void(std::vector<uint8_t>)> &pushDataCallback) {
+// uint32_t IceFlow::subscribeToTopicPartition(
+//     const std::string &topic, uint32_t partitionNumber,
+//     std::function<void(std::vector<uint8_t>)> &pushDataCallback) {
 
-  auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
+//   auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
 
-  auto subscriptionHandle = m_svsPubSub->subscribe(
-      subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
-                                 pushDataCallback, std::placeholders::_1));
+//   auto subscriptionHandle = m_svsPubSub->subscribe(
+//       subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
+//                                  pushDataCallback, std::placeholders::_1));
 
-  NDN_LOG_INFO("Subscribed to " << subscribedTopic);
+//   NDN_LOG_INFO("Subscribed to " << subscribedTopic);
 
-  return subscriptionHandle;
+//   return subscriptionHandle;
+// }
+
+void IceFlow::unsubscribe(const std::string &consumerEdgeName) {
+  auto consumer = m_iceflowConsumers.at(consumerEdgeName);
+  // TODO: Do something here.
 }
 
-void IceFlow::unsubscribe(uint32_t subscriptionHandle) {
-  m_svsPubSub->unsubscribe(subscriptionHandle);
-}
+// void IceFlow::subscribeCallBack(
+//     const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
+//     const ndn::svs::SVSPubSub::SubscriptionData &subData) {
+//   NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
+//                                     << subData.seqNo << "] : " <<
+//                                     subData.name
+//                                     << " : ");
 
-void IceFlow::subscribeCallBack(
-    const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
-    const ndn::svs::SVSPubSub::SubscriptionData &subData) {
-  NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
-                                    << subData.seqNo << "] : " << subData.name
-                                    << " : ");
+//   std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
 
-  std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
-
-  pushDataCallback(data);
-}
+//   pushDataCallback(data);
+// }
 
 void IceFlow::onMissingData(
     const std::vector<ndn::svs::MissingDataInfo> &missing_data) {
   // TODO: Implement if needed
 }
 
-void IceFlow::publishMsg(std::vector<uint8_t> payload, const std::string &topic,
-                         uint32_t partitionNumber) {
-  auto dataID = prepareDataName(topic, partitionNumber);
-  auto sequenceNo = m_svsPubSub->publish(
-      dataID, payload, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
-  NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
-}
-
 void IceFlow::pushData(const std::string &producerEdgeName,
                        std::vector<uint8_t> payload) {
-  auto producer = m_iceflowProducers[producerEdgeName];
+  auto producer = m_iceflowProducers.at(producerEdgeName);
   producer.pushData(payload);
 }
 

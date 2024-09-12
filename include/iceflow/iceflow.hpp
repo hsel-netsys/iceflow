@@ -22,7 +22,6 @@
 #include "consumer.hpp"
 #include "dag-parser.hpp"
 #include "producer.hpp"
-#include "ringbuffer.hpp"
 
 #include "ndn-svs/security-options.hpp"
 #include "ndn-svs/svspubsub.hpp"
@@ -44,9 +43,6 @@ struct ProducerRegistrationInfo {
   std::function<QueueEntry(void)> popQueueValue;
   std::function<bool(void)> hasQueueValue;
 };
-
-class IceflowProducer;
-class IceflowConsumer;
 
 /**
  * Central building block for IceFlow-based consumers and producers.
@@ -77,21 +73,10 @@ public:
                 std::vector<uint8_t> payload);
 
 private:
-  uint32_t subscribeToTopicPartition(
-      const std::string &topic, uint32_t partitionNumber,
-      std::function<void(std::vector<uint8_t>)> &pushDataCallback);
-
-  void unsubscribe(uint32_t subscriptionHandle);
-
-  void subscribeCallBack(
-      const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
-      const ndn::svs::SVSPubSub::SubscriptionData &subData);
+  void unsubscribe(const std::string &consumerEdgeName);
 
   void
   onMissingData(const std::vector<ndn::svs::MissingDataInfo> &missing_data);
-
-  void publishMsg(std::vector<uint8_t> payload, const std::string &topic,
-                  uint32_t partitionNumber);
 
 private:
   ndn::KeyChain m_keyChain;
