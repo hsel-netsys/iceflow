@@ -41,6 +41,16 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
   m_syncPrefix = "/" + dagParser.getApplicationName();
 
   auto node = dagParser.findNodeByName(nodeName);
+  auto downstreamEdges = node.downstream;
+  auto upstreamEdges = dagParser.findUpstreamEdges(node.task);
+
+  for (auto downstreamEdge : downstreamEdges) {
+    std::cout << downstreamEdge.id << std::endl;
+  }
+
+  for (auto upstreamEdge : upstreamEdges) {
+    std::cout << upstreamEdge.second.id << std::endl;
+  }
 
   ndn::svs::SecurityOptions secOpts(m_keyChain);
 
