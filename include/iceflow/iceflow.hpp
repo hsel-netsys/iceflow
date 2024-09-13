@@ -77,6 +77,10 @@ public:
   void repartitionProducer(const std::string &downstreamEdgeName,
                            uint64_t numberOfPartitions);
 
+  std::unordered_map<std::string, uint32_t> getConsumerStats();
+
+  std::unordered_map<std::string, uint32_t> getProducerStats();
+
 private:
   void
   onMissingData(const std::vector<ndn::svs::MissingDataInfo> &missing_data);
@@ -93,6 +97,7 @@ private:
   std::string m_syncPrefix;
 
   std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
+
   std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
 };
 

@@ -164,6 +164,14 @@ const std::string &IceFlow::getNodePrefix() { return m_nodePrefix; }
 
 const std::string &IceFlow::getSyncPrefix() { return m_syncPrefix; }
 
+std::unordered_map<std::string, uint32_t> IceFlow::getConsumerStats() {
+  return std::unordered_map<std::string, uint32_t>();
+}
+
+std::unordered_map<std::string, uint32_t> IceFlow::getProducerStats() {
+  return std::unordered_map<std::string, uint32_t>();
+}
+
 std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
 
 std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;

@@ -24,8 +24,8 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.services.NodeInstanceService);
 
-NodeInstanceService::NodeInstanceService(std::shared_ptr<Iceflow> iceflow)
-    : m_iceflow(iceflow), m_producerMap(producerMap){};
+NodeInstanceService::NodeInstanceService(std::shared_ptr<IceFlow> iceflow)
+    : m_iceflow(iceflow){};
 
 grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
                                               const RepartitionRequest *request,
@@ -42,13 +42,14 @@ grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
   auto partitions =
       std::vector<uint32_t>(lowerPartitionBound, upperPartitionBound);
 
-  bool isSuccess = false;
-  try {
-    isSuccess = iceflow->repartitionConsumer(partitions);
+  response->set_lower_partition_bound(lowerPartitionBound);
+  response->set_upper_partition_bound(upperPartitionBound);
 
-    response->set_success(isSuccess);
-    response->set_lower_partition_bound(lowerPartitionBound);
-    response->set_upper_partition_bound(upperPartitionBound);
+  try {
+    m_iceflow->repartitionConsumer(edgeName, partitions);
+
+    // TODO: Maybe this field is actually obsolete
+    response->set_success(true);
 
     return grpc::Status::OK;
   } catch (...) {
@@ -62,18 +63,21 @@ grpc::Status NodeInstanceService::QueryStats(grpc::ServerContext *context,
                                              const StatsRequest *request,
                                              StatsResponse *response) {
 
-  for (auto consumerMapEntry : m_consumerMap) {
+  auto consumerStats = m_iceflow->getConsumerStats();
+  auto producerStats = m_iceflow->getProducerStats();
+
+  for (auto consumerStat : consumerStats) {
     auto consumptionStats = response->add_consumption_stats();
-    consumptionStats->set_edge_name(consumerMapEntry.first);
+    consumptionStats->set_edge_name(consumerStat.first);
     consumptionStats->set_units_consumed(
-        consumerMapEntry.second->getConsumptionStats());
+        consumerStat.second);
   }
 
-  for (auto producerMapEntry : m_producerMap) {
+  for (auto producerStat : producerStats) {
     auto productionStats = response->add_production_stats();
-    productionStats->set_edge_name(producerMapEntry.first);
+    productionStats->set_edge_name(producerStat.first);
     productionStats->set_units_produced(
-        producerMapEntry.second->getProductionStats());
+        producerStat.second);
   }
 
   return grpc::Status::OK;

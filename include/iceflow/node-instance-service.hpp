@@ -33,7 +33,7 @@ namespace iceflow {
 
 class NodeInstanceService final : public NodeInstance::Service {
 public:
-  explicit NodeInstanceService(std::shared_ptr<Iceflow> iceflow);
+  explicit NodeInstanceService(std::shared_ptr<IceFlow> iceflow);
 
 public:
   virtual grpc::Status Repartition(grpc::ServerContext *context,
@@ -45,7 +45,7 @@ public:
                                   StatsResponse *response);
 
 private:
-  std::shared_ptr<Iceflow> m_iceflow;
+  std::shared_ptr<IceFlow> m_iceflow;
 };
 } // namespace iceflow
 
