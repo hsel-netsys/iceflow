@@ -56,15 +56,15 @@ IceflowProducer::IceflowProducer(
 
 IceflowProducer::~IceflowProducer() {}
 
-ndn::Name IceflowProducer::prepareDataName(const std::string &topic,
+ndn::Name IceflowProducer::prepareDataName(
                                            uint32_t partitionNumber) {
-  return ndn::Name(topic).appendNumber(partitionNumber);
+  return ndn::Name(m_pubTopic).appendNumber(partitionNumber);
 }
 
 void IceflowProducer::pushData(const std::vector<uint8_t> &data) {
   if (auto validSvsPubSub = m_svsPubSub.lock()) {
     auto partitionNumber = getNextPartitionNumber();
-    auto dataID = prepareDataName(m_pubTopic, partitionNumber);
+    auto dataID = prepareDataName(partitionNumber);
     auto sequenceNo = validSvsPubSub->publish(
         dataID, data, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
     NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);

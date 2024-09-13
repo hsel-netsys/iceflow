@@ -56,14 +56,14 @@ private:
                                       uint32_t consumerPartitionIndex,
                                       uint32_t totalNumberOfConsumers);
 
-  uint32_t subscribeToTopicPartition(
-      const std::string &topic, uint32_t partitionNumber,
-      std::function<void(std::vector<uint8_t>)> &pushDataCallback);
+  // uint32_t subscribeToTopicPartition(
+  //     const std::string &topic, uint32_t partitionNumber,
+  //     std::function<void(std::vector<uint8_t>)> &pushDataCallback);
 
   void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData);
 
   // TODO: Get rid of duplicate
-  ndn::Name prepareDataName(const std::string &topic, uint32_t partitionNumber);
+  ndn::Name prepareDataName(uint32_t partitionNumber);
 
   /**
    * Updates the topic partitions this IceflowConsumer is subscribed to.
@@ -75,7 +75,7 @@ private:
                           uint32_t consumerPartitionIndex,
                           uint32_t totalNumberOfConsumers);
 
-  uint32_t subscribeToTopicPartition(uint64_t topicPartition);
+  void subscribeToTopicPartition(uint64_t topicPartition);
 
   void unsubscribeFromAllPartitions();
 
@@ -90,7 +90,7 @@ private:
 
   std::vector<uint32_t> m_partitions;
 
-  std::unordered_map<uint32_t, uint32_t> m_subscriptionHandles;
+  std::vector<uint32_t> m_subscriptionHandles;
 
   std::deque<std::chrono::time_point<std::chrono::steady_clock>>
       m_consumptionTimestamps;

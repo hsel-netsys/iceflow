@@ -81,7 +81,7 @@ private:
   void cleanUpTimestamps(
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
-  ndn::Name prepareDataName(const std::string &topic, uint32_t partitionNumber);
+  ndn::Name prepareDataName(uint32_t partitionNumber);
 
 private:
   const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;

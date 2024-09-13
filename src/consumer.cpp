@@ -88,7 +88,6 @@ bool IceflowConsumer::repartition(std::vector<uint32_t> partitions) {
 
   try {
     for (auto partition : partitions) {
-      // TODO: Deal with the return value
       subscribeToTopicPartition(partition);
     }
   } catch (const std::runtime_error &error) {
@@ -114,11 +113,10 @@ void IceflowConsumer::subscribeCallBack(
 
   std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
 
-  saveTimestamp();
-
   // TODO: Discuss if this is the right way to handle this.
   if (m_consumerCallback) {
     m_consumerCallback.value()(data);
+    saveTimestamp();
     return;
   }
 
@@ -126,22 +124,23 @@ void IceflowConsumer::subscribeCallBack(
                << "TODO");
 }
 
-ndn::Name IceflowConsumer::prepareDataName(const std::string &topic,
-                                           uint32_t partitionNumber) {
-  return ndn::Name(topic).appendNumber(partitionNumber);
+ndn::Name IceflowConsumer::prepareDataName(uint32_t partitionNumber) {
+  return ndn::Name(m_subTopic).appendNumber(partitionNumber);
 }
 
-uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
+void IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
   if (auto validSvsPubSub = m_svsPubSub.lock()) {
     // TODO: For now I got rid of the output queue. I guess we can discuss if
     //       we actually need one or if the consumer application's callback
     //       should always be invoked directly.
 
-    auto dataID = prepareDataName(m_subTopic, topicPartition);
+    auto dataId = prepareDataName(topicPartition);
     // TODO: Consider using subscribeToProducer here instead
-    return validSvsPubSub->subscribe(
-        m_subTopic, std::bind(&IceflowConsumer::subscribeCallBack, this,
-                              std::placeholders::_1));
+    auto subscriptionHandle = validSvsPubSub->subscribe(
+        dataId, std::bind(&IceflowConsumer::subscribeCallBack, this,
+                          std::placeholders::_1));
+
+      m_subscriptionHandles.push_back(subscriptionHandle);
   } else {
     throw std::runtime_error("SVS instance has already expired.");
   }
@@ -150,7 +149,7 @@ uint32_t IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
 void IceflowConsumer::unsubscribeFromAllPartitions() {
   if (auto validSvsPubSub = m_svsPubSub.lock()) {
     for (auto subscriptionHandle : m_subscriptionHandles) {
-      validSvsPubSub->unsubscribe(subscriptionHandle.second);
+      validSvsPubSub->unsubscribe(subscriptionHandle);
     }
   }
   m_subscriptionHandles.clear();
