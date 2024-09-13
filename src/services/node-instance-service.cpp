@@ -24,9 +24,7 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.services.NodeInstanceService);
 
-NodeInstanceService::NodeInstanceService(
-    std::shared_ptr<Iceflow>
-        iceflow)
+NodeInstanceService::NodeInstanceService(std::shared_ptr<Iceflow> iceflow)
     : m_iceflow(iceflow), m_producerMap(producerMap){};
 
 grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
@@ -46,19 +44,18 @@ grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
 
   bool isSuccess = false;
   try {
-   isSuccess = iceflow->repartitionConsumer(partitions);
+    isSuccess = iceflow->repartitionConsumer(partitions);
 
-  response->set_success(isSuccess);
-  response->set_lower_partition_bound(lowerPartitionBound);
-  response->set_upper_partition_bound(upperPartitionBound);
+    response->set_success(isSuccess);
+    response->set_lower_partition_bound(lowerPartitionBound);
+    response->set_upper_partition_bound(upperPartitionBound);
 
-  return grpc::Status::OK;
-  } catch(...) {
-        // TODO: Improve error handling
-      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
-                      "Consumer repartitioning has failed.");
+    return grpc::Status::OK;
+  } catch (...) {
+    // TODO: Improve error handling
+    return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                        "Consumer repartitioning has failed.");
   }
-
 }
 
 grpc::Status NodeInstanceService::QueryStats(grpc::ServerContext *context,
