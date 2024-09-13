@@ -57,32 +57,6 @@ void IceflowConsumer::cleanUpTimestamps(
   }
 }
 
-void IceflowConsumer::validatePartitionConfiguration(
-    uint32_t numberOfPartitions, uint32_t consumerPartitionIndex,
-    uint32_t totalNumberOfConsumers) {
-  if (numberOfPartitions == 0) {
-    throw std::invalid_argument(
-        "At least one topic partition has to be defined!");
-  }
-
-  if (totalNumberOfConsumers <= consumerPartitionIndex) {
-    throw std::invalid_argument(
-        "The total number of consumers has to be larger "
-        "than the consumerPartitionIndex.");
-  }
-
-  if (numberOfPartitions < totalNumberOfConsumers) {
-    throw std::invalid_argument(
-        "The numberOfPartitions has to be at least as large as the "
-        "totalNumberOfConsumers.");
-  }
-
-  if (numberOfPartitions <= consumerPartitionIndex) {
-    throw std::invalid_argument("The numberOfPartitions has to be at least "
-                                "as large as the consumerPartitionIndex.");
-  }
-}
-
 bool IceflowConsumer::repartition(std::vector<uint32_t> partitions) {
   unsubscribeFromAllPartitions();
 

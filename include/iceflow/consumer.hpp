@@ -56,10 +56,6 @@ private:
                                       uint32_t consumerPartitionIndex,
                                       uint32_t totalNumberOfConsumers);
 
-  // uint32_t subscribeToTopicPartition(
-  //     const std::string &topic, uint32_t partitionNumber,
-  //     std::function<void(std::vector<uint8_t>)> &pushDataCallback);
-
   void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData);
 
   // TODO: Get rid of duplicate
