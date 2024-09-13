@@ -114,7 +114,7 @@ void IceflowConsumer::subscribeToTopicPartition(uint64_t topicPartition) {
         dataId, std::bind(&IceflowConsumer::subscribeCallBack, this,
                           std::placeholders::_1));
 
-      m_subscriptionHandles.push_back(subscriptionHandle);
+    m_subscriptionHandles.push_back(subscriptionHandle);
   } else {
     throw std::runtime_error("SVS instance has already expired.");
   }

@@ -56,8 +56,7 @@ IceflowProducer::IceflowProducer(
 
 IceflowProducer::~IceflowProducer() {}
 
-ndn::Name IceflowProducer::prepareDataName(
-                                           uint32_t partitionNumber) {
+ndn::Name IceflowProducer::prepareDataName(uint32_t partitionNumber) {
   return ndn::Name(m_pubTopic).appendNumber(partitionNumber);
 }
 
