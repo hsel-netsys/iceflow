@@ -58,7 +58,6 @@ private:
 
   void subscribeCallBack(const ndn::svs::SVSPubSub::SubscriptionData &subData);
 
-  // TODO: Get rid of duplicate
   ndn::Name prepareDataName(uint32_t partitionNumber);
 
   /**
