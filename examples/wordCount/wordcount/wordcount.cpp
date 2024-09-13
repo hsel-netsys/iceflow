@@ -64,7 +64,7 @@ private:
 
 void run(const std::string &nodeName, const std::string &dagFileName) {
   WordCounter compute;
-  ndn::Face face();
+  ndn::Face face;
 
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 

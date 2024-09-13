@@ -84,16 +84,20 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   measurementHandler = new iceflow::Measurement(
       nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
 
-  auto prosumerCallback =
-      [&iceflow, &wordSplitter](
-          const std::vector<uint8_t> &data,
-          std::function<void(std::vector<uint8_t>)> pushDataCallback) {
-        std::string line(data.begin(), data.end());
-        wordSplitter.lines2words(line, pushDataCallback);
-      };
+  auto prosumerCallback = [&iceflow, &wordSplitter, &downstreamEdgeName](
+                              const std::vector<uint8_t> &data,
+                              iceflow::ProducerCallback producerCallback) {
+    std::string line(data.begin(), data.end());
 
-  iceflow->registerProsumerCallback(downstreamEdgeName, upstreamEdgeName,
-                                    prosumerCallback);
+    auto pushDataCallback = [downstreamEdgeName,
+                             producerCallback](std::vector<uint8_t> data) {
+      producerCallback(downstreamEdgeName, data);
+    };
+
+    wordSplitter.lines2words(line, pushDataCallback);
+  };
+
+  iceflow->registerProsumerCallback(upstreamEdgeName, prosumerCallback);
 
   iceflow->repartitionConsumer(upstreamEdgeName, consumerPartitions);
   iceflow->run();

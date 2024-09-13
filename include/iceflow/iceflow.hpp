@@ -33,6 +33,11 @@
 
 namespace iceflow {
 
+typedef std::function<void(const std::string &, std::vector<uint8_t>)>
+    ProducerCallback;
+typedef std::function<void(std::vector<uint8_t>, ProducerCallback)>
+    ProsumerCallback;
+
 /**
  * Central building block for IceFlow-based consumers and producers.
  *
@@ -64,12 +69,8 @@ public:
   void registerConsumerCallback(const std::string &upstreamEdgeName,
                                 ConsumerCallback consumerCallback);
 
-  void registerProsumerCallback(
-      const std::string &downstreamEdgeName,
-      const std::string &upstreamEdgeName,
-      std::function<void(std::vector<uint8_t>,
-                         std::function<void(std::vector<uint8_t>)>)>
-          pushDataCallback);
+  void registerProsumerCallback(const std::string &upstreamEdgeName,
+                                ProsumerCallback prosumerCallback);
 
   void repartitionConsumer(const std::string &upstreamEdgeName,
                            std::vector<uint32_t> partitions);
