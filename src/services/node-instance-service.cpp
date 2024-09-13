@@ -25,23 +25,14 @@ namespace iceflow {
 NDN_LOG_INIT(iceflow.services.NodeInstanceService);
 
 NodeInstanceService::NodeInstanceService(
-    std::unordered_map<std::string, std::shared_ptr<IceflowConsumer>>
-        &consumerMap,
-    std::unordered_map<std::string, std::shared_ptr<IceflowProducer>>
-        &producerMap)
-    : m_consumerMap(consumerMap), m_producerMap(producerMap){};
+    std::shared_ptr<Iceflow>
+        iceflow)
+    : m_iceflow(iceflow), m_producerMap(producerMap){};
 
 grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
                                               const RepartitionRequest *request,
                                               RepartitionResponse *response) {
   auto edgeName = request->edge_name();
-
-  if (!m_consumerMap.contains(edgeName)) {
-    return grpc::Status(grpc::StatusCode::NOT_FOUND,
-                        "No consumer defined for edge.");
-  }
-
-  auto consumer = m_consumerMap[edgeName];
 
   auto lowerPartitionBound = request->lower_partition_bound();
   auto upperPartitionBound = request->upper_partition_bound();
@@ -53,13 +44,21 @@ grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
   auto partitions =
       std::vector<uint32_t>(lowerPartitionBound, upperPartitionBound);
 
-  auto isSuccess = consumer->repartition(partitions);
+  bool isSuccess = false;
+  try {
+   isSuccess = iceflow->repartitionConsumer(partitions);
 
   response->set_success(isSuccess);
   response->set_lower_partition_bound(lowerPartitionBound);
   response->set_upper_partition_bound(upperPartitionBound);
 
   return grpc::Status::OK;
+  } catch(...) {
+        // TODO: Improve error handling
+      return grpc::Status(grpc::StatusCode::INVALID_ARGUMENT,
+                      "Consumer repartitioning has failed.");
+  }
+
 }
 
 grpc::Status NodeInstanceService::QueryStats(grpc::ServerContext *context,
