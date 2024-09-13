@@ -165,11 +165,23 @@ const std::string &IceFlow::getNodePrefix() { return m_nodePrefix; }
 const std::string &IceFlow::getSyncPrefix() { return m_syncPrefix; }
 
 std::unordered_map<std::string, uint32_t> IceFlow::getConsumerStats() {
-  return std::unordered_map<std::string, uint32_t>();
+  auto result = std::unordered_map<std::string, uint32_t>();
+
+  for (auto consumer : m_iceflowConsumers) {
+    result.emplace(consumer.first, consumer.second.getConsumptionStats());
+  }
+
+  return result;
 }
 
 std::unordered_map<std::string, uint32_t> IceFlow::getProducerStats() {
-  return std::unordered_map<std::string, uint32_t>();
+  auto result = std::unordered_map<std::string, uint32_t>();
+
+  for (auto producer : m_iceflowProducers) {
+    result.emplace(producer.first, producer.second.getProductionStats());
+  }
+
+  return result;
 }
 
 std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
