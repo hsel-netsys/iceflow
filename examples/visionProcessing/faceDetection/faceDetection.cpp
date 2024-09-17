@@ -16,28 +16,29 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "contentType.hpp"
 #include "iceflow/consumer.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
-#include "serde.hpp"
+#include "iceflow/serde.hpp"
+
+#include <ndn-cxx/face.hpp>
+#include <ndn-cxx/util/logger.hpp>
 
 #include <csignal>
 #include <functional>
 #include <iostream>
-#include <ndn-cxx/face.hpp>
-#include <ndn-cxx/util/logger.hpp>
 #include <nlohmann/json.hpp>
-#include <opencv2/dnn.hpp>
-#include <opencv2/imgcodecs.hpp>
-#include <opencv2/imgproc.hpp>
-#include <opencv2/opencv.hpp>
 #include <sstream>
 #include <string>
 #include <thread>
 #include <vector>
 #include <yaml-cpp/yaml.h>
+
+#include <opencv2/dnn.hpp>
+#include <opencv2/imgcodecs.hpp>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/opencv.hpp>
 
 NDN_LOG_INIT(iceflow.examples.visionprocessing.faceDetection);
 
@@ -64,90 +65,82 @@ public:
 
     while (true) {
       // Receive TLV-encoded data and deserialize it into JSON
-      std::vector<uint8_t> encodedJson = receive();
+      auto encodedJson = receive();
 
-      // for (auto &byte : encodedJson) {
-      //   std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
-      //             << (int)byte << " ";
-      // }
-      // std::cout << std::endl;
+      try {
+        nlohmann::json deserializedData = Serde::deserialize(encodedJson);
+        if (deserializedData["image"].empty()) {
+          std::cerr << "Received empty Image, cannot decode." << std::endl;
+          continue;
+        }
 
-      size_t offset = 0;
-      // nlohmann::json deserializedData = Serde::deserialize(encodedJson);
-      auto deserializedData = nlohmann::json::from_cbor(encodedJson);
+        else {
+          int frameID = deserializedData["frameID"];
+          std::vector<uint8_t> encodedImage =
+              deserializedData["image"].get_binary();
 
-      // Extract frameID and encodedImage from the deserialized JSON
-      int frameID = deserializedData["frameID"];
-      std::vector<uint8_t> encodedImage =
-          deserializedData["image"].get_binary();
+          // Decode the image (JPEG format) using OpenCV
+          cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
 
-      std::cout << encodedImage.size() << std::endl;
+          measurementHandler->setField(std::to_string(computeCounter),
+                                       "CMP_START", 0);
+          measurementHandler->setField(std::to_string(frameID), "IS->FD", 0);
 
-      // Decode the image (JPEG format) using OpenCV
-      cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
-      if (greyImage.empty()) {
-        std::cerr << "Error: Could not decode JPEG image. Corrupted data?"
-                  << std::endl;
-        continue; // Skip this frame
-      }
+          // Get the bounding boxes of detected faces
+          tie(frameFace, bboxes) = getFaceBox(faceNet, greyImage, 0.7);
 
-      std::cout << "Frame ID: " << frameID << std::endl;
-      NDN_LOG_INFO("Decoded: " << greyImage.total() * greyImage.elemSize()
-                               << " bytes");
+          for (const auto &box : bboxes) {
+            int x1 = std::max(0, box[0] - padding);
+            int y1 = std::max(0, box[1] - padding);
+            int x2 = std::min(greyImage.cols, box[2] + padding);
+            int y2 = std::min(greyImage.rows, box[3] + padding);
 
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
-                                   0);
+            cv::Rect faceRect(x1, y1, x2 - x1, y2 - y1);
 
-      NDN_LOG_INFO("Consumed grey frame: "
-                   << computeCounter << " - "
-                   << greyImage.total() * greyImage.elemSize() << " Bytes");
+            if (faceRect.width > 0 && faceRect.height > 0) {
+              cv::Mat greyface = greyImage(faceRect);
 
-      if (!greyImage.empty()) {
-        measurementHandler->setField(std::to_string(computeCounter), "IS->FD",
-                                     0);
+              std::cout << "Detected face: "
+                        << greyface.total() * greyface.elemSize() << " bytes"
+                        << std::endl;
 
-        // Get the bounding boxes of detected faces
-        tie(frameFace, bboxes) = getFaceBox(faceNet, greyImage, 0.7);
+              // Encode the cropped face for further processing
+              std::vector<uint8_t> encodedCroppedFace;
+              if (!cv::imencode(".jpeg", greyface, encodedCroppedFace)) {
+                std::cerr << "Error: Could not encode image." << std::endl;
+                return;
+              }
 
-        for (const auto &box : bboxes) {
-          int x1 = std::max(0, box[0] - padding);
-          int y1 = std::max(0, box[1] - padding);
-          int x2 = std::min(greyImage.cols, box[2] + padding);
-          int y2 = std::min(greyImage.rows, box[3] + padding);
+              nlohmann::json resultData;
+              resultData["frameID"] = frameID;
+              resultData["image"] = nlohmann::json::binary(encodedCroppedFace);
 
-          cv::Rect faceRect(x1, y1, x2 - x1, y2 - y1);
+              std::vector<uint8_t> detectedFace = Serde::serialize(resultData);
 
-          if (faceRect.width > 0 && faceRect.height > 0) {
-            cv::Mat greyface = greyImage(faceRect);
+              std::cout << "FaceDetection: \n"
+                        << " FrameID:" << frameID << "\n"
+                        << " Encoded Image Size: " << detectedFace.size()
+                        << " bytes" << std::endl;
+              std::cout << "------------------------------------" << std::endl;
 
-            std::cout << "Detected face: "
-                      << greyface.total() * greyface.elemSize() << " bytes"
-                      << std::endl;
-
-            // Encode the cropped face for further processing
-            std::vector<uint8_t> encodedCroppedFace;
-            if (!cv::imencode(".jpg", greyface, encodedCroppedFace)) {
-              std::cerr << "Error: Could not encode image." << std::endl;
-              return;
+              push(detectedFace);
+              measurementHandler->setField(std::to_string(frameID), "FD->AD",
+                                           0);
+              measurementHandler->setField(std::to_string(frameID), "FD->GD",
+                                           0);
+              measurementHandler->setField(std::to_string(frameID), "FD->ED",
+                                           0);
+              measurementHandler->setField(std::to_string(computeCounter),
+                                           "CMP_FINISH", 0);
+              computeCounter++;
             }
-
-            nlohmann::json resultData;
-            resultData["frameID"] = frameID;
-            resultData["image"] = nlohmann::json::binary(encodedCroppedFace);
-
-            std::vector<uint8_t> serializedData = Serde::serialize(resultData);
-
-            push(serializedData);
           }
         }
+      } catch (const nlohmann::json::parse_error &e) {
+        std::cerr << "Error during CBOR deserialization: " << e.what()
+                  << std::endl;
+        continue; // Skip this iteration
       }
-
-      measurementHandler->setField(std::to_string(computeCounter), "FD->AD", 0);
-      measurementHandler->setField(std::to_string(computeCounter), "FD->GD", 0);
-      measurementHandler->setField(std::to_string(computeCounter), "FD->ED", 0);
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
-                                   0);
-      computeCounter++;
     }
   }
 

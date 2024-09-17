@@ -1,1 +1,1 @@
-./build/peopleCount ./examples/visionProcessing/faceDetection/faceDetection.yaml tm
+./build/peopleCount ./examples/visionProcessing/peopleCount/peopleCount.yaml tm

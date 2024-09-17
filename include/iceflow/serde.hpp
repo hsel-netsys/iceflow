@@ -1,6 +1,7 @@
 #ifndef SERDE_HPP
 #define SERDE_HPP
 
+#include <iostream>
 #include <nlohmann/json.hpp>
 #include <stdexcept>
 #include <vector>

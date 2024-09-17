@@ -1,29 +1,14 @@
-/*
- * Copyright 2024 The IceFlow Authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include "iceflow/consumer.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
+#include "iceflow/serde.hpp"
+
+#include <ndn-cxx/face.hpp>
+#include <ndn-cxx/util/logger.hpp>
 
 #include <csignal>
 #include <iostream>
-#include <ndn-cxx/face.hpp>
-#include <ndn-cxx/util/logger.hpp>
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -35,31 +20,79 @@ iceflow::Measurement *measurementHandler;
 
 void signalCallbackHandler(int signum) {
   measurementHandler->recordToFile();
-  exit(signum);
+  std::exit(signum);
 }
 
 class Aggregate {
 public:
-  void aggregate(std::function<std::string()> receive1,
-                 std::function<std::string()> receive2,
-                 std::function<std::string()> receive3) {
+  void aggregate(std::function<std::vector<uint8_t>()> receive1,
+                 std::function<std::vector<uint8_t>()> receive2,
+                 std::function<std::vector<uint8_t>()> receive3) {
     int computeCounter = 0;
 
     while (true) {
-      auto personAnalysis1 = receive1();
-      auto personAnalysis2 = receive2();
-      auto personAnalysis3 = receive3();
 
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
-                                   0);
+      // Gather data from the sources
+      analysisStorage.push_back(receive1());
+      analysisStorage.push_back(receive2());
+      analysisStorage.push_back(receive3());
 
-      std::cout << "Analysis " << personAnalysis1 << std::endl;
-      std::cout << personAnalysis2 << std::endl;
-      std::cout << personAnalysis3 << std::endl;
+      // Set fields for performance measurement
+      std::string computeCounterStr = std::to_string(computeCounter);
+      measurementHandler->setField(computeCounterStr, "CMP_START", 0);
+      measurementHandler->setField(computeCounterStr, "PC->AGG", 0);
 
+      // Temporary storage for frame data
+      std::map<int, std::string> ageData;
+      std::map<int, std::string> genderData;
+      std::map<int, std::string> peopleCountData;
+
+      // Process each analysis result
+      for (auto &analysis : analysisStorage) {
+        nlohmann::json deserializedData = Serde::deserialize(analysis);
+
+        // Check if relevant fields exist in the JSON
+        if (deserializedData.contains("frameID")) {
+          int frameID = deserializedData["frameID"];
+
+          if (deserializedData.contains("Age")) {
+            ageData[frameID] = deserializedData["Age"].get<std::string>();
+          }
+          if (deserializedData.contains("Gender")) {
+            genderData[frameID] = deserializedData["Gender"].get<std::string>();
+          }
+          if (deserializedData.contains("PeopleCount")) {
+            peopleCountData[frameID] =
+                deserializedData["PeopleCount"].get<std::string>();
+          }
+        }
+      }
+
+      // Display combined data for each frameID
+      for (const auto &[frameID, age] : ageData) {
+        std::string gender =
+            genderData.count(frameID) ? genderData[frameID] : "N/A";
+        std::string peopleCount =
+            peopleCountData.count(frameID) ? peopleCountData[frameID] : "N/A";
+
+        std::cout << "Frame ID: " << frameID << "\n"
+                  << "  Age: " << age << "\n"
+                  << "  Gender: " << gender << "\n"
+                  << "  PeopleCount: " << peopleCount << "\n"
+                  << std::endl;
+      }
+
+      // Finish processing
+      measurementHandler->setField(computeCounterStr, "CMP_FINISH", 0);
       computeCounter++;
+
+      // Clear the storage for the next loop
+      analysisStorage.clear();
     }
   }
+
+private:
+  std::vector<std::vector<uint8_t>> analysisStorage;
 };
 
 void run(const std::string &syncPrefix, const std::string &nodePrefix,
@@ -70,7 +103,7 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
          const std::string &subTopic3,
          std::vector<uint32_t> consumerPartitions3) {
 
-  Aggregate aggregate;
+  Aggregate analyzer;
   ndn::Face face;
   auto iceflow =
       std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
@@ -83,28 +116,14 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
       iceflow::IceflowConsumer(iceflow, subTopic3, consumerPartitions3);
 
   std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
 
-  threads.emplace_back([&aggregate, &consumer1, &consumer2, &consumer3]() {
-    aggregate.aggregate(
-        [&consumer1]() -> std::string {
-          auto encodedAnalysis = consumer1.receiveData();
-          std::string analysis(encodedAnalysis.begin(), encodedAnalysis.end());
-          return analysis;
-        },
-        [&consumer2]() -> std::string {
-          auto encodedAnalysis = consumer2.receiveData();
-          std::string analysis(encodedAnalysis.begin(), encodedAnalysis.end());
-          return analysis;
-        },
-        [&consumer3]() -> std::string {
-          auto encodedAnalysis = consumer3.receiveData();
-          std::string analysis(encodedAnalysis.begin(), encodedAnalysis.end());
-          return analysis;
-        });
+  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
+  threads.emplace_back([&analyzer, &consumer1, &consumer2, &consumer3]() {
+    analyzer.aggregate([&consumer1]() { return consumer1.receiveData(); },
+                       [&consumer2]() { return consumer2.receiveData(); },
+                       [&consumer3]() { return consumer3.receiveData(); });
   });
 
-  // Join the threads
   for (auto &thread : threads) {
     thread.join();
   }
@@ -113,8 +132,8 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 int main(int argc, const char *argv[]) {
 
   if (argc != 3) {
-    std::cout << "usage: " << argv[0]
-              << " <config-file><test-name><measurement-file>" << std::endl;
+    std::cout << "usage: " << argv[0] << " <config-file> <measurement-file>"
+              << std::endl;
     return 1;
   }
 

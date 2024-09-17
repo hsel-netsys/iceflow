@@ -20,11 +20,14 @@
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
+#include "iceflow/serde.hpp"
+
+#include <ndn-cxx/face.hpp>
+#include <ndn-cxx/util/logger.hpp>
 
 #include <csignal>
 #include <iostream>
-#include <ndn-cxx/face.hpp>
-#include <ndn-cxx/util/logger.hpp>
+#include <nlohmann/json.hpp>
 #include <sstream>
 #include <string>
 #include <thread>
@@ -47,8 +50,8 @@ void signalCallbackHandler(int signum) {
 
 class GenderDetection {
 public:
-  void genderDetection(std::function<cv::Mat()> receive,
-                       std::function<void(std::string)> push,
+  void genderDetection(std::function<std::vector<uint8_t>()> receive,
+                       std::function<void(const std::vector<uint8_t>)> push,
                        std::string protobufFile, std::string mlModel) {
 
     cv::Scalar MODEL_MEAN_VALUES =
@@ -60,21 +63,29 @@ public:
     int computeCounter = 0;
 
     while (true) {
-      auto croppedFace = receive();
+      auto encodedcroppedFace = receive();
+      nlohmann::json deserializedData = Serde::deserialize(encodedcroppedFace);
 
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
-                                   0);
+      if (deserializedData["image"].empty()) {
+        std::cerr << "Received empty Image, cannot decode." << std::endl;
+        continue;
+      }
 
-      NDN_LOG_INFO("Consumed cropped Face: "
-                   << computeCounter
-                   << croppedFace.total() * croppedFace.elemSize() << " Bytes");
+      else {
+        // Extract frameID and encoded Cropped Face from the deserialized JSON
+        int frameID = deserializedData["frameID"];
+        std::vector<uint8_t> croppedFace =
+            deserializedData["image"].get_binary();
 
-      if (!croppedFace.empty()) {
-        cv::Mat blob;
+        measurementHandler->setField(std::to_string(computeCounter),
+                                     "CMP_START", 0);
+        cv::Mat actualFace = cv::imdecode(croppedFace, cv::IMREAD_COLOR);
+        // NDN_LOG_INFO("Received: " << actualFace.size() << " bytes");
+
         measurementHandler->setField(std::to_string(computeCounter), "FD->GD",
                                      0);
-        blob = cv::dnn::blobFromImage(croppedFace, 1, cv::Size(227, 227),
-                                      MODEL_MEAN_VALUES, false);
+        cv::Mat blob = cv::dnn::blobFromImage(actualFace, 1, cv::Size(227, 227),
+                                              MODEL_MEAN_VALUES, false);
 
         genderNet.setInput(blob);
         std::vector<float> genderPreds = genderNet.forward();
@@ -83,9 +94,19 @@ public:
             std::distance(genderPreds.begin(),
                           max_element(genderPreds.begin(), genderPreds.end()));
         std::string genderAnalytics = genderList[maxIndiceGender];
-        // NDN_LOG_INFO("Gender: " << genderAnalytics);
-        std::cout << "Gender: " << genderAnalytics << std::endl;
-        push(genderAnalytics);
+
+        nlohmann::json resultData;
+        resultData["frameID"] = frameID;
+        resultData["Gender"] = genderAnalytics;
+
+        std::vector<uint8_t> encodedAnalytics = Serde::serialize(resultData);
+
+        std::cout << "GenderDetection:\n"
+                  << " FrameID:" << frameID << "\n"
+                  << " Encoded Image Size: " << encodedAnalytics.size()
+                  << " bytes" << std::endl;
+        std::cout << "------------------------------------" << std::endl;
+        push(encodedAnalytics);
       }
 
       // ##### MEASUREMENT #####
@@ -118,41 +139,18 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
 
   std::vector<std::thread> threads;
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&genderDetection, &consumer, &producer, &protobufFile,
-                        &mlModel]() {
-    genderDetection.genderDetection(
-        [&consumer]() -> cv::Mat {
-          auto encodedImage = consumer.receiveData();
-
-          if (encodedImage.empty()) {
-            std::cerr << "Received empty data, cannot decode." << std::endl;
-            return cv::Mat();
-          }
-
-          // NDN_LOG_INFO("Received: " << encodedImage.size() << " bytes");
-          std::cout << "Received: " << encodedImage.size() << " bytes"
-                    << std::endl;
-          cv::Mat croppedFace = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
-
-          if (croppedFace.empty()) {
-            std::cerr << "Error: Could not decode received data into image."
-                      << std::endl;
-            return cv::Mat();
-          }
-          // NDN_LOG_INFO("Decoded: "
-          //              << croppedFace.total() * croppedFace.elemSize()
-          //              << " bytes");
-          std::cout << "Decoded: "
-                    << croppedFace.total() * croppedFace.elemSize() << " bytes"
-                    << std::endl;
-          return croppedFace;
-        },
-        [&producer](const std::string &data) {
-          std::vector<uint8_t> ageAnalytics(data.begin(), data.end());
-          producer.pushData(ageAnalytics);
-        },
-        protobufFile, mlModel);
-  });
+  threads.emplace_back(
+      [&genderDetection, &consumer, &producer, &protobufFile, &mlModel]() {
+        genderDetection.genderDetection(
+            [&consumer]() {
+              std::vector<uint8_t> encodedImage = consumer.receiveData();
+              return encodedImage;
+            },
+            [&producer](const std::vector<uint8_t> &analytics) {
+              producer.pushData(analytics);
+            },
+            protobufFile, mlModel);
+      });
 
   for (auto &thread : threads) {
     thread.join();
