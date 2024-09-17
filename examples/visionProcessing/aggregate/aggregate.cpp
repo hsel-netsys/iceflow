@@ -32,48 +32,45 @@ public:
 
     while (true) {
 
-      // Gather data from the sources
       analysisStorage.push_back(receive1());
       analysisStorage.push_back(receive2());
       analysisStorage.push_back(receive3());
 
-      // Set fields for performance measurement
       std::string computeCounterStr = std::to_string(computeCounter);
       measurementHandler->setField(computeCounterStr, "CMP_START", 0);
       measurementHandler->setField(computeCounterStr, "PC->AGG", 0);
 
-      // Temporary storage for frame data
-      std::map<int, std::string> ageData;
-      std::map<int, std::string> genderData;
-      std::map<int, std::string> peopleCountData;
+      std::map<int, std::tuple<std::string, std::string, std::string>>
+          frameData;
 
-      // Process each analysis result
       for (auto &analysis : analysisStorage) {
         nlohmann::json deserializedData = Serde::deserialize(analysis);
 
-        // Check if relevant fields exist in the JSON
         if (deserializedData.contains("frameID")) {
           int frameID = deserializedData["frameID"];
 
+          auto &dataTuple = frameData[frameID];
+
           if (deserializedData.contains("Age")) {
-            ageData[frameID] = deserializedData["Age"].get<std::string>();
+            std::get<0>(dataTuple) = deserializedData["Age"].get<std::string>();
           }
           if (deserializedData.contains("Gender")) {
-            genderData[frameID] = deserializedData["Gender"].get<std::string>();
+            std::get<1>(dataTuple) =
+                deserializedData["Gender"].get<std::string>();
           }
           if (deserializedData.contains("PeopleCount")) {
-            peopleCountData[frameID] =
+            std::get<2>(dataTuple) =
                 deserializedData["PeopleCount"].get<std::string>();
           }
         }
       }
 
-      // Display combined data for each frameID
-      for (const auto &[frameID, age] : ageData) {
+      for (const auto &[frameID, data] : frameData) {
+        std::string age = std::get<0>(data).empty() ? "N/A" : std::get<0>(data);
         std::string gender =
-            genderData.count(frameID) ? genderData[frameID] : "N/A";
+            std::get<1>(data).empty() ? "N/A" : std::get<1>(data);
         std::string peopleCount =
-            peopleCountData.count(frameID) ? peopleCountData[frameID] : "N/A";
+            std::get<2>(data).empty() ? "N/A" : std::get<2>(data);
 
         std::cout << "Frame ID: " << frameID << "\n"
                   << "  Age: " << age << "\n"
@@ -82,11 +79,9 @@ public:
                   << std::endl;
       }
 
-      // Finish processing
       measurementHandler->setField(computeCounterStr, "CMP_FINISH", 0);
       computeCounter++;
 
-      // Clear the storage for the next loop
       analysisStorage.clear();
     }
   }
