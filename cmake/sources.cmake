@@ -17,8 +17,8 @@
 # Find all source files for formatting, see the replies to https://stackoverflow.com/a/36046965
 # and https://www.labri.fr/perso/fleury/posts/programming/using-clang-tidy-and-clang-format.html.
 file(GLOB ALL_SOURCES
-  include/*.[chCH][pP][pP] include/*.[chCH][xX][xX] include/*.[cC][cC]
-  include/*.[hH][hH] include/*.[CHch]
+  include/iceflow/*.[chCH][pP][pP] include/iceflow/*.[chCH][xX][xX]
+  include/iceflow/*.[cC][cC] include/iceflow/*.[hH][hH] include/iceflow/*.[CHch]
   src/*.[chCH][pP][pP] src/*.[chCH][xX][xX] src/*.[cC][cC]
   src/*.[hH][hH] src/*.[CHch]
   src/services/*.[chCH][pP][pP] src/services/*.[chCH][xX][xX] src/services/*.[cC][cC]
