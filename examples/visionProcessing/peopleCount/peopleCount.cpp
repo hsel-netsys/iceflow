@@ -22,13 +22,16 @@
 #include "iceflow/producer.hpp"
 #include "iceflow/serde.hpp"
 
-#include <csignal>
-#include <iostream>
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/util/logger.hpp>
+
+#include <csignal>
+#include <iostream>
+#include <map>
 #include <sstream>
 #include <string>
 #include <thread>
+#include <tuple>
 #include <vector>
 #include <yaml-cpp/yaml.h>
 
