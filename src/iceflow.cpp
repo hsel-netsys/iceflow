@@ -16,17 +16,48 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
+
 #include "ndn-cxx/util/logger.hpp"
 
 #include "iceflow.hpp"
 
 namespace iceflow {
 
+std::string generateNodePrefix() {
+  boost::uuids::basic_random_generator<boost::mt19937> gen;
+  boost::uuids::uuid uuid = gen();
+  return to_string(uuid);
+}
+
 NDN_LOG_INIT(iceflow.IceFlow);
 
-IceFlow::IceFlow(const std::string &syncPrefix, const std::string &nodePrefix,
+IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
                  ndn::Face &face)
-    : m_syncPrefix(syncPrefix), m_nodePrefix(nodePrefix), m_face(face) {
+    : IceFlow(dagParser, nodeName, face, std::nullopt){
+
+      };
+
+IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
+                 ndn::Face &face,
+                 std::shared_ptr<CongestionReporter> congestionReporter)
+    : IceFlow(dagParser, nodeName, face, std::optional(congestionReporter)){
+
+      };
+
+IceFlow::IceFlow(
+    DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+    std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
+    : m_face(face), m_congestionReporter(congestionReporter) {
+  m_nodePrefix = generateNodePrefix();
+  m_syncPrefix = "/" + dagParser.getApplicationName();
+
+  auto node = dagParser.findNodeByName(nodeName);
+  auto downstreamEdges = node.downstream;
+  auto upstreamEdges = dagParser.findUpstreamEdges(node);
+
   ndn::svs::SecurityOptions secOpts(m_keyChain);
 
   ndn::svs::SVSPubSubOptions opts;
@@ -34,15 +65,36 @@ IceFlow::IceFlow(const std::string &syncPrefix, const std::string &nodePrefix,
   m_svsPubSub = std::make_shared<ndn::svs::SVSPubSub>(
       ndn::Name(m_syncPrefix), ndn::Name(m_nodePrefix), m_face,
       std::bind(&IceFlow::onMissingData, this, _1), opts, secOpts);
-};
+
+  for (auto downstreamEdge : downstreamEdges) {
+    auto downstreamEdgeName = downstreamEdge.id;
+
+    auto iceflowProducer = IceflowProducer(
+        m_svsPubSub, m_nodePrefix, m_syncPrefix, downstreamEdgeName,
+        downstreamEdge.maxPartitions, m_congestionReporter);
+
+    m_iceflowProducers.emplace(downstreamEdgeName, iceflowProducer);
+  }
+
+  for (auto upstreamEdge : upstreamEdges) {
+    auto upstreamEdgeName = upstreamEdge.second.id;
+
+    auto iceflowConsumer = IceflowConsumer(
+        m_svsPubSub, m_syncPrefix, upstreamEdgeName, m_congestionReporter);
+
+    m_iceflowConsumers.emplace(upstreamEdgeName, iceflowConsumer);
+  }
+}
 
 void IceFlow::run() {
   if (m_running) {
     throw std::runtime_error("Iceflow instance is already running!");
   }
 
+  m_running = true;
+
   std::thread svsThread([this] {
-    while (true) {
+    while (m_running) {
       try {
         m_face.processEvents(ndn::time::milliseconds(5000), true);
       } catch (std::exception &e) {
@@ -51,134 +103,111 @@ void IceFlow::run() {
     }
   });
 
-  m_running = true;
-  while (m_running) {
-    NDN_LOG_INFO("Checking if producers are registered...");
-    std::unique_lock lock(m_producerRegistrationMutex);
-    m_producerRegistrationConditionVariable.wait(
-        lock, [this] { return m_producersAvailable; });
-    NDN_LOG_INFO("At least one producer is registered, continuing "
-                 "publishing thread.");
-
-    auto closestNextPublishTimePoint =
-        std::chrono::time_point<std::chrono::steady_clock>::max();
-
-    for (auto producerRegistrationTuple : m_producerRegistrations) {
-      auto producerRegistration = std::get<1>(producerRegistrationTuple);
-
-      auto nextPublishTimePoint =
-          producerRegistration.getNextPublishTimePoint();
-      auto timeUntilNextPublish =
-          nextPublishTimePoint - std::chrono::steady_clock::now();
-
-      if (nextPublishTimePoint < closestNextPublishTimePoint) {
-        closestNextPublishTimePoint = nextPublishTimePoint;
-      }
-
-      if (timeUntilNextPublish.count() > 0) {
-        continue;
-      }
-
-      if (producerRegistration.hasQueueValue()) {
-        auto queueEntry = producerRegistration.popQueueValue();
-        publishMsg(queueEntry.data, queueEntry.topic,
-                   queueEntry.partitionNumber);
-      }
-
-      producerRegistration.resetLastPublishTimepoint();
-    }
-
-    auto minimalTimeUntilNextPublish =
-        closestNextPublishTimePoint - std::chrono::steady_clock::now();
-
-    if (minimalTimeUntilNextPublish.count() > 0) {
-      NDN_LOG_INFO("Sleeping for " << minimalTimeUntilNextPublish.count()
-                                   << " nanoseconds...");
-      std::this_thread::sleep_for(minimalTimeUntilNextPublish);
-    }
-  }
-
-  m_face.shutdown();
-
   svsThread.join();
 }
 
+void IceFlow::repartitionConsumer(const std::string &upstreamEdgeName,
+                                  std::vector<uint32_t> partitions) {
+  if (!m_iceflowConsumers.contains(upstreamEdgeName)) {
+    throw std::runtime_error("Consumer for upstream edge " + upstreamEdgeName +
+                             " does not exist!");
+  }
+
+  m_iceflowConsumers.at(upstreamEdgeName).repartition(partitions);
+}
+
+void IceFlow::repartitionProducer(const std::string &downstreamEdgeName,
+                                  uint64_t numberOfPartitions) {
+  if (!m_iceflowProducers.contains(downstreamEdgeName)) {
+    throw std::runtime_error("Producer for downstream edge " +
+                             downstreamEdgeName + " does not exist!");
+  }
+
+  m_iceflowProducers.at(downstreamEdgeName)
+      .setTopicPartitions(numberOfPartitions);
+}
+
 void IceFlow::shutdown() { m_running = false; }
-
-uint32_t IceFlow::subscribeToTopicPartition(
-    const std::string &topic, uint32_t partitionNumber,
-    std::function<void(std::vector<uint8_t>)> &pushDataCallback) {
-
-  auto subscribedTopic = ndn::Name(topic).appendNumber(partitionNumber);
-
-  auto subscriptionHandle = m_svsPubSub->subscribe(
-      subscribedTopic, std::bind(&IceFlow::subscribeCallBack, this,
-                                 pushDataCallback, std::placeholders::_1));
-
-  NDN_LOG_INFO("Subscribed to " << subscribedTopic);
-
-  return subscriptionHandle;
-}
-
-void IceFlow::unsubscribe(uint32_t subscriptionHandle) {
-  m_svsPubSub->unsubscribe(subscriptionHandle);
-}
-
-void IceFlow::subscribeCallBack(
-    const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
-    const ndn::svs::SVSPubSub::SubscriptionData &subData) {
-  NDN_LOG_DEBUG("Producer Prefix: " << subData.producerPrefix << " ["
-                                    << subData.seqNo << "] : " << subData.name
-                                    << " : ");
-
-  std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
-
-  pushDataCallback(data);
-}
 
 void IceFlow::onMissingData(
     const std::vector<ndn::svs::MissingDataInfo> &missing_data) {
   // TODO: Implement if needed
 }
 
-ndn::Name IceFlow::prepareDataName(const std::string &topic,
-                                   uint32_t partitionNumber) {
-  return ndn::Name(topic).appendNumber(partitionNumber);
-}
-
-void IceFlow::publishMsg(std::vector<uint8_t> payload, const std::string &topic,
-                         uint32_t partitionNumber) {
-  auto dataID = prepareDataName(topic, partitionNumber);
-  auto sequenceNo = m_svsPubSub->publish(
-      dataID, payload, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
-  NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
-}
-
-uint32_t
-IceFlow::registerProducer(ProducerRegistrationInfo producerRegistration) {
-  std::lock_guard lock(m_producerRegistrationMutex);
-
-  uint32_t producerId = m_nextProducerId++;
-  m_producerRegistrations.insert({producerId, producerRegistration});
-
-  if (!m_producersAvailable) {
-    m_producersAvailable = true;
-    NDN_LOG_INFO("Producer has been registered, resuming producer procedure.");
-    m_producerRegistrationConditionVariable.notify_one();
+void IceFlow::pushData(const std::string &downstreamEdgeName,
+                       std::vector<uint8_t> payload) {
+  if (!m_iceflowProducers.contains(downstreamEdgeName)) {
+    throw std::runtime_error("Producer for downstream edge " +
+                             downstreamEdgeName + " does not exist!");
   }
 
-  return producerId;
+  m_iceflowProducers.at(downstreamEdgeName).pushData(payload);
 }
 
-void IceFlow::deregisterProducer(u_int64_t producerId) {
-  std::lock_guard lock(m_producerRegistrationMutex);
+void IceFlow::reportCongestion(const std::string &edgeName,
+                               CongestionReason congestionReason) {
+  if (!m_congestionReporter) {
+    NDN_LOG_WARN("Tried to report a congestion (congestion reason "
+                 << congestionReason << ") for edge name " << edgeName
+                 << ", but there is no congestion reporter defined for this "
+                    "IceFlow node.");
 
-  m_producerRegistrations.erase(producerId);
-
-  if (m_producerRegistrations.empty()) {
-    m_producersAvailable = false;
-    m_producerRegistrationConditionVariable.notify_one();
+    return;
   }
+
+  m_congestionReporter.value()->reportCongestion(congestionReason, edgeName);
 }
 
+void IceFlow::registerConsumerCallback(const std::string &upstreamEdgeName,
+                                       ConsumerCallback consumerCallback) {
+  if (!m_iceflowConsumers.contains(upstreamEdgeName)) {
+    throw std::runtime_error("Consumer for upstream edge " + upstreamEdgeName +
+                             " does not exist!");
+  }
+
+  m_iceflowConsumers.at(upstreamEdgeName).setConsumerCallback(consumerCallback);
+}
+
+void IceFlow::registerProsumerCallback(const std::string &upstreamEdgeName,
+                                       ProsumerCallback prosumerCallback) {
+  auto producerCallback = [this](const std::string &downstreamEdgeName,
+                                 std::vector<uint8_t> data) {
+    pushData(downstreamEdgeName, data);
+  };
+
+  auto internalConsumerCallback = [this, prosumerCallback, producerCallback](
+                                      const std::vector<uint8_t> &data) {
+    prosumerCallback(data, producerCallback);
+  };
+
+  registerConsumerCallback(upstreamEdgeName, internalConsumerCallback);
+}
+
+const std::string &IceFlow::getNodePrefix() { return m_nodePrefix; }
+
+const std::string &IceFlow::getSyncPrefix() { return m_syncPrefix; }
+
+std::unordered_map<std::string, uint32_t> IceFlow::getConsumerStats() {
+  auto result = std::unordered_map<std::string, uint32_t>();
+
+  for (auto consumer : m_iceflowConsumers) {
+    result.emplace(consumer.first, consumer.second.getConsumptionStats());
+  }
+
+  return result;
+}
+
+std::unordered_map<std::string, uint32_t> IceFlow::getProducerStats() {
+  auto result = std::unordered_map<std::string, uint32_t>();
+
+  for (auto producer : m_iceflowProducers) {
+    result.emplace(producer.first, producer.second.getProductionStats());
+  }
+
+  return result;
+}
+
+std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
+
+std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
 } // namespace iceflow

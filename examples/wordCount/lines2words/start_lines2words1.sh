@@ -1,3 +1,3 @@
 #!/bin/bash
 
-../../../build/lines2words ../application-DAG.json 1
+../../../build/lines2words ../application-DAG.json 1 2

@@ -29,7 +29,8 @@ namespace iceflow {
 class IceflowScaler : public CongestionReporter {
 public:
   IceflowScaler(const std::string &serverAddress,
-                const std::string &clientAddress);
+                const std::string &clientAddress,
+                std::shared_ptr<IceFlow> iceflow);
 
   ~IceflowScaler() override;
 
@@ -55,6 +56,8 @@ private:
   const std::string &m_serverAddress;
 
   const std::string &m_clientAddress;
+
+  std::shared_ptr<IceFlow> m_iceflow;
 
   std::unique_ptr<grpc::Server> m_server;
 

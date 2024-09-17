@@ -19,7 +19,10 @@
 #ifndef ICEFLOW_HPP
 #define ICEFLOW_HPP
 
-#include "ringbuffer.hpp"
+#include "congestion-reporter.hpp"
+#include "consumer.hpp"
+#include "dag-parser.hpp"
+#include "producer.hpp"
 
 #include "ndn-svs/security-options.hpp"
 #include "ndn-svs/svspubsub.hpp"
@@ -31,22 +34,10 @@
 
 namespace iceflow {
 
-struct QueueEntry {
-  std::string topic;
-  uint32_t partitionNumber;
-  std::vector<uint8_t> data;
-};
-
-struct ProducerRegistrationInfo {
-  std::function<QueueEntry(void)> popQueueValue;
-  std::function<bool(void)> hasQueueValue;
-  std::function<std::chrono::time_point<std::chrono::steady_clock>(void)>
-      getNextPublishTimePoint;
-  std::function<void(void)> resetLastPublishTimepoint;
-};
-
-class IceflowProducer;
-class IceflowConsumer;
+typedef std::function<void(const std::string &, std::vector<uint8_t>)>
+    ProducerCallback;
+typedef std::function<void(std::vector<uint8_t>, ProducerCallback)>
+    ProsumerCallback;
 
 /**
  * Central building block for IceFlow-based consumers and producers.
@@ -62,59 +53,67 @@ public:
    * Generates a new IceFlow object from a `syncPrefix`, a `nodePrefix`, and a
    * custom `face`.
    */
-  IceFlow(const std::string &syncPrefix, const std::string &nodePrefix,
-          ndn::Face &face);
+  IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face);
+
+  IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+          std::shared_ptr<CongestionReporter> congestionReporter);
+
+private:
+  IceFlow(
+      DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
 public:
   void run();
 
   void shutdown();
 
-  friend IceflowConsumer;
-  friend IceflowProducer;
+  const std::string &getNodePrefix();
+
+  const std::string &getSyncPrefix();
+
+  void pushData(const std::string &downstreamEdgeName,
+                std::vector<uint8_t> payload);
+
+  void registerConsumerCallback(const std::string &upstreamEdgeName,
+                                ConsumerCallback consumerCallback);
+
+  void registerProsumerCallback(const std::string &upstreamEdgeName,
+                                ProsumerCallback prosumerCallback);
+
+  void repartitionConsumer(const std::string &upstreamEdgeName,
+                           std::vector<uint32_t> partitions);
+
+  void repartitionProducer(const std::string &downstreamEdgeName,
+                           uint64_t numberOfPartitions);
+
+  std::unordered_map<std::string, uint32_t> getConsumerStats();
+
+  std::unordered_map<std::string, uint32_t> getProducerStats();
+
+  void reportCongestion(const std::string &edgeName,
+                        CongestionReason congestionReason);
 
 private:
-  uint32_t subscribeToTopicPartition(
-      const std::string &topic, uint32_t partitionNumber,
-      std::function<void(std::vector<uint8_t>)> &pushDataCallback);
-
-  void unsubscribe(uint32_t subscriptionHandle);
-
-  void subscribeCallBack(
-      const std::function<void(std::vector<uint8_t>)> &pushDataCallback,
-      const ndn::svs::SVSPubSub::SubscriptionData &subData);
-
   void
   onMissingData(const std::vector<ndn::svs::MissingDataInfo> &missing_data);
-
-  ndn::Name prepareDataName(const std::string &topic, uint32_t partitionNumber);
-
-  void publishMsg(std::vector<uint8_t> payload, const std::string &topic,
-                  uint32_t partitionNumber);
-
-  uint32_t registerProducer(ProducerRegistrationInfo producerRegistration);
-
-  void deregisterProducer(u_int64_t producerId);
 
 private:
   ndn::KeyChain m_keyChain;
   ndn::Face &m_face;
 
-  std::mutex m_producerRegistrationMutex;
-  std::condition_variable m_producerRegistrationConditionVariable;
-  bool m_producersAvailable = false;
-
   bool m_running = false;
 
   std::shared_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
 
-  const std::string m_nodePrefix;
-  const std::string m_syncPrefix;
+  std::string m_nodePrefix;
+  std::string m_syncPrefix;
 
-  std::unordered_map<uint32_t, ProducerRegistrationInfo>
-      m_producerRegistrations;
+  std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
 
-  uint32_t m_nextProducerId = 0;
+  std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
+
+  std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
 };
 
 } // namespace iceflow

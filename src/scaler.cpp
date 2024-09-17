@@ -29,8 +29,10 @@ namespace iceflow {
 NDN_LOG_INIT(iceflow.IceflowScaler);
 
 IceflowScaler::IceflowScaler(const std::string &serverAddress,
-                             const std::string &clientAddress)
-    : m_serverAddress(serverAddress), m_clientAddress(clientAddress) {
+                             const std::string &clientAddress,
+                             std::shared_ptr<IceFlow> iceflow)
+    : m_serverAddress(serverAddress), m_clientAddress(clientAddress),
+      m_iceflow(iceflow) {
   runGrpcServer(m_serverAddress);
   runGrpcClient(m_clientAddress);
 };
@@ -41,26 +43,8 @@ IceflowScaler::~IceflowScaler() {
   }
 }
 
-void IceflowScaler::registerConsumer(
-    const std::string &edgeName, std::shared_ptr<IceflowConsumer> consumer) {
-  m_consumerMap.emplace(edgeName, consumer);
-}
-
-void IceflowScaler::deregisterConsumer(const std::string &edgeName) {
-  m_consumerMap.erase(edgeName);
-}
-
-void IceflowScaler::registerProducer(
-    const std::string &edgeName, std::shared_ptr<IceflowProducer> consumer) {
-  m_producerMap.emplace(edgeName, consumer);
-}
-
-void IceflowScaler::deregisterProducer(const std::string &edgeName) {
-  m_producerMap.erase(edgeName);
-}
-
 void IceflowScaler::runGrpcServer(const std::string &address) {
-  NodeInstanceService service(m_consumerMap, m_producerMap);
+  NodeInstanceService service(m_iceflow);
 
   grpc::ServerBuilder builder;
   builder.AddListeningPort(address, grpc::InsecureServerCredentials());
