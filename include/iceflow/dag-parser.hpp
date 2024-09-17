@@ -55,6 +55,7 @@ struct Edge {
   std::string id;
   std::string target;
   uint32_t maxPartitions;
+  nlohmann::json::object_t applicationConfiguration;
 };
 
 /**

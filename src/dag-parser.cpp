@@ -79,6 +79,8 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
         edgeInstance.target = edgeJson.at("target").get<std::string>();
         edgeInstance.maxPartitions =
             edgeJson.at("maxPartitions").get<uint32_t>();
+        edgeInstance.applicationConfiguration = edgeJson.value(
+            "applicationConfiguration", nlohmann::json::object());
         edges.push_back(edgeInstance);
       }
       nodeInstance.downstream = edges;
