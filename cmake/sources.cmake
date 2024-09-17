@@ -16,11 +16,20 @@
 
 # Find all source files for formatting, see the replies to https://stackoverflow.com/a/36046965
 # and https://www.labri.fr/perso/fleury/posts/programming/using-clang-tidy-and-clang-format.html.
-file(GLOB_RECURSE ALL_SOURCES
-  examples/*.[chCH][pP][pP] examples/*.[chCH][xX][xX] examples/*.[cC][cC]
-  examples/*.[hH][hH] examples/*.[CHch]
+file(GLOB ALL_SOURCES
   include/*.[chCH][pP][pP] include/*.[chCH][xX][xX] include/*.[cC][cC]
   include/*.[hH][hH] include/*.[CHch]
   src/*.[chCH][pP][pP] src/*.[chCH][xX][xX] src/*.[cC][cC]
   src/*.[hH][hH] src/*.[CHch]
+  src/services/*.[chCH][pP][pP] src/services/*.[chCH][xX][xX] src/services/*.[cC][cC]
+  src/services/*.[hH][hH] src/services/*.[CHch]
+  examples/wordCount/lines2words/*.[chCH][pP][pP] examples/wordCount/lines2words/*.[chCH][xX][xX]
+  examples/wordCount/lines2words/*.[cC][cC] examples/wordCount/lines2words/*.[hH][hH]
+  examples/wordCount/lines2words/*.[CHch]
+  examples/wordCount/text2lines/*.[chCH][pP][pP] examples/wordCount/text2lines/*.[chCH][xX][xX]
+  examples/wordCount/text2lines/*.[cC][cC] examples/wordCount/text2lines/*.[hH][hH]
+  examples/wordCount/text2lines/*.[CHch]
+  examples/wordCount/wordcount/*.[chCH][pP][pP] examples/wordCount/wordcount/*.[chCH][xX][xX]
+  examples/wordCount/wordcount/*.[cC][cC] examples/wordCount/wordcount/*.[hH][hH]
+  examples/wordCount/wordcount/*.[CHch]
 )
