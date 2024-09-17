@@ -48,11 +48,18 @@ private:
   int m_computeCounter = 0;
 };
 
-std::vector<uint32_t> createConsumerPartitions(uint32_t maxConsumerPartitions,
-                                               uint32_t consumerIndex) {
+/**
+ * Creates a vector containing every nth partition (denoted by the
+ * `numberOfConsumers`) up until the `highestPartitionNumber`, starting with the
+ * `consumerIndex`.
+ */
+std::vector<uint32_t> createConsumerPartitions(uint32_t highestPartitionNumber,
+                                               uint32_t consumerIndex,
+                                               uint32_t numberOfConsumers) {
   auto consumerPartitions = std::vector<uint32_t>();
 
-  for (auto i = consumerIndex; i < maxConsumerPartitions; i += consumerIndex) {
+  for (auto i = consumerIndex; i <= highestPartitionNumber;
+       i += numberOfConsumers) {
     consumerPartitions.push_back(i);
   }
 
@@ -60,7 +67,7 @@ std::vector<uint32_t> createConsumerPartitions(uint32_t maxConsumerPartitions,
 }
 
 void run(const std::string &nodeName, const std::string &dagFileName,
-         uint32_t consumerIndex) {
+         uint32_t consumerIndex, uint32_t numberOfConsumers) {
   WordSplitter wordSplitter;
   ndn::Face face;
 
@@ -72,7 +79,7 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   auto downstreamEdgeName = node.downstream.at(0).id;
 
   auto consumerPartitions =
-      createConsumerPartitions(upstreamEdge.maxPartitions, consumerIndex);
+      createConsumerPartitions(upstreamEdge.maxPartitions, consumerIndex, 2);
 
   auto applicationConfiguration = node.applicationConfiguration;
   auto saveThreshold =
@@ -105,10 +112,12 @@ void run(const std::string &nodeName, const std::string &dagFileName,
 
 int main(int argc, const char *argv[]) {
 
-  if (argc != 3) {
+  if (argc != 4) {
     std::string command = argv[0];
-    std::cout << "usage: " << command
-              << " <application-dag-file> <instance-number>" << std::endl;
+    std::cout
+        << "usage: " << command
+        << " <application-dag-file> <instance-number> <number-of-instances>"
+        << std::endl;
     return 1;
   }
 
@@ -116,8 +125,9 @@ int main(int argc, const char *argv[]) {
     std::string nodeName = "lines2words";
     std::string dagFileName = argv[1];
     int consumerIndex = std::stoi(argv[2]);
+    int numberOfConsumers = std::stoi(argv[3]);
 
-    run(nodeName, dagFileName, consumerIndex);
+    run(nodeName, dagFileName, consumerIndex, numberOfConsumers);
   }
 
   catch (const std::exception &e) {

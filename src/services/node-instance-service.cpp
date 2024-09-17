@@ -69,15 +69,13 @@ grpc::Status NodeInstanceService::QueryStats(grpc::ServerContext *context,
   for (auto consumerStat : consumerStats) {
     auto consumptionStats = response->add_consumption_stats();
     consumptionStats->set_edge_name(consumerStat.first);
-    consumptionStats->set_units_consumed(
-        consumerStat.second);
+    consumptionStats->set_units_consumed(consumerStat.second);
   }
 
   for (auto producerStat : producerStats) {
     auto productionStats = response->add_production_stats();
     productionStats->set_edge_name(producerStat.first);
-    productionStats->set_units_produced(
-        producerStat.second);
+    productionStats->set_units_produced(producerStat.second);
   }
 
   return grpc::Status::OK;
