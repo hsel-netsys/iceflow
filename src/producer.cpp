@@ -30,8 +30,7 @@ IceflowProducer::IceflowProducer(
     const std::string &downstreamEdgeName, uint32_t numberOfPartitions,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_svsPubSub(svsPubSub), m_numberOfPartitions(numberOfPartitions),
-      m_nodePrefix(nodePrefix),
-      m_downstreamEdgeName(downstreamEdgeName),
+      m_nodePrefix(nodePrefix), m_downstreamEdgeName(downstreamEdgeName),
       m_pubTopic(syncPrefix + "/" + downstreamEdgeName),
       m_randomNumberGenerator(std::mt19937(time(nullptr))),
       m_congestionReporter(congestionReporter) {

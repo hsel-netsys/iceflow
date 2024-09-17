@@ -29,7 +29,21 @@ NDN_LOG_INIT(iceflow.IceflowConsumer);
 IceflowConsumer::IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
                                  const std::string &syncPrefix,
                                  const std::string &upstreamEdgeName)
-    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName) {}
+    : IceflowConsumer(svsPubSub, syncPrefix, upstreamEdgeName, std::nullopt){};
+
+IceflowConsumer::IceflowConsumer(
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+    const std::string &syncPrefix, const std::string &upstreamEdgeName,
+    std::shared_ptr<CongestionReporter> congestionReporter)
+    : IceflowConsumer(svsPubSub, syncPrefix, upstreamEdgeName,
+                      std::optional(congestionReporter)){};
+
+IceflowConsumer::IceflowConsumer(
+    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+    const std::string &syncPrefix, const std::string &upstreamEdgeName,
+    std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
+    : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName),
+      m_congestionReporter(congestionReporter){};
 
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
 

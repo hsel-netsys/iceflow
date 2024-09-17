@@ -41,6 +41,11 @@ public:
                   const std::string &syncPrefix,
                   const std::string &upstreamEdgeName);
 
+  IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+                  const std::string &syncPrefix,
+                  const std::string &upstreamEdgeName,
+                  std::shared_ptr<CongestionReporter> congestionReporter);
+
   ~IceflowConsumer();
 
   void setConsumerCallback(ConsumerCallback consumerCallback);
@@ -52,6 +57,11 @@ public:
   u_int32_t getConsumptionStats();
 
 private:
+  IceflowConsumer(
+      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      const std::string &syncPrefix, const std::string &upstreamEdgeName,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
+
   void validatePartitionConfiguration(uint32_t numberOfPartitions,
                                       uint32_t consumerPartitionIndex,
                                       uint32_t totalNumberOfConsumers);
@@ -94,6 +104,8 @@ private:
   std::chrono::seconds m_maxConsumptionAge = std::chrono::seconds(1);
 
   std::optional<ConsumerCallback> m_consumerCallback;
+
+  std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
 };
 } // namespace iceflow
 
