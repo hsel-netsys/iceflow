@@ -146,6 +146,7 @@ install(
         include/iceflow/producer.hpp
         include/iceflow/ringbuffer.hpp
         include/iceflow/scaler.hpp
+        include/iceflow/serde.hpp
   DESTINATION include/iceflow)
 install(EXPORT iceflow-targets DESTINATION lib/iceflow-${version})
 

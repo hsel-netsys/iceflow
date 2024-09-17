@@ -20,6 +20,7 @@
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
+#include "iceflow/serde.hpp"
 
 #include <csignal>
 #include <iostream>
@@ -45,41 +46,60 @@ void signalCallbackHandler(int signum) {
 
 class PeopleCounter {
 public:
-  void peopleCount(std::function<cv::Mat()> receive,
-                   std::function<void(std::string)> push) {
+  void peopleCount(std::function<std::vector<uint8_t>()> receive,
+                   std::function<void(const std::vector<uint8_t>)> push) {
 
     int computeCounter = 0;
     cv::HOGDescriptor hog;
     hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
 
     while (true) {
-      auto greyFrame = receive();
-
-      // ##### MEASUREMENT #####
+      // Receive TLV-encoded data and deserialize it into JSON
+      auto encodedJson = receive();
 
       measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
                                    0);
+      measurementHandler->setField(std::to_string(computeCounter), "IS->PC", 0);
 
-      NDN_LOG_INFO("Consumed grey frame: "
-                   << computeCounter << greyFrame.total() * greyFrame.elemSize()
-                   << " Bytes");
+      nlohmann::json deserializedData = Serde::deserialize(encodedJson);
+      if (deserializedData["image"].empty()) {
+        std::cerr << "Received empty Image, cannot decode." << std::endl;
+        continue;
+      }
 
-      if (!greyFrame.empty()) {
-        measurementHandler->setField(std::to_string(computeCounter), "IS->PC",
-                                     0);
+      else {
+        // Extract frameID and encodedImage from the deserialized JSON
+        int frameID = deserializedData["frameID"];
+        std::vector<uint8_t> encodedImage =
+            deserializedData["image"].get_binary();
 
-        int numPeople = detect(hog, greyFrame);
+        // Decode the image (JPEG format) using OpenCV
+        cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
+
+        NDN_LOG_INFO("Decoded: " << greyImage.total() * greyImage.elemSize()
+                                 << " bytes");
+
+        int numPeople = detect(hog, greyImage);
+
+        nlohmann::json resultData;
+        resultData["frameID"] = frameID;
+        resultData["PeopleCount"] = std::to_string(numPeople);
         NDN_LOG_INFO("People count: " << numPeople);
-        std::cout << "People Found: " << std::endl;
 
+        std::vector<uint8_t> encodedAnalytics = Serde::serialize(resultData);
+        std::cout << "People Count:\n"
+                  << "FrameID:" << frameID << "\n"
+                  << "People Found:" << numPeople << "\n"
+                  << "Encoded result Size: " << encodedAnalytics.size()
+                  << "bytes" << std::endl;
+        std::cout << "------------------------------------" << std::endl;
         // Push the cropped face for further processing
-        push(std::to_string(numPeople));
+        push(encodedAnalytics);
       }
 
       // ##### MEASUREMENT #####
-      measurementHandler->setField(std::to_string(computeCounter), "FD->AD", 0);
-      measurementHandler->setField(std::to_string(computeCounter), "FD->GD", 0);
-      measurementHandler->setField(std::to_string(computeCounter), "FD->ED", 0);
+      measurementHandler->setField(std::to_string(computeCounter), "PC->AGG",
+                                   0);
       measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
                                    0);
       computeCounter++;
@@ -141,33 +161,13 @@ void run(const std::string &syncPrefix, const std::string &nodePrefix,
   threads.emplace_back(&iceflow::IceFlow::run, iceflow);
   threads.emplace_back([&peopleCount, &consumer, &producer]() {
     peopleCount.peopleCount(
-        [&consumer]() -> cv::Mat {
-          auto encodedImage = consumer.receiveData();
+        [&consumer]() {
+          std::vector<uint8_t> encodedImage = consumer.receiveData();
 
-          // Check if the received image data is empty
-          if (encodedImage.empty()) {
-            std::cerr << "Received empty data, cannot decode." << std::endl;
-            return cv::Mat();
-          }
-
-          NDN_LOG_INFO("Received: " << encodedImage.size() << " bytes");
-
-          cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
-
-          if (greyImage.empty()) {
-            std::cerr << "Error: Could not decode received data into image."
-                      << std::endl;
-            return cv::Mat();
-          }
-          NDN_LOG_INFO("Decoded: " << greyImage.total() * greyImage.elemSize()
-                                   << " bytes");
-
-          return greyImage;
+          return encodedImage;
         },
-        [&producer](const std::string &numberofPeople) {
-          std::vector<uint8_t> count(numberofPeople.begin(),
-                                     numberofPeople.end());
-          producer.pushData(count);
+        [&producer](const std::vector<uint8_t> &analytics) {
+          producer.pushData(analytics);
         });
   });
 

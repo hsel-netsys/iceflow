@@ -4,12 +4,12 @@ nodePrefix: faceDetection
 consumer:
   topic: /imageSource/dataMain
   inputThreshold: 200 # TODO: This is unused at the moment
-  partitions: [0, 1,2]
+  partitions: [0,1,2]
 
 producer:
   topic: /faceDetection/dataMain
-  publishInterval: 0
-  numberOfPartitions: 3
+  publishInterval: 100
+  numberOfPartitions: 1
 
 measurements:
   saveThreshold: 100

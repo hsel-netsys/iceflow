@@ -16,11 +16,10 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-#include "contentType.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
-#include "serde.hpp"
+#include "iceflow/serde.hpp"
 
 #include <csignal>
 #include <fstream>
@@ -78,9 +77,6 @@ public:
       // Calculate the size of the grayscale image
       size_t frameSizeInBytes_after = grayFrame.total() * grayFrame.elemSize();
 
-      NDN_LOG_INFO(computeCounter << "th Grey Frame size: "
-                                  << frameSizeInBytes_after << " bytes");
-
       // Check if the grayscale image is valid
       if (grayFrame.empty()) {
         std::cerr << "Error: Received empty image data." << std::endl;
@@ -100,15 +96,12 @@ public:
       resultData["frameID"] = frameID;
       resultData["image"] = nlohmann::json::binary(encodedVideo);
 
-      // std::vector<uint8_t> serializedData = Serde::serialize(resultData);
-      auto serializedData = nlohmann::json::to_cbor(resultData);
-
-      // for (auto &byte : serializedData) {
-      //   std::cout << "0x" << std::hex << std::setw(2) << std::setfill('0')
-      //             << (int)byte << " ";
-      // }
-      // std::cout << std::endl;
-
+      auto serializedData = Serde::serialize(resultData);
+      std::cout << "ImageSource:\n"
+                << " FrameID:" << frameID << "\n"
+                << " Encoded Image Size: " << serializedData.size() << " bytes"
+                << std::endl;
+      std::cout << "------------------------------------" << std::endl;
       push(serializedData);
 
       // Log measurements
