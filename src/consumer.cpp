@@ -26,23 +26,12 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.IceflowConsumer);
 
-IceflowConsumer::IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                                 const std::string &syncPrefix,
-                                 const std::string &upstreamEdgeName)
-    : IceflowConsumer(svsPubSub, syncPrefix, upstreamEdgeName, std::nullopt){};
-
-IceflowConsumer::IceflowConsumer(
-    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-    const std::string &syncPrefix, const std::string &upstreamEdgeName,
-    std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceflowConsumer(svsPubSub, syncPrefix, upstreamEdgeName,
-                      std::optional(congestionReporter)){};
-
 IceflowConsumer::IceflowConsumer(
     std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
     const std::string &syncPrefix, const std::string &upstreamEdgeName,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName),
+      m_upstreamEdgeName(upstreamEdgeName),
       m_congestionReporter(congestionReporter){};
 
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
@@ -145,6 +134,19 @@ void IceflowConsumer::unsubscribeFromAllPartitions() {
 
 void IceflowConsumer::setConsumerCallback(ConsumerCallback consumerCallback) {
   m_consumerCallback = std::optional(consumerCallback);
+}
+
+// TODO: Determine where to use this method.
+void IceflowConsumer::reportCongestion(CongestionReason congestionReason) {
+  if (!m_congestionReporter) {
+    NDN_LOG_WARN(
+        "Detected a congestion, but no congestion reporter is defined.");
+    return;
+  }
+
+  auto congestionReporter = m_congestionReporter.value();
+
+  congestionReporter->reportCongestion(congestionReason, m_upstreamEdgeName);
 }
 
 } // namespace iceflow

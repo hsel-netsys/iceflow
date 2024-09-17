@@ -37,14 +37,10 @@ typedef std::function<void(std::vector<uint8_t>)> ConsumerCallback;
 class IceflowConsumer {
 
 public:
-  IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &syncPrefix,
-                  const std::string &upstreamEdgeName);
-
-  IceflowConsumer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &syncPrefix,
-                  const std::string &upstreamEdgeName,
-                  std::shared_ptr<CongestionReporter> congestionReporter);
+  IceflowConsumer(
+      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      const std::string &syncPrefix, const std::string &upstreamEdgeName,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
   ~IceflowConsumer();
 
@@ -57,11 +53,6 @@ public:
   u_int32_t getConsumptionStats();
 
 private:
-  IceflowConsumer(
-      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-      const std::string &syncPrefix, const std::string &upstreamEdgeName,
-      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
-
   void validatePartitionConfiguration(uint32_t numberOfPartitions,
                                       uint32_t consumerPartitionIndex,
                                       uint32_t totalNumberOfConsumers);
@@ -89,6 +80,8 @@ private:
   void cleanUpTimestamps(
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
+  void reportCongestion(CongestionReason congestionReason);
+
 private:
   const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
   const std::string m_subTopic;
@@ -106,6 +99,8 @@ private:
   std::optional<ConsumerCallback> m_consumerCallback;
 
   std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
+
+  const std::string &m_upstreamEdgeName;
 };
 } // namespace iceflow
 

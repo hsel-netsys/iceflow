@@ -54,6 +54,14 @@ public:
    */
   IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face);
 
+  IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+          std::shared_ptr<CongestionReporter> congestionReporter);
+
+private:
+  IceFlow(
+      DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
+
 public:
   void run();
 
@@ -100,6 +108,8 @@ private:
   std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
 
   std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
+
+  std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
 };
 
 } // namespace iceflow

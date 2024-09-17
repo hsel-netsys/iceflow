@@ -45,16 +45,11 @@ namespace iceflow {
  */
 class IceflowProducer {
 public:
-  IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &nodePrefix, const std::string &syncPrefix,
-                  const std::string &upstreamEdgeName,
-                  uint32_t numberOfPartitions);
-
-  IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                  const std::string &nodePrefix, const std::string &syncPrefix,
-                  const std::string &upstreamEdgeName,
-                  uint32_t numberOfPartitions,
-                  std::shared_ptr<CongestionReporter> congestionReporter);
+  IceflowProducer(
+      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      const std::string &nodePrefix, const std::string &syncPrefix,
+      const std::string &upstreamEdgeName, uint32_t numberOfPartitions,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
   ~IceflowProducer();
 
@@ -65,12 +60,6 @@ public:
   uint32_t getProductionStats();
 
 private:
-  IceflowProducer(
-      std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-      const std::string &nodePrefix, const std::string &syncPrefix,
-      const std::string &upstreamEdgeName, uint32_t numberOfPartitions,
-      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
-
   uint32_t getNextPartitionNumber();
 
   void reportCongestion(CongestionReason congestionReason);

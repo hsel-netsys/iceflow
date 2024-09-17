@@ -36,7 +36,21 @@ NDN_LOG_INIT(iceflow.IceFlow);
 
 IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
                  ndn::Face &face)
-    : m_face(face) {
+    : IceFlow(dagParser, nodeName, face, std::nullopt){
+
+      };
+
+IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
+                 ndn::Face &face,
+                 std::shared_ptr<CongestionReporter> congestionReporter)
+    : IceFlow(dagParser, nodeName, face, std::optional(congestionReporter)){
+
+      };
+
+IceFlow::IceFlow(
+    DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+    std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
+    : m_face(face), m_congestionReporter(congestionReporter) {
   m_nodePrefix = generateNodePrefix();
   m_syncPrefix = "/" + dagParser.getApplicationName();
 
@@ -57,7 +71,7 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
 
     auto iceflowProducer =
         IceflowProducer(m_svsPubSub, m_nodePrefix, m_syncPrefix,
-                        downstreamEdgeName, downstreamEdge.maxPartitions);
+                        downstreamEdgeName, downstreamEdge.maxPartitions, m_congestionReporter);
 
     m_iceflowProducers.emplace(downstreamEdgeName, iceflowProducer);
   }
@@ -66,11 +80,11 @@ IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
     auto upstreamEdgeName = upstreamEdge.second.id;
 
     auto iceflowConsumer =
-        IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName);
+        IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName, m_congestionReporter);
 
     m_iceflowConsumers.emplace(upstreamEdgeName, iceflowConsumer);
   }
-};
+}
 
 void IceFlow::run() {
   if (m_running) {
@@ -122,7 +136,6 @@ void IceFlow::onMissingData(
 
 void IceFlow::pushData(const std::string &downstreamEdgeName,
                        std::vector<uint8_t> payload) {
-
   if (!m_iceflowProducers.contains(downstreamEdgeName)) {
     throw std::runtime_error("Producer for downstream edge " +
                              downstreamEdgeName + " does not exist!");
@@ -143,7 +156,6 @@ void IceFlow::registerConsumerCallback(const std::string &upstreamEdgeName,
 
 void IceFlow::registerProsumerCallback(const std::string &upstreamEdgeName,
                                        ProsumerCallback prosumerCallback) {
-
   auto producerCallback = [this](const std::string &downstreamEdgeName,
                                  std::vector<uint8_t> data) {
     pushData(downstreamEdgeName, data);

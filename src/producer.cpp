@@ -38,22 +38,6 @@ IceflowProducer::IceflowProducer(
   setTopicPartitions(numberOfPartitions);
 }
 
-IceflowProducer::IceflowProducer(std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-                                 const std::string &nodePrefix,
-                                 const std::string &syncPrefix,
-                                 const std::string &downstreamEdgeName,
-                                 uint32_t numberOfPartitions)
-    : IceflowProducer(svsPubSub, nodePrefix, syncPrefix, downstreamEdgeName,
-                      numberOfPartitions, std::nullopt){};
-
-IceflowProducer::IceflowProducer(
-    std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
-    const std::string &nodePrefix, const std::string &syncPrefix,
-    const std::string &downstreamEdgeName, uint32_t numberOfPartitions,
-    std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceflowProducer(svsPubSub, nodePrefix, syncPrefix, downstreamEdgeName,
-                      numberOfPartitions, std::optional(congestionReporter)){};
-
 IceflowProducer::~IceflowProducer() {}
 
 ndn::Name IceflowProducer::prepareDataName(uint32_t partitionNumber) {
@@ -120,7 +104,7 @@ uint32_t IceflowProducer::getNextPartitionNumber() {
 
 // TODO: Determine where to use this method.
 void IceflowProducer::reportCongestion(CongestionReason congestionReason) {
-  if (!m_congestionReporter.has_value()) {
+  if (!m_congestionReporter) {
     NDN_LOG_WARN(
         "Detected a congestion, but no congestion reporter is defined.");
     return;
