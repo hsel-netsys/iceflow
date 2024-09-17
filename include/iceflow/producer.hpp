@@ -73,8 +73,7 @@ private:
 
   uint32_t getNextPartitionNumber();
 
-  void reportCongestion(CongestionReason congestionReason,
-                        const std::string &edgeName);
+  void reportCongestion(CongestionReason congestionReason);
 
   void saveTimestamp(std::chrono::steady_clock::time_point timestamp);
 
@@ -101,6 +100,8 @@ private:
 
   // TODO: Make configurable
   std::chrono::seconds m_maxProductionTimestampAge = std::chrono::seconds(1);
+
+  const std::string &m_downstreamEdgeName;
 };
 } // namespace iceflow
 

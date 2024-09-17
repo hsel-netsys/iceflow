@@ -31,6 +31,7 @@ IceflowProducer::IceflowProducer(
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_svsPubSub(svsPubSub), m_numberOfPartitions(numberOfPartitions),
       m_nodePrefix(nodePrefix),
+      m_downstreamEdgeName(downstreamEdgeName),
       m_pubTopic(syncPrefix + "/" + downstreamEdgeName),
       m_randomNumberGenerator(std::mt19937(time(nullptr))),
       m_congestionReporter(congestionReporter) {
@@ -119,8 +120,7 @@ uint32_t IceflowProducer::getNextPartitionNumber() {
 }
 
 // TODO: Determine where to use this method.
-void IceflowProducer::reportCongestion(CongestionReason congestionReason,
-                                       const std::string &edgeName) {
+void IceflowProducer::reportCongestion(CongestionReason congestionReason) {
   if (!m_congestionReporter.has_value()) {
     NDN_LOG_WARN(
         "Detected a congestion, but no congestion reporter is defined.");
@@ -129,7 +129,7 @@ void IceflowProducer::reportCongestion(CongestionReason congestionReason,
 
   auto congestionReporter = m_congestionReporter.value();
 
-  congestionReporter->reportCongestion(congestionReason, edgeName);
+  congestionReporter->reportCongestion(congestionReason, m_downstreamEdgeName);
 }
 
 } // namespace iceflow
