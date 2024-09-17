@@ -4,7 +4,7 @@ nodePrefix: ageDetection
 consumer:
   topic: /faceDetection/dataMain
   inputThreshold: 200 # TODO: This is unused at the moment
-  partitions: [1,2,3]
+  partitions: [0]
 
 producer:
   topic: /ageDetection/dataMain

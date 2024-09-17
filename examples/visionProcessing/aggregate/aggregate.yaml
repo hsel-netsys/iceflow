@@ -3,11 +3,11 @@ nodePrefix: aggregate
 
 consumer:
   topic1: /ageDetection/dataMain
-  partitions1: [1]
+  partitions1: [0]
   topic2: /genderDetection/dataMain
-  partitions2: [1]
+  partitions2: [0]
   topic3: /peopleCount/dataMain
-  partitions3: [1]
+  partitions3: [0]
   inputThreshold: 200 # TODO: This is unused at the moment
 
 
