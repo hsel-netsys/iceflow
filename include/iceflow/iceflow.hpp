@@ -50,7 +50,7 @@ typedef std::function<void(std::vector<uint8_t>, ProducerCallback)>
 class IceFlow {
 public:
   /**
-   * Generates a new IceFlow object from a `syncPrefix`, a `nodePrefix`, and a
+   * Generates a new IceFlow object from a `dagParser`, a `nodeName`, and a
    * custom `face`.
    */
   IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face);
