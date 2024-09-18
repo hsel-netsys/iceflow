@@ -66,15 +66,13 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   WordCounter compute;
   ndn::Face face;
 
-  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
+  auto iceflow =
+      std::make_shared<iceflow::IceFlow>(dagFileName, nodeName, face);
+  auto upstreamEdgeName = iceflow->getUpstreamEdge(0).value().id;
 
-  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
-  auto node = dagParser.findNodeByName(nodeName);
-  auto upstreamEdgeName = dagParser.findUpstreamEdges(node).at(0).second.id;
-
-  auto applicationConfiguration = node.applicationConfiguration;
   auto saveThreshold =
-      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
+      iceflow->getApplicationParameter<uint64_t>("measurementsSaveThreshold")
+          .value();
 
   ::signal(SIGINT, signalCallbackHandler);
   measurementHandler = new iceflow::Measurement(
