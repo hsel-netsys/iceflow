@@ -58,9 +58,21 @@ public:
   IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
           std::shared_ptr<CongestionReporter> congestionReporter);
 
+  IceFlow(const std::string &dagFileName, const std::string &nodeName,
+          ndn::Face &face);
+
+  IceFlow(const std::string &dagFileName, const std::string &nodeName,
+          ndn::Face &face,
+          std::shared_ptr<CongestionReporter> congestionReporter);
+
 private:
   IceFlow(
       DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
+
+  IceFlow(
+      const std::string &dagFileName, const std::string &nodeName,
+      ndn::Face &face,
       std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
 public:
