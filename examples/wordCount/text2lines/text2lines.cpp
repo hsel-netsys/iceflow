@@ -57,17 +57,16 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
   LineSplitter lineSplitter;
   ndn::Face face;
 
-  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
+  auto iceflow =
+      std::make_shared<iceflow::IceFlow>(dagFileName, nodeName, face);
+  auto downstreamEdgeName = iceflow->getDownstreamEdge(0).value().id;
 
-  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
-  auto node = dagParser.findNodeByName(nodeName);
-  auto downstreamEdgeName = node.downstream.at(0).id;
-
-  auto applicationConfiguration = node.applicationConfiguration;
   auto saveThreshold =
-      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
+      iceflow->getApplicationParameter<uint64_t>("measurementsSaveThreshold")
+          .value();
   auto sourceTextFileName =
-      applicationConfiguration.at("sourceTextFileName").get<std::string>();
+      iceflow->getApplicationParameter<std::string>("sourceTextFileName")
+          .value();
 
   ::signal(SIGINT, signalCallbackHandler);
   measurementHandler = new iceflow::Measurement(

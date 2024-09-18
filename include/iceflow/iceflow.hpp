@@ -50,7 +50,7 @@ typedef std::function<void(std::vector<uint8_t>, ProducerCallback)>
 class IceFlow {
 public:
   /**
-   * Generates a new IceFlow object from a `syncPrefix`, a `nodePrefix`, and a
+   * Generates a new IceFlow object from a `dagParser`, a `nodeName`, and a
    * custom `face`.
    */
   IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face);
@@ -58,9 +58,21 @@ public:
   IceFlow(DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
           std::shared_ptr<CongestionReporter> congestionReporter);
 
+  IceFlow(const std::string &dagFileName, const std::string &nodeName,
+          ndn::Face &face);
+
+  IceFlow(const std::string &dagFileName, const std::string &nodeName,
+          ndn::Face &face,
+          std::shared_ptr<CongestionReporter> congestionReporter);
+
 private:
   IceFlow(
       DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
+      std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
+
+  IceFlow(
+      const std::string &dagFileName, const std::string &nodeName,
+      ndn::Face &face,
       std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
 
 public:
@@ -94,6 +106,30 @@ public:
   void reportCongestion(const std::string &edgeName,
                         CongestionReason congestionReason);
 
+  std::vector<Edge> getDownstreamEdges();
+
+  std::optional<Edge> getDownstreamEdge(uint32_t index);
+
+  std::vector<Edge> getUpstreamEdges();
+
+  std::optional<Edge> getUpstreamEdge(uint32_t index);
+
+  nlohmann::json::object_t getApplicationConfiguration() {
+    return m_node.applicationConfiguration;
+  }
+
+  template <typename T>
+  std::optional<T> getApplicationParameter(const std::string &key) {
+    auto applicationConfiguration = getApplicationConfiguration();
+
+    if (!applicationConfiguration.contains(key)) {
+      return std::nullopt;
+    }
+
+    // TODO: Deal with the case that the key does not have the right type
+    return std::optional(applicationConfiguration.at(key).get<T>());
+  }
+
 private:
   void
   onMissingData(const std::vector<ndn::svs::MissingDataInfo> &missing_data);
@@ -114,6 +150,12 @@ private:
   std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
 
   std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
+
+  Node m_node;
+
+  std::vector<Edge> m_downstreamEdges;
+
+  std::vector<Edge> m_upstreamEdges;
 };
 
 } // namespace iceflow

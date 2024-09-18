@@ -36,16 +36,28 @@ NDN_LOG_INIT(iceflow.IceFlow);
 
 IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
                  ndn::Face &face)
-    : IceFlow(dagParser, nodeName, face, std::nullopt){
-
-      };
+    : IceFlow(dagParser, nodeName, face, std::nullopt){};
 
 IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
                  ndn::Face &face,
                  std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceFlow(dagParser, nodeName, face, std::optional(congestionReporter)){
+    : IceFlow(dagParser, nodeName, face, std::optional(congestionReporter)){};
 
-      };
+IceFlow::IceFlow(const std::string &dagFileName, const std::string &nodeName,
+                 ndn::Face &face)
+    : IceFlow(dagFileName, nodeName, face, std::nullopt){};
+
+IceFlow::IceFlow(const std::string &dagFileName, const std::string &nodeName,
+                 ndn::Face &face,
+                 std::shared_ptr<CongestionReporter> congestionReporter)
+    : IceFlow(dagFileName, nodeName, face, std::optional(congestionReporter)){};
+
+IceFlow::IceFlow(
+    const std::string &dagFileName, const std::string &nodeName,
+    ndn::Face &face,
+    std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
+    : IceFlow(DAGParser::parseFromFile(dagFileName), nodeName, face,
+              std::optional(congestionReporter)){};
 
 IceFlow::IceFlow(
     DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
@@ -54,9 +66,12 @@ IceFlow::IceFlow(
   m_nodePrefix = generateNodePrefix();
   m_syncPrefix = "/" + dagParser.getApplicationName();
 
-  auto node = dagParser.findNodeByName(nodeName);
-  auto downstreamEdges = node.downstream;
-  auto upstreamEdges = dagParser.findUpstreamEdges(node);
+  m_node = dagParser.findNodeByName(nodeName);
+  m_downstreamEdges = m_node.downstream;
+
+  for (auto foobar : dagParser.findUpstreamEdges(m_node)) {
+    m_upstreamEdges.push_back(foobar.second);
+  }
 
   ndn::svs::SecurityOptions secOpts(m_keyChain);
 
@@ -66,7 +81,7 @@ IceFlow::IceFlow(
       ndn::Name(m_syncPrefix), ndn::Name(m_nodePrefix), m_face,
       std::bind(&IceFlow::onMissingData, this, _1), opts, secOpts);
 
-  for (auto downstreamEdge : downstreamEdges) {
+  for (auto downstreamEdge : m_downstreamEdges) {
     auto downstreamEdgeName = downstreamEdge.id;
 
     auto iceflowProducer = IceflowProducer(
@@ -76,8 +91,8 @@ IceFlow::IceFlow(
     m_iceflowProducers.emplace(downstreamEdgeName, iceflowProducer);
   }
 
-  for (auto upstreamEdge : upstreamEdges) {
-    auto upstreamEdgeName = upstreamEdge.second.id;
+  for (auto upstreamEdge : m_upstreamEdges) {
+    auto upstreamEdgeName = upstreamEdge.id;
 
     auto iceflowConsumer = IceflowConsumer(
         m_svsPubSub, m_syncPrefix, upstreamEdgeName, m_congestionReporter);
@@ -207,7 +222,23 @@ std::unordered_map<std::string, uint32_t> IceFlow::getProducerStats() {
   return result;
 }
 
-std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
+std::vector<Edge> IceFlow::getDownstreamEdges() { return m_downstreamEdges; }
 
-std::unordered_map<std::string, IceflowProducer> m_iceflowProducers;
+std::optional<Edge> IceFlow::getDownstreamEdge(uint32_t index) {
+  if (m_downstreamEdges.size() >= index + 1) {
+    return std::optional(m_downstreamEdges.at(index));
+  }
+
+  return std::nullopt;
+}
+
+std::vector<Edge> IceFlow::getUpstreamEdges() { return m_upstreamEdges; }
+
+std::optional<Edge> IceFlow::getUpstreamEdge(uint32_t index) {
+  if (m_upstreamEdges.size() >= index + 1) {
+    return std::optional(m_upstreamEdges.at(index));
+  }
+
+  return std::nullopt;
+}
 } // namespace iceflow
