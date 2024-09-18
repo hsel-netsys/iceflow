@@ -90,7 +90,7 @@ void IceflowConsumer::subscribeCallBack(
 
   if (!m_consumerCallback) {
     NDN_LOG_WARN("No consumer callback defined for upstream edge "
-                 << "TODO");
+                 << m_upstreamEdgeName);
     return;
   }
 
