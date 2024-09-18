@@ -15,7 +15,7 @@
  *
  * SPDX-License-Identifier: Apache-2.0
  */
-
+#include "iceflow/dag-parser.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
@@ -43,13 +43,8 @@ void signalCallbackHandler(int signum) {
 
 class ImageSource {
 public:
-  void imageSource(const std::string &applicationName,
-                   const std::string &videoFilename,
+  void imageSource(const std::string &videoFilename,
                    std::function<void(std::vector<uint8_t>)> push) {
-
-    auto application = applicationName;
-    std::cout << "Starting " << application << " Application - - - - "
-              << std::endl;
 
     cv::Mat frame;
     cv::Mat grayFrame;
@@ -57,6 +52,12 @@ public:
 
     cap.open(videoFilename);
 
+    // Check if the video was opened successfully
+    if (!cap.isOpened()) {
+      std::cerr << "Error: Could not open video file " << videoFilename
+                << std::endl;
+      return;
+    }
     int computeCounter = 0;
 
     while (cv::waitKey(1) < 0) {
@@ -98,8 +99,8 @@ public:
 
       auto serializedData = Serde::serialize(resultData);
       std::cout << "ImageSource:\n"
-                << " FrameID:" << frameID << "\n"
-                << " Encoded Image Size: " << serializedData.size() << " bytes"
+                << "FrameID:" << frameID << "\n"
+                << "Encoded Image Size: " << serializedData.size() << " bytes"
                 << std::endl;
       std::cout << "------------------------------------" << std::endl;
       push(serializedData);
@@ -119,64 +120,64 @@ private:
   int frameID = 1;
 };
 
-void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &pubTopic, uint32_t numberOfPartitions,
-         const std::string &videoFile,
-         std::chrono::milliseconds publishInterval) {
+void run(const std::string &nodeName, const std::string &dagFileName,
+         const std::string &videoFile) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
   ImageSource inputImage;
   ndn::Face face;
 
-  auto iceflow =
-      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
-  auto producer = iceflow::IceflowProducer(iceflow, pubTopic,
-                                           numberOfPartitions, publishInterval);
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
 
-  std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&inputImage, &producer, &nodePrefix, &videoFile]() {
-    inputImage.imageSource(nodePrefix, videoFile,
-                           [&producer](const std::vector<uint8_t> &data) {
-                             producer.pushData(data);
-                           });
-  });
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
 
-  for (auto &thread : threads) {
-    thread.join();
+  auto node = dagParser.findNodeByName(nodeName);
+
+  if (!node.downstream.empty()) {
+    auto downstreamEdgeName = node.downstream.at(0).id;
+    std::cout << "Downstream edge: " << downstreamEdgeName << std::endl;
+    auto applicationConfiguration = node.applicationConfiguration;
+
+    auto saveThreshold =
+        applicationConfiguration.at("measurementsSaveThreshold")
+            .get<uint64_t>();
+
+    ::signal(SIGINT, signalCallbackHandler);
+    measurementHandler = new iceflow::Measurement(
+        nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
+    std::vector<std::thread> threads;
+    threads.emplace_back(&iceflow::IceFlow::run, iceflow);
+    threads.emplace_back([&inputImage, &iceflow, videoFile,
+                          &downstreamEdgeName]() {
+      inputImage.imageSource(videoFile, [&iceflow, &downstreamEdgeName](
+                                            const std::vector<uint8_t> &data) {
+        iceflow->pushData(downstreamEdgeName, data);
+      });
+    });
+    for (auto &thread : threads) {
+      thread.join();
+    }
+  } else {
+    std::cerr << "Error: No downstream nodes found in the DAG." << std::endl;
+    return;
   }
 }
 
 int main(int argc, const char *argv[]) {
 
-  if (argc != 4) {
+  if (argc != 3) {
     std::string command = argv[0];
-    std::cout << "usage: " << command
-              << " <config-file> <video-file> <measurement-Name>" << std::endl;
+    std::cout << "usage: " << command << " <application-dag-file><video-file>"
+              << std::endl;
     return 1;
   }
 
-  std::string configFileName = argv[1];
-  std::string measurementFileName = argv[3];
-
-  YAML::Node config = YAML::LoadFile(configFileName);
-  YAML::Node producerConfig = config["producer"];
-  YAML::Node measurementConfig = config["measurements"];
-
-  auto syncPrefix = config["syncPrefix"].as<std::string>();
-  auto nodePrefix = config["nodePrefix"].as<std::string>();
-  auto pubTopic = producerConfig["topic"].as<std::string>();
-  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
-  auto numberOfPartitions = producerConfig["numberOfPartitions"].as<uint32_t>();
-  uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,
-                                                saveThreshold, "A");
-
   try {
-    std::string videoStream = argv[2];
-    run(syncPrefix, nodePrefix, pubTopic, numberOfPartitions, videoStream,
-        std::chrono::milliseconds(publishInterval));
+    std::string nodeName = "imageSource";
+    std::string dagFileName = argv[1];
+    std::string videoFile = argv[2];
+
+    run(nodeName, dagFileName, videoFile);
+
   } catch (const std::exception &e) {
     std::cout << e.what() << std::endl;
   }

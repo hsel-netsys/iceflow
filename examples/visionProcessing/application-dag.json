@@ -2,12 +2,12 @@
     "applicationName": "visionProcessing",
     "nodes": [
       {
-        "task": "imageSource",
-        "name": "Image Source",
+        "task": "1",
+        "name": "imageSource",
         "description": "Provides the source image for processing tasks.",
         "executor": "container",
         "container": {
-          "image": "image-source",
+          "image": "imagesource-image",
           "resources": {
             "cpu": 1,
             "memory": 512
@@ -21,24 +21,28 @@
         },
         "downstream": [
           {
-            "id": "imageSource_to_faceDetection",
-            "target": "faceDetection",
+            "id": "is2fd",
+            "target": "2",
             "maxPartitions": 1
           },
           {
-            "id": "imageSource_to_peopleCounter",
-            "target": "peopleCounter",
+            "id": "is2pc",
+            "target": "3",
             "maxPartitions": 1
           }
-        ]
+        ],      
+        "applicationConfiguration": {
+          "source": "video2.mp4",
+          "measurementsSaveThreshold": 100
+        }
       },
       {
-        "task": "faceDetection",
-        "name": "Face Detection",
+        "task": "2",
+        "name": "faceDetection",
         "description": "Detects faces in the provided image.",
         "executor": "container",
         "container": {
-          "image": "face-detection",
+          "image": "facedetection-image",
           "resources": {
             "cpu": 1,
             "memory": 1024
@@ -52,107 +56,29 @@
         },
         "downstream": [
           {
-            "id": "faceDetection_to_ageDetection",
-            "target": "ageDetection",
+            "id": "fd2ad",
+            "target": "4",
             "maxPartitions": 1
           },
           {
-            "id": "faceDetection_to_genderDetection",
-            "target": "genderDetection",
-            "maxPartitions": 1
-          },
-          {
-            "id": "faceDetection_to_emotionDetection",
-            "target": "emotionDetection",
+            "id": "fd2gd",
+            "target": "5",
             "maxPartitions": 1
           }
-        ]
+        ],
+        "applicationConfiguration": {
+          "protobuf":"faceDetection_protobuf_uint8.pb",
+          "mlModel": "mlModel.pbtxt",
+          "measurementsSaveThreshold": 100
+        }
       },
       {
-        "task": "ageDetection",
-        "name": "Age Detection",
-        "description": "Detects the age of a person in the provided image.",
-        "executor": "container",
-        "container": {
-          "image": "age-detection",
-          "resources": {
-            "cpu": 2,
-            "memory": 2048
-          }
-        },
-        "scalingParameters": {
-          "taskComplexity": 5
-        },
-        "communicationTask": {
-          "payloadSize": 500
-        },
-        "downstream": [
-          {
-            "id": "ageDetection_to_aggregate",
-            "target": "aggregate",
-            "maxPartitions": 1
-          }
-        ]
-      },
-      {
-        "task": "genderDetection",
-        "name": "Gender Detection",
-        "description": "Detects the gender of a person in the provided image.",
-        "executor": "container",
-        "container": {
-          "image": "gender-detection",
-          "resources": {
-            "cpu": 1,
-            "memory": 1024
-          }
-        },
-        "scalingParameters": {
-          "taskComplexity": 4
-        },
-        "communicationTask": {
-          "payloadSize": 400
-        },
-        "downstream": [
-          {
-            "id": "genderDetection_to_aggregate",
-            "target": "aggregate",
-            "maxPartitions": 1
-          }
-        ]
-      },
-      {
-        "task": "emotionDetection",
-        "name": "Emotion Detection",
-        "description": "Detects the emotion of a person in the provided image.",
-        "executor": "container",
-        "container": {
-          "image": "emotion-detection",
-          "resources": {
-            "cpu": 2,
-            "memory": 2048
-          }
-        },
-        "scalingParameters": {
-          "taskComplexity": 5
-        },
-        "communicationTask": {
-          "payloadSize": 500
-        },
-        "downstream": [
-          {
-            "id": "emotionDetection_to_aggregate",
-            "target": "aggregate",
-            "maxPartitions": 1
-          }
-        ]
-      },
-      {
-        "task": "peopleCounter",
+        "task": "3",
         "name": "People Counter",
         "description": "Counts the number of people in the provided image.",
         "executor": "container",
         "container": {
-          "image": "people-count",
+          "image": "peoplecount-image",
           "resources": {
             "cpu": 1,
             "memory": 1024
@@ -166,19 +92,85 @@
         },
         "downstream": [
           {
-            "id": "peopleCounter_to_aggregate",
-            "target": "aggregate",
+            "id": "pc2agg",
+            "target": "6",
             "maxPartitions": 1
           }
-        ]
+        ],
+        "applicationConfiguration": {
+          "measurementsSaveThreshold": 100
+        }
       },
       {
-        "task": "aggregate",
+        "task": "4",
+        "name": "Age Detection",
+        "description": "Detects the age of a person in the provided image.",
+        "executor": "container",
+        "container": {
+          "image": "agedetection-image",
+          "resources": {
+            "cpu": 2,
+            "memory": 2048
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 5
+        },
+        "communicationTask": {
+          "payloadSize": 500
+        },
+        "downstream": [
+          {
+            "id": "ad2agg",
+            "target": "6",
+            "maxPartitions": 1
+          }
+        ],
+        "applicationConfiguration": {
+          "protobuf":"ageProtobuf.prototxt",
+          "mlModel": "mlModel.caffemodel",
+          "measurementsSaveThreshold": 100
+        }
+      },
+      {
+        "task": "5",
+        "name": "Gender Detection",
+        "description": "Detects the gender of a person in the provided image.",
+        "executor": "container",
+        "container": {
+          "image": "genderdetection-iamge",
+          "resources": {
+            "cpu": 1,
+            "memory": 1024
+          }
+        },
+        "scalingParameters": {
+          "taskComplexity": 4
+        },
+        "communicationTask": {
+          "payloadSize": 400
+        },
+        "downstream": [
+          {
+            "id": "gd2agg",
+            "target": "6",
+            "maxPartitions": 1
+          }
+        ],
+        "applicationConfiguration": {
+          "protobuf":"genderProtobuf.prototxt",
+          "mlModel": "mlModel.caffemodel",
+          "measurementsSaveThreshold": 100
+        }
+      },
+
+      {
+        "task": "6",
         "name": "Data Aggregation",
         "description": "Aggregates data from multiple detection tasks.",
         "executor": "container",
         "container": {
-          "image": "aggregate",
+          "image": "aggregate-image",
           "resources": {
             "cpu": 1,
             "memory": 1024
@@ -192,5 +184,8 @@
         },
         "downstream": []
       }
-    ]
+    ],
+    "applicationConfiguration": {
+      "measurementsSaveThreshold": 100
+    }
   }

@@ -69,9 +69,9 @@ IceFlow::IceFlow(
   for (auto downstreamEdge : downstreamEdges) {
     auto downstreamEdgeName = downstreamEdge.id;
 
-    auto iceflowProducer =
-        IceflowProducer(m_svsPubSub, m_nodePrefix, m_syncPrefix,
-                        downstreamEdgeName, downstreamEdge.maxPartitions, m_congestionReporter);
+    auto iceflowProducer = IceflowProducer(
+        m_svsPubSub, m_nodePrefix, m_syncPrefix, downstreamEdgeName,
+        downstreamEdge.maxPartitions, m_congestionReporter);
 
     m_iceflowProducers.emplace(downstreamEdgeName, iceflowProducer);
   }
@@ -79,8 +79,8 @@ IceFlow::IceFlow(
   for (auto upstreamEdge : upstreamEdges) {
     auto upstreamEdgeName = upstreamEdge.second.id;
 
-    auto iceflowConsumer =
-        IceflowConsumer(m_svsPubSub, m_syncPrefix, upstreamEdgeName, m_congestionReporter);
+    auto iceflowConsumer = IceflowConsumer(
+        m_svsPubSub, m_syncPrefix, upstreamEdgeName, m_congestionReporter);
 
     m_iceflowConsumers.emplace(upstreamEdgeName, iceflowConsumer);
   }
