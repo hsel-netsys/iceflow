@@ -1,0 +1,10 @@
+syncPrefix: /VP
+nodePrefix: imageSource
+
+producer:
+  topic: /imageSource/dataMain
+  publishInterval: 100
+  numberOfPartitions: 3
+
+measurements:
+  saveThreshold: 100
