@@ -17,6 +17,7 @@
  */
 
 #include "iceflow/consumer.hpp"
+#include "iceflow/dag-parser.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
@@ -24,6 +25,10 @@
 
 #include <ndn-cxx/face.hpp>
 #include <ndn-cxx/util/logger.hpp>
+
+#include <boost/uuid/uuid.hpp>
+#include <boost/uuid/uuid_generators.hpp>
+#include <boost/uuid/uuid_io.hpp>
 
 #include <csignal>
 #include <functional>
@@ -51,7 +56,7 @@ void signalCallbackHandler(int signum) {
 
 class FaceDetection {
 public:
-  void faceDetection(std::function<std::vector<uint8_t>()> receive,
+  void faceDetection(std::vector<uint8_t> encodedCropped,
                      std::function<void(std::vector<uint8_t>)> push,
                      const std::string &protobufFile,
                      const std::string &mlModel) {
@@ -65,10 +70,9 @@ public:
 
     while (true) {
       // Receive TLV-encoded data and deserialize it into JSON
-      auto encodedJson = receive();
 
       try {
-        nlohmann::json deserializedData = Serde::deserialize(encodedJson);
+        nlohmann::json deserializedData = Serde::deserialize(encodedCropped);
         if (deserializedData["image"].empty()) {
           std::cerr << "Received empty Image, cannot decode." << std::endl;
           continue;
@@ -186,83 +190,89 @@ private:
   std::vector<std::vector<int>> bboxes;
 };
 
-void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &subTopic, const std::string &pubTopic,
-         uint32_t numberOfProducerPartitions,
-         std::vector<uint32_t> consumerPartitions,
-         std::chrono::milliseconds publishInterval,
-         const std::string &protobufFile, const std::string &mlModel) {
+/**
+ * Creates a vector containing every nth partition (denoted by the
+ * `numberOfConsumers`) up until the `highestPartitionNumber`, starting with the
+ * `consumerIndex`.
+ */
+std::vector<uint32_t> createConsumerPartitions(uint32_t highestPartitionNumber,
+                                               uint32_t consumerIndex,
+                                               uint32_t numberOfConsumers) {
+  auto consumerPartitions = std::vector<uint32_t>();
+
+  for (auto i = consumerIndex; i <= highestPartitionNumber;
+       i += numberOfConsumers) {
+    consumerPartitions.push_back(i);
+  }
+
+  return consumerPartitions;
+}
+
+void run(const std::string &nodeName, const std::string &dagFileName,
+         uint32_t consumerIndex, uint32_t numberOfConsumers,
+         const std::string protobufFile, const std::string &mlModel) {
 
   FaceDetection facialDetection;
   ndn::Face face;
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
+  auto node = dagParser.findNodeByName(nodeName);
 
-  auto iceflow =
-      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
+  auto upstreamEdge = dagParser.findUpstreamEdges(node).at(0).second;
+  auto upstreamEdgeName = upstreamEdge.id;
+  auto downstreamEdgeName = node.downstream.at(0).id;
 
-  auto producer = iceflow::IceflowProducer(
-      iceflow, pubTopic, numberOfProducerPartitions, publishInterval);
+  auto consumerPartitions =
+      createConsumerPartitions(upstreamEdge.maxPartitions, consumerIndex, 2);
 
-  auto consumer =
-      iceflow::IceflowConsumer(iceflow, subTopic, consumerPartitions);
+  auto applicationConfiguration = node.applicationConfiguration;
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
 
-  std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back(
-      [&facialDetection, &consumer, &producer, &protobufFile, &mlModel]() {
-        facialDetection.faceDetection(
-            [&consumer]() {
-              std::vector<uint8_t> encodedresultData = consumer.receiveData();
-              return encodedresultData;
-            },
-            [&producer](const std::vector<uint8_t> &encodedCroppedFace) {
-              producer.pushData(encodedCroppedFace);
-            },
-            protobufFile, mlModel);
-      });
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
 
-  for (auto &thread : threads) {
-    thread.join();
-  }
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler = new iceflow::Measurement(
+      nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
+
+  auto prosumerCallback =
+      [&iceflow, &facialDetection, &downstreamEdgeName, &protobufFile,
+       &mlModel](const std::vector<uint8_t> &encodedCroppedFace,
+                 iceflow::ProducerCallback producerCallback) {
+        auto pushDataCallback = [downstreamEdgeName, producerCallback](
+                                    std::vector<uint8_t> encodedCroppedFace) {
+          producerCallback(downstreamEdgeName, encodedCroppedFace);
+        };
+
+        facialDetection.faceDetection(encodedCroppedFace, pushDataCallback,
+                                      protobufFile, mlModel);
+      };
+
+  iceflow->registerProsumerCallback(upstreamEdgeName, prosumerCallback);
+
+  iceflow->repartitionConsumer(upstreamEdgeName, consumerPartitions);
+  iceflow->run();
 }
 
 int main(int argc, const char *argv[]) {
 
-  if (argc != 5) {
+  if (argc != 6) {
     std::cout << "usage: " << argv[0]
-              << " <config-file> <test-name> <protobuf_binary> <ML-Model>"
+              << " <application-dag-file><protobuf_binary> "
+                 "<ML-Model><instance-number> <number-of-instances>"
               << std::endl;
     return 1;
   }
 
-  std::string configFileName = argv[1];
-  std::string measurementFileName = argv[2];
-  std::string protobufFile = argv[3];
-  std::string mlModel = argv[4];
-
-  YAML::Node config = YAML::LoadFile(configFileName);
-  YAML::Node consumerConfig = config["consumer"];
-  YAML::Node producerConfig = config["producer"];
-  YAML::Node measurementConfig = config["measurements"];
-
-  std::string syncPrefix = config["syncPrefix"].as<std::string>();
-  std::string nodePrefix = config["nodePrefix"].as<std::string>();
-  std::string pubTopic = producerConfig["topic"].as<std::string>();
-  std::string subTopic = consumerConfig["topic"].as<std::string>();
-  auto consumerPartitions =
-      consumerConfig["partitions"].as<std::vector<uint32_t>>();
-  auto numberOfProducerPartitions =
-      producerConfig["numberOfPartitions"].as<uint32_t>();
-  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
-  uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,
-                                                saveThreshold, "A");
-
   try {
-    run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfProducerPartitions,
-        consumerPartitions, std::chrono::milliseconds(publishInterval),
-        protobufFile, mlModel);
+    std::string nodeName = "faceDetection";
+    std::string dagFileName = argv[1];
+    std::string protobufFile = argv[2];
+    std::string mlModel = argv[3];
+    int consumerIndex = std::stoi(argv[4]);
+    int numberOfConsumers = std::stoi(argv[5]);
+
+    run(nodeName, dagFileName, consumerIndex, numberOfConsumers, protobufFile,
+        mlModel);
   } catch (const std::exception &e) {
     NDN_LOG_ERROR(e.what());
   }
