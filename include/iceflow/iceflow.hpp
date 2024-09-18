@@ -106,6 +106,30 @@ public:
   void reportCongestion(const std::string &edgeName,
                         CongestionReason congestionReason);
 
+  std::vector<Edge> getDownstreamEdges();
+
+  std::optional<Edge> getDownstreamEdge(uint32_t index);
+
+  std::vector<Edge> getUpstreamEdges();
+
+  std::optional<Edge> getUpstreamEdge(uint32_t index);
+
+  nlohmann::json::object_t getApplicationConfiguration() {
+    return m_node.applicationConfiguration;
+  }
+
+  template <typename T>
+  std::optional<T> getApplicationParameter(const std::string &key) {
+    auto applicationConfiguration = getApplicationConfiguration();
+
+    if (!applicationConfiguration.contains(key)) {
+      return std::nullopt;
+    }
+
+    // TODO: Deal with the case that the key does not have the right type
+    return std::optional(applicationConfiguration.at(key).get<T>());
+  }
+
 private:
   void
   onMissingData(const std::vector<ndn::svs::MissingDataInfo> &missing_data);
@@ -126,6 +150,12 @@ private:
   std::unordered_map<std::string, IceflowConsumer> m_iceflowConsumers;
 
   std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
+
+  Node m_node;
+
+  std::vector<Edge> m_downstreamEdges;
+
+  std::vector<Edge> m_upstreamEdges;
 };
 
 } // namespace iceflow
