@@ -88,17 +88,17 @@ void IceflowConsumer::subscribeCallBack(
                                     << subData.seqNo << "] : " << subData.name
                                     << " : ");
 
-  std::vector<uint8_t> data(subData.data.begin(), subData.data.end());
-
-  // TODO: Discuss if this is the right way to handle this.
-  if (m_consumerCallback) {
-    m_consumerCallback.value()(data);
-    saveTimestamp();
+  if (!m_consumerCallback) {
+    NDN_LOG_WARN("No consumer callback defined for upstream edge "
+                 << "TODO");
     return;
   }
 
-  NDN_LOG_WARN("No consumer callback defined for upstream edge "
-               << "TODO");
+  auto originalData = subData.data;
+  std::vector<uint8_t> data(originalData.begin(), originalData.end());
+
+  m_consumerCallback.value()(data);
+  saveTimestamp();
 }
 
 ndn::Name IceflowConsumer::prepareDataName(uint32_t partitionNumber) {
