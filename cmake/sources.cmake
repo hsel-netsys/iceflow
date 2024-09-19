@@ -32,4 +32,10 @@ file(GLOB ALL_SOURCES
   examples/wordCount/wordcount/*.[chCH][pP][pP] examples/wordCount/wordcount/*.[chCH][xX][xX]
   examples/wordCount/wordcount/*.[cC][cC] examples/wordCount/wordcount/*.[hH][hH]
   examples/wordCount/wordcount/*.[CHch]
+  examples/visionProcessing/imageSource/*.[chCH][pP][pP]
+  examples/visionProcessing/faceDetection/*.[chCH][pP][pP]
+  examples/visionProcessing/ageDetection/*.[chCH][pP][pP]
+  examples/visionProcessing/genderDetection/*.[chCH][pP][pP]
+  examples/visionProcessing/aggregate/*.[chCH][pP][pP]
+  examples/visionProcessing/peopleCount/*.[chCH][pP][pP]
 )

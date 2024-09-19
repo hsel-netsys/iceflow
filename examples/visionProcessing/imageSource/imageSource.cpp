@@ -1,20 +1,3 @@
-/*
- * Copyright 2024 The IceFlow Authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
 #include "iceflow/dag-parser.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
@@ -43,22 +26,21 @@ void signalCallbackHandler(int signum) {
 
 class ImageSource {
 public:
-  void imageSource(const std::string &videoFilename,
-                   std::function<void(std::vector<uint8_t>)> push) {
+  void imageSource(
+      const std::string &videoFilename,
+      std::function<void(std::vector<uint8_t>, const std::string &)> push) {
 
     cv::Mat frame;
     cv::Mat grayFrame;
     cv::VideoCapture cap;
+    int computeCounter = 0;
 
     cap.open(videoFilename);
-
-    // Check if the video was opened successfully
     if (!cap.isOpened()) {
       std::cerr << "Error: Could not open video file " << videoFilename
                 << std::endl;
       return;
     }
-    int computeCounter = 0;
 
     while (cv::waitKey(1) < 0) {
 
@@ -68,23 +50,16 @@ public:
 
       cap.read(frame);
       if (frame.empty()) {
-        cv::waitKey();
         break;
       }
 
-      // Convert the frame to grayscale
       cv::cvtColor(frame, grayFrame, cv::COLOR_BGR2GRAY);
 
-      // Calculate the size of the grayscale image
-      size_t frameSizeInBytes_after = grayFrame.total() * grayFrame.elemSize();
-
-      // Check if the grayscale image is valid
       if (grayFrame.empty()) {
         std::cerr << "Error: Received empty image data." << std::endl;
         return;
       }
 
-      // Encode the grayscale image into JPEG format
       std::vector<uint8_t> encodedVideo;
       if (!cv::imencode(".jpeg", grayFrame, encodedVideo)) {
         std::cerr << "Error: Could not encode image to JPEG format."
@@ -92,7 +67,6 @@ public:
         return;
       }
 
-      // Create a nlohmann::json object to store frameID and encoded video
       nlohmann::json resultData;
       resultData["frameID"] = frameID;
       resultData["image"] = nlohmann::json::binary(encodedVideo);
@@ -103,9 +77,10 @@ public:
                 << "Encoded Image Size: " << serializedData.size() << " bytes"
                 << std::endl;
       std::cout << "------------------------------------" << std::endl;
-      push(serializedData);
 
-      // Log measurements
+      push(serializedData, "is2fd");
+      push(serializedData, "is2pc");
+
       measurementHandler->setField(std::to_string(computeCounter), "IS->FD", 0);
       measurementHandler->setField(std::to_string(computeCounter), "IS->PC", 0);
       measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
@@ -127,16 +102,27 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   ndn::Face face;
 
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
-
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
-
   auto node = dagParser.findNodeByName(nodeName);
 
   if (!node.downstream.empty()) {
-    auto downstreamEdgeName = node.downstream.at(0).id;
-    std::cout << "Downstream edge: " << downstreamEdgeName << std::endl;
-    auto applicationConfiguration = node.applicationConfiguration;
+    std::string downstreamEdgeNameFD, downstreamEdgeNamePC;
+    for (const auto &downstream : node.downstream) {
+      if (downstream.id == "is2fd") {
+        downstreamEdgeNameFD = downstream.id;
+      } else if (downstream.id == "is2pc") {
+        downstreamEdgeNamePC = downstream.id;
+      }
+    }
 
+    if (downstreamEdgeNameFD.empty() || downstreamEdgeNamePC.empty()) {
+      std::cerr << "Error: Missing downstream targets for face detection or "
+                   "people counting."
+                << std::endl;
+      return;
+    }
+
+    auto applicationConfiguration = node.applicationConfiguration;
     auto saveThreshold =
         applicationConfiguration.at("measurementsSaveThreshold")
             .get<uint64_t>();
@@ -144,15 +130,18 @@ void run(const std::string &nodeName, const std::string &dagFileName,
     ::signal(SIGINT, signalCallbackHandler);
     measurementHandler = new iceflow::Measurement(
         nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
+
     std::vector<std::thread> threads;
     threads.emplace_back(&iceflow::IceFlow::run, iceflow);
     threads.emplace_back([&inputImage, &iceflow, videoFile,
-                          &downstreamEdgeName]() {
-      inputImage.imageSource(videoFile, [&iceflow, &downstreamEdgeName](
-                                            const std::vector<uint8_t> &data) {
-        iceflow->pushData(downstreamEdgeName, data);
-      });
+                          downstreamEdgeNameFD, downstreamEdgeNamePC]() {
+      inputImage.imageSource(videoFile,
+                             [&iceflow](const std::vector<uint8_t> &data,
+                                        const std::string &edgeName) {
+                               iceflow->pushData(edgeName, data);
+                             });
     });
+
     for (auto &thread : threads) {
       thread.join();
     }
@@ -163,10 +152,9 @@ void run(const std::string &nodeName, const std::string &dagFileName,
 }
 
 int main(int argc, const char *argv[]) {
-
   if (argc != 3) {
     std::string command = argv[0];
-    std::cout << "usage: " << command << " <application-dag-file><video-file>"
+    std::cout << "usage: " << command << " <application-dag-file> <video-file>"
               << std::endl;
     return 1;
   }

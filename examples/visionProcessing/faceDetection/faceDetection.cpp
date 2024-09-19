@@ -1,21 +1,3 @@
-/*
- * Copyright 2024 The IceFlow Authors.
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- *
- * SPDX-License-Identifier: Apache-2.0
- */
-
 #include "iceflow/consumer.hpp"
 #include "iceflow/dag-parser.hpp"
 #include "iceflow/iceflow.hpp"
@@ -64,87 +46,78 @@ public:
     cv::Scalar MODEL_MEAN_VALUES =
         cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
     cv::dnn::Net faceNet = cv::dnn::readNet(mlModel, protobufFile);
+    std::cout << "Models Loaded 2" << std::endl;
     cv::Mat frameFace;
     int padding = 20;
     int computeCounter = 0;
 
-    while (true) {
-      // Receive TLV-encoded data and deserialize it into JSON
+    // Receive TLV-encoded data and deserialize it into JSON
+    std::cout << "Deserializing starts----" << std::endl;
+    std::cout << "Encoded Data Size: " << encodedCropped.size() << std::endl;
+    nlohmann::json deserializedData = Serde::deserialize(encodedCropped);
+    std::cout << "Deserialize: " << deserializedData.dump() << std::endl;
 
-      try {
-        nlohmann::json deserializedData = Serde::deserialize(encodedCropped);
-        if (deserializedData["image"].empty()) {
-          std::cerr << "Received empty Image, cannot decode." << std::endl;
-          continue;
-        }
+    if (deserializedData["image"].empty()) {
+      std::cerr << "Received empty Image, cannot decode." << std::endl;
+      return; // Replaced the 'continue' with 'return' since it's outside a
+              // loop.
+    } else {
+      int frameID = deserializedData["frameID"];
+      std::vector<uint8_t> encodedImage =
+          deserializedData["image"].get_binary();
 
-        else {
-          int frameID = deserializedData["frameID"];
-          std::vector<uint8_t> encodedImage =
-              deserializedData["image"].get_binary();
+      // Decode the image (JPEG format) using OpenCV
+      cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
+      cv::imwrite("bla.jpg", greyImage);
+      // measurementHandler->setField(std::to_string(computeCounter),
+      // "CMP_START", 0); measurementHandler->setField(std::to_string(frameID),
+      // "IS->FD", 0);
 
-          // Decode the image (JPEG format) using OpenCV
-          cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
+      // Get the bounding boxes of detected faces
+      // tie(frameFace, bboxes) = getFaceBox(faceNet, greyImage, 0.7);
 
-          measurementHandler->setField(std::to_string(computeCounter),
-                                       "CMP_START", 0);
-          measurementHandler->setField(std::to_string(frameID), "IS->FD", 0);
+      // for (const auto &box : bboxes) {
+      //   int x1 = std::max(0, box[0] - padding);
+      //   int y1 = std::max(0, box[1] - padding);
+      //   int x2 = std::min(greyImage.cols, box[2] + padding);
+      //   int y2 = std::min(greyImage.rows, box[3] + padding);
 
-          // Get the bounding boxes of detected faces
-          tie(frameFace, bboxes) = getFaceBox(faceNet, greyImage, 0.7);
+      //   cv::Rect faceRect(x1, y1, x2 - x1, y2 - y1);
 
-          for (const auto &box : bboxes) {
-            int x1 = std::max(0, box[0] - padding);
-            int y1 = std::max(0, box[1] - padding);
-            int x2 = std::min(greyImage.cols, box[2] + padding);
-            int y2 = std::min(greyImage.rows, box[3] + padding);
+      //   if (faceRect.width > 0 && faceRect.height > 0) {
+      //     cv::Mat greyface = greyImage(faceRect);
 
-            cv::Rect faceRect(x1, y1, x2 - x1, y2 - y1);
+      //     std::cout << "Detected face: " << greyface.total() *
+      //     greyface.elemSize()
+      //               << " bytes" << std::endl;
 
-            if (faceRect.width > 0 && faceRect.height > 0) {
-              cv::Mat greyface = greyImage(faceRect);
+      //     // Encode the cropped face for further processing
+      //     std::vector<uint8_t> encodedCroppedFace;
+      //     if (!cv::imencode(".jpeg", greyface, encodedCroppedFace)) {
+      //       std::cerr << "Error: Could not encode image." << std::endl;
+      //       return;
+      //     }
 
-              std::cout << "Detected face: "
-                        << greyface.total() * greyface.elemSize() << " bytes"
-                        << std::endl;
+      //     nlohmann::json resultData;
+      //     resultData["frameID"] = frameID;
+      //     resultData["image"] = nlohmann::json::binary(encodedCroppedFace);
 
-              // Encode the cropped face for further processing
-              std::vector<uint8_t> encodedCroppedFace;
-              if (!cv::imencode(".jpeg", greyface, encodedCroppedFace)) {
-                std::cerr << "Error: Could not encode image." << std::endl;
-                return;
-              }
+      //     std::vector<uint8_t> detectedFace = Serde::serialize(resultData);
 
-              nlohmann::json resultData;
-              resultData["frameID"] = frameID;
-              resultData["image"] = nlohmann::json::binary(encodedCroppedFace);
+      //     std::cout << "FaceDetection: \n"
+      //               << " FrameID:" << frameID << "\n"
+      //               << " Encoded Image Size: " << detectedFace.size()
+      //               << " bytes" << std::endl;
+      //     std::cout << "------------------------------------" << std::endl;
 
-              std::vector<uint8_t> detectedFace = Serde::serialize(resultData);
-
-              std::cout << "FaceDetection: \n"
-                        << " FrameID:" << frameID << "\n"
-                        << " Encoded Image Size: " << detectedFace.size()
-                        << " bytes" << std::endl;
-              std::cout << "------------------------------------" << std::endl;
-
-              push(detectedFace);
-              measurementHandler->setField(std::to_string(frameID), "FD->AD",
-                                           0);
-              measurementHandler->setField(std::to_string(frameID), "FD->GD",
-                                           0);
-              measurementHandler->setField(std::to_string(frameID), "FD->ED",
-                                           0);
-              measurementHandler->setField(std::to_string(computeCounter),
-                                           "CMP_FINISH", 0);
-              computeCounter++;
-            }
-          }
-        }
-      } catch (const nlohmann::json::parse_error &e) {
-        std::cerr << "Error during CBOR deserialization: " << e.what()
-                  << std::endl;
-        continue; // Skip this iteration
-      }
+      //     push(detectedFace);
+      // measurementHandler->setField(std::to_string(frameID), "FD->AD", 0);
+      // measurementHandler->setField(std::to_string(frameID), "FD->GD", 0);
+      // measurementHandler->setField(std::to_string(frameID), "FD->ED", 0);
+      // measurementHandler->setField(std::to_string(computeCounter),
+      // "CMP_FINISH", 0); computeCounter++;
+      // }
+      // }
     }
   }
 
@@ -190,21 +163,14 @@ private:
   std::vector<std::vector<int>> bboxes;
 };
 
-/**
- * Creates a vector containing every nth partition (denoted by the
- * `numberOfConsumers`) up until the `highestPartitionNumber`, starting with the
- * `consumerIndex`.
- */
 std::vector<uint32_t> createConsumerPartitions(uint32_t highestPartitionNumber,
                                                uint32_t consumerIndex,
                                                uint32_t numberOfConsumers) {
-  auto consumerPartitions = std::vector<uint32_t>();
-
+  std::vector<uint32_t> consumerPartitions;
   for (auto i = consumerIndex; i <= highestPartitionNumber;
        i += numberOfConsumers) {
     consumerPartitions.push_back(i);
   }
-
   return consumerPartitions;
 }
 
@@ -212,7 +178,6 @@ void run(const std::string &nodeName, const std::string &dagFileName,
          uint32_t consumerIndex, uint32_t numberOfConsumers,
          const std::string protobufFile, const std::string &mlModel) {
 
-  FaceDetection facialDetection;
   ndn::Face face;
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
   auto node = dagParser.findNodeByName(nodeName);
@@ -221,8 +186,8 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   auto upstreamEdgeName = upstreamEdge.id;
   auto downstreamEdgeName = node.downstream.at(0).id;
 
-  auto consumerPartitions =
-      createConsumerPartitions(upstreamEdge.maxPartitions, consumerIndex, 2);
+  auto consumerPartitions = createConsumerPartitions(
+      upstreamEdge.maxPartitions, consumerIndex, numberOfConsumers);
 
   auto applicationConfiguration = node.applicationConfiguration;
   auto saveThreshold =
@@ -233,7 +198,8 @@ void run(const std::string &nodeName, const std::string &dagFileName,
   ::signal(SIGINT, signalCallbackHandler);
   measurementHandler = new iceflow::Measurement(
       nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
-
+  FaceDetection facialDetection;
+  std::cout << "Models Loaded 1" << std::endl;
   auto prosumerCallback =
       [&iceflow, &facialDetection, &downstreamEdgeName, &protobufFile,
        &mlModel](const std::vector<uint8_t> &encodedCroppedFace,
@@ -242,19 +208,16 @@ void run(const std::string &nodeName, const std::string &dagFileName,
                                     std::vector<uint8_t> encodedCroppedFace) {
           producerCallback(downstreamEdgeName, encodedCroppedFace);
         };
-
         facialDetection.faceDetection(encodedCroppedFace, pushDataCallback,
                                       protobufFile, mlModel);
       };
 
   iceflow->registerProsumerCallback(upstreamEdgeName, prosumerCallback);
-
-  iceflow->repartitionConsumer(upstreamEdgeName, consumerPartitions);
+  iceflow->repartitionConsumer(upstreamEdgeName, {0});
   iceflow->run();
 }
 
 int main(int argc, const char *argv[]) {
-
   if (argc != 6) {
     std::cout << "usage: " << argv[0]
               << " <application-dag-file><protobuf_binary> "
