@@ -44,7 +44,7 @@ void signalCallbackHandler(int signum) {
 
 class Aggregate {
 public:
-  void aggregate(std::vector<uint8_t> data) {
+  void aggregate(std::vector<uint8_t> &data) {
     measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
                                  0);
 

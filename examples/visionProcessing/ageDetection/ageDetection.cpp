@@ -51,9 +51,8 @@ void signalCallbackHandler(int signum) {
 
 class AgeDetection {
 public:
-  AgeDetection(const std::string &protobufFile, const std::string &mlModel) {
-    ageNet = cv::dnn::readNet(mlModel, protobufFile);
-  }
+  AgeDetection(const std::string &protobufFile, const std::string &mlModel)
+      : ageNet(cv::dnn::readNet(mlModel, protobufFile)) {}
 
   void ageDetection(std::vector<uint8_t> encodedCropped,
                     std::function<void(std::vector<uint8_t>)> push) {

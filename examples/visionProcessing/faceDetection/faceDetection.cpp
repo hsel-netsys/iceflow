@@ -32,10 +32,8 @@ void signalCallbackHandler(int signum) {
 
 class FaceDetection {
 public:
-  FaceDetection(const std::string &protobufFile, const std::string &mlModel) {
-
-    faceNet = cv::dnn::readNet(mlModel, protobufFile);
-  }
+  FaceDetection(const std::string &protobufFile, const std::string &mlModel)
+      : faceNet(cv::dnn::readNet(mlModel, protobufFile)) {}
 
   void faceDetection(std::vector<uint8_t> encodedCropped,
                      std::function<void(std::vector<uint8_t>)> push) {
@@ -56,7 +54,6 @@ public:
                                    0);
       measurementHandler->setField(std::to_string(frameID), "IS->FD", 0);
 
-      std::vector<std::vector<int>> bboxes;
       std::tie(frameFace, bboxes) = getFaceBox(faceNet, greyImage, 0.7);
 
       for (const auto &box : bboxes) {
@@ -125,7 +122,7 @@ public:
     cv::Mat detectionMat(detection.size[2], detection.size[3], CV_32F,
                          detection.ptr<float>());
 
-    std::vector<std::vector<int>> bboxes;
+    std::vector<std::vector<int>> rectangles;
 
     for (int i = 0; i < detectionMat.rows; i++) {
       float confidence = detectionMat.at<float>(i, 2);
@@ -136,13 +133,13 @@ public:
         int x2 = static_cast<int>(detectionMat.at<float>(i, 5) * frameWidth);
         int y2 = static_cast<int>(detectionMat.at<float>(i, 6) * frameHeight);
         std::vector<int> box = {x1, y1, x2, y2};
-        bboxes.push_back(box);
+        rectangles.push_back(box);
         cv::rectangle(frameOpenCVDNN, cv::Point(x1, y1), cv::Point(x2, y2),
                       cv::Scalar(0, 255, 0), 2, 4);
       }
     }
 
-    return std::make_tuple(frameOpenCVDNN, bboxes);
+    return std::make_tuple(frameOpenCVDNN, rectangles);
   }
 
 private:

@@ -51,9 +51,8 @@ void signalCallbackHandler(int signum) {
 
 class GenderDetection {
 public:
-  GenderDetection(const std::string &protobufFile, const std::string &mlModel) {
-    genderNet = cv::dnn::readNet(mlModel, protobufFile);
-  }
+  GenderDetection(const std::string &protobufFile, const std::string &mlModel)
+      : genderNet(cv::dnn::readNet(mlModel, protobufFile)) {}
 
   void genderDetection(std::vector<uint8_t> encodedCropped,
                        std::function<void(std::vector<uint8_t>)> push) {

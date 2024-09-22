@@ -49,7 +49,6 @@ void signalCallbackHandler(int signum) {
 class PeopleCounter {
 public:
   PeopleCounter() {
-
     hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
   }
   void peopleCount(std::vector<uint8_t> encodedCropped,
