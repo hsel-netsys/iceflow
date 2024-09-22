@@ -1,1 +1,1 @@
-./build/faceDetection ./examples/visionProcessing/application-dag.json ./examples/visionProcessing/genderDetection/genderProtobuf.prototxt ./examples/visionProcessing/genderDetection/mlModel.caffemodel 1 2
+./build/faceDetection ./examples/visionProcessing/application-dag.json ./examples/visionProcessing/faceDetection/faceProtobuf.pbtxt ./examples/visionProcessing/faceDetection/mlModel.pb 1 1

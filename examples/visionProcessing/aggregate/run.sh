@@ -1,1 +1,1 @@
-./build/aggregate ./examples/visionProcessing/aggregate/aggregate.yaml tm
+./build/aggregate ./examples/visionProcessing/application-dag.json

@@ -32,7 +32,6 @@
           }
         ],      
         "applicationConfiguration": {
-          "source": "video2.mp4",
           "measurementsSaveThreshold": 100
         }
       },
@@ -67,14 +66,12 @@
           }
         ],
         "applicationConfiguration": {
-          "protobuf":"faceDetection_protobuf_uint8.pb",
-          "mlModel": "mlModel.pbtxt",
           "measurementsSaveThreshold": 100
         }
       },
       {
         "task": "3",
-        "name": "People Counter",
+        "name": "peopleCounter",
         "description": "Counts the number of people in the provided image.",
         "executor": "container",
         "container": {
@@ -103,7 +100,7 @@
       },
       {
         "task": "4",
-        "name": "Age Detection",
+        "name": "ageDetection",
         "description": "Detects the age of a person in the provided image.",
         "executor": "container",
         "container": {
@@ -127,14 +124,12 @@
           }
         ],
         "applicationConfiguration": {
-          "protobuf":"ageProtobuf.prototxt",
-          "mlModel": "mlModel.caffemodel",
           "measurementsSaveThreshold": 100
         }
       },
       {
         "task": "5",
-        "name": "Gender Detection",
+        "name": "genderDetection",
         "description": "Detects the gender of a person in the provided image.",
         "executor": "container",
         "container": {
@@ -158,15 +153,12 @@
           }
         ],
         "applicationConfiguration": {
-          "protobuf":"genderProtobuf.prototxt",
-          "mlModel": "mlModel.caffemodel",
           "measurementsSaveThreshold": 100
         }
       },
-
       {
         "task": "6",
-        "name": "Data Aggregation",
+        "name": "aggregate",
         "description": "Aggregates data from multiple detection tasks.",
         "executor": "container",
         "container": {
@@ -182,10 +174,9 @@
         "communicationTask": {
           "payloadSize": 300
         },
-        "downstream": []
+        "applicationConfiguration": {
+          "measurementsSaveThreshold": 100
+        }
       }
-    ],
-    "applicationConfiguration": {
-      "measurementsSaveThreshold": 100
-    }
+    ]
   }

@@ -1,1 +1,1 @@
-./build/peopleCount ./examples/visionProcessing/peopleCount/peopleCount.yaml tm
+./build/peopleCount ./examples/visionProcessing/application-dag.json 1 1

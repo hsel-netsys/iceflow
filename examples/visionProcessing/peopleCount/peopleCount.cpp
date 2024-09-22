@@ -33,7 +33,6 @@
 #include <thread>
 #include <tuple>
 #include <vector>
-#include <yaml-cpp/yaml.h>
 
 #include "opencv2/objdetect.hpp"
 #include <opencv2/opencv.hpp>
@@ -49,64 +48,58 @@ void signalCallbackHandler(int signum) {
 
 class PeopleCounter {
 public:
-  void peopleCount(std::function<std::vector<uint8_t>()> receive,
-                   std::function<void(const std::vector<uint8_t>)> push) {
+  PeopleCounter() {
 
-    int computeCounter = 0;
-    cv::HOGDescriptor hog;
     hog.setSVMDetector(cv::HOGDescriptor::getDefaultPeopleDetector());
+  }
+  void peopleCount(std::vector<uint8_t> encodedCropped,
+                   std::function<void(std::vector<uint8_t>)> push) {
 
-    while (true) {
-      // Receive TLV-encoded data and deserialize it into JSON
-      auto encodedJson = receive();
+    measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
+                                 0);
+    measurementHandler->setField(std::to_string(computeCounter), "IS->PC", 0);
 
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
-                                   0);
-      measurementHandler->setField(std::to_string(computeCounter), "IS->PC", 0);
-
-      nlohmann::json deserializedData = Serde::deserialize(encodedJson);
-      if (deserializedData["image"].empty()) {
-        std::cerr << "Received empty Image, cannot decode." << std::endl;
-        continue;
-      }
-
-      else {
-        // Extract frameID and encodedImage from the deserialized JSON
-        int frameID = deserializedData["frameID"];
-        std::vector<uint8_t> encodedImage =
-            deserializedData["image"].get_binary();
-
-        // Decode the image (JPEG format) using OpenCV
-        cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
-
-        NDN_LOG_INFO("Decoded: " << greyImage.total() * greyImage.elemSize()
-                                 << " bytes");
-
-        int numPeople = detect(hog, greyImage);
-
-        nlohmann::json resultData;
-        resultData["frameID"] = frameID;
-        resultData["PeopleCount"] = std::to_string(numPeople);
-        NDN_LOG_INFO("People count: " << numPeople);
-
-        std::vector<uint8_t> encodedAnalytics = Serde::serialize(resultData);
-        std::cout << "People Count:\n"
-                  << "FrameID:" << frameID << "\n"
-                  << "People Found:" << numPeople << "\n"
-                  << "Encoded result Size: " << encodedAnalytics.size()
-                  << "bytes" << std::endl;
-        std::cout << "------------------------------------" << std::endl;
-        // Push the cropped face for further processing
-        push(encodedAnalytics);
-      }
-
-      // ##### MEASUREMENT #####
-      measurementHandler->setField(std::to_string(computeCounter), "PC->AGG",
-                                   0);
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
-                                   0);
-      computeCounter++;
+    nlohmann::json deserializedData = Serde::deserialize(encodedCropped);
+    if (deserializedData["image"].empty()) {
+      std::cerr << "Received empty Image, cannot decode." << std::endl;
+      return;
     }
+
+    else {
+      // Extract frameID and encodedImage from the deserialized JSON
+      int frameID = deserializedData["frameID"];
+      std::vector<uint8_t> encodedImage =
+          deserializedData["image"].get_binary();
+
+      // Decode the image (JPEG format) using OpenCV
+      cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
+
+      NDN_LOG_INFO("Decoded: " << greyImage.total() * greyImage.elemSize()
+                               << " bytes");
+
+      int numPeople = detect(hog, greyImage);
+
+      nlohmann::json resultData;
+      resultData["frameID"] = frameID;
+      resultData["PeopleCount"] = std::to_string(numPeople);
+      NDN_LOG_INFO("People count: " << numPeople);
+
+      std::vector<uint8_t> encodedAnalytics = Serde::serialize(resultData);
+      std::cout << "People Count:\n"
+                << "FrameID:" << frameID << "\n"
+                << "People Found:" << numPeople << "\n"
+                << "Encoded result Size: " << encodedAnalytics.size() << "bytes"
+                << std::endl;
+      std::cout << "------------------------------------" << std::endl;
+      // Push the cropped face for further processing
+      push(encodedAnalytics);
+    }
+
+    // ##### MEASUREMENT #####
+    measurementHandler->setField(std::to_string(computeCounter), "PC->AGG", 0);
+    measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
+                                 0);
+    computeCounter++;
   }
 
   int detect(const cv::HOGDescriptor &hog, cv::Mat &img) {
@@ -140,82 +133,95 @@ public:
 
 private:
   std::vector<std::vector<int>> bboxes;
+  cv::HOGDescriptor hog;
+  int computeCounter = 0;
 };
 
-void run(const std::string &syncPrefix, const std::string &nodePrefix,
-         const std::string &subTopic, const std::string &pubTopic,
-         uint32_t numberOfProducerPartitions,
-         std::vector<uint32_t> consumerPartitions,
-         std::chrono::milliseconds publishInterval) {
+std::vector<uint32_t> createConsumerPartitions(uint32_t highestPartitionNumber,
+                                               uint32_t consumerIndex,
+                                               uint32_t numberOfConsumers) {
+  std::vector<uint32_t> consumerPartitions;
+  for (auto i = consumerIndex; i <= highestPartitionNumber;
+       i += numberOfConsumers) {
+    consumerPartitions.push_back(i);
+  }
+  return consumerPartitions;
+}
 
-  PeopleCounter peopleCount;
+void run(const std::string &nodeName, const std::string &dagFileName,
+         uint32_t consumerIndex, uint32_t numberOfConsumers) {
+
+  PeopleCounter peopleCounter;
   ndn::Face face;
 
-  auto iceflow =
-      std::make_shared<iceflow::IceFlow>(syncPrefix, nodePrefix, face);
+  auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
+  auto node = dagParser.findNodeByName(nodeName);
+  if (!node.downstream.empty()) {
+    std::string downstreamEdgeName;
+    for (const auto &downstream : node.downstream) {
+      if (downstream.id == "pc2agg") {
+        downstreamEdgeName = downstream.id;
+      }
+    }
 
-  auto producer = iceflow::IceflowProducer(
-      iceflow, pubTopic, numberOfProducerPartitions, publishInterval);
+    if (downstreamEdgeName.empty()) {
+      std::cerr << "Error: Missing downstream target for people counting."
+                << std::endl;
+      return;
+    }
 
-  auto consumer =
-      iceflow::IceflowConsumer(iceflow, subTopic, consumerPartitions);
+    auto upstreamEdge = dagParser.findUpstreamEdges(node).at(0).second;
+    auto upstreamEdgeName = upstreamEdge.id;
 
-  std::vector<std::thread> threads;
-  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-  threads.emplace_back([&peopleCount, &consumer, &producer]() {
-    peopleCount.peopleCount(
-        [&consumer]() {
-          std::vector<uint8_t> encodedImage = consumer.receiveData();
+    auto consumerPartitions = createConsumerPartitions(
+        upstreamEdge.maxPartitions, consumerIndex, numberOfConsumers);
 
-          return encodedImage;
-        },
-        [&producer](const std::vector<uint8_t> &analytics) {
-          producer.pushData(analytics);
-        });
-  });
+    auto applicationConfiguration = node.applicationConfiguration;
 
-  for (auto &thread : threads) {
-    thread.join();
+    auto saveThreshold =
+        applicationConfiguration.at("measurementsSaveThreshold")
+            .get<uint64_t>();
+
+    auto iceflow =
+        std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
+
+    ::signal(SIGINT, signalCallbackHandler);
+    measurementHandler = new iceflow::Measurement(
+        nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
+
+    auto prosumerCallback = [&iceflow, &peopleCounter, &downstreamEdgeName](
+                                const std::vector<uint8_t> &encodedCroppedFace,
+                                iceflow::ProducerCallback producerCallback) {
+      auto pushDataCallback = [downstreamEdgeName, producerCallback](
+                                  std::vector<uint8_t> encodedAnalytics) {
+        producerCallback(downstreamEdgeName, encodedAnalytics);
+      };
+      peopleCounter.peopleCount(encodedCroppedFace, pushDataCallback);
+    };
+
+    iceflow->registerProsumerCallback(upstreamEdgeName, prosumerCallback);
+    iceflow->repartitionConsumer(upstreamEdgeName, {0});
+    iceflow->run();
   }
 }
 
 int main(int argc, const char *argv[]) {
-
-  if (argc != 3) {
-    std::cout << "usage: " << argv[0] << " "
-              << "<config-file><test-name>" << std::endl;
+  if (argc != 4) {
+    std::cout
+        << "usage: " << argv[0]
+        << " <application-dag-file> <instance-number> <number-of-instances>"
+        << std::endl;
     return 1;
   }
 
-  std::string configFileName = argv[1];
-  std::string measurementFileName = argv[2];
-
-  YAML::Node config = YAML::LoadFile(configFileName);
-  YAML::Node consumerConfig = config["consumer"];
-  YAML::Node producerConfig = config["producer"];
-  YAML::Node measurementConfig = config["measurements"];
-
-  std::string syncPrefix = config["syncPrefix"].as<std::string>();
-  std::string nodePrefix = config["nodePrefix"].as<std::string>();
-  std::string pubTopic = producerConfig["topic"].as<std::string>();
-  std::string subTopic = consumerConfig["topic"].as<std::string>();
-  auto consumerPartitions =
-      consumerConfig["partitions"].as<std::vector<uint32_t>>();
-  auto numberOfProducerPartitions =
-      producerConfig["numberOfPartitions"].as<uint32_t>();
-  uint64_t publishInterval = producerConfig["publishInterval"].as<uint64_t>();
-  uint64_t saveThreshold = measurementConfig["saveThreshold"].as<uint64_t>();
-
-  ::signal(SIGINT, signalCallbackHandler);
-  measurementHandler = new iceflow::Measurement(measurementFileName, nodePrefix,
-                                                saveThreshold, "A");
-
   try {
-    run(syncPrefix, nodePrefix, subTopic, pubTopic, numberOfProducerPartitions,
-        consumerPartitions, std::chrono::milliseconds(publishInterval));
-  }
+    std::string nodeName = "peopleCounter";
+    std::string dagFileName = argv[1];
+    int consumerIndex = std::stoi(argv[2]);
+    int numberOfConsumers = std::stoi(argv[3]);
 
-  catch (const std::exception &e) {
+    run(nodeName, dagFileName, consumerIndex, numberOfConsumers);
+  } catch (const std::exception &e) {
     NDN_LOG_ERROR(e.what());
   }
 }

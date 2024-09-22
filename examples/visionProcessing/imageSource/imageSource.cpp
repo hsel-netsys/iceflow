@@ -55,13 +55,8 @@ public:
 
       cv::cvtColor(frame, grayFrame, cv::COLOR_BGR2GRAY);
 
-      if (grayFrame.empty()) {
-        std::cerr << "Error: Received empty image data." << std::endl;
-        return;
-      }
-
-      std::vector<uint8_t> encodedVideo;
-      if (!cv::imencode(".jpeg", grayFrame, encodedVideo)) {
+      std::vector<uint8_t> encodedVideoFrame;
+      if (!cv::imencode(".jpeg", grayFrame, encodedVideoFrame)) {
         std::cerr << "Error: Could not encode image to JPEG format."
                   << std::endl;
         return;
@@ -69,7 +64,7 @@ public:
 
       nlohmann::json resultData;
       resultData["frameID"] = frameID;
-      resultData["image"] = nlohmann::json::binary(encodedVideo);
+      resultData["image"] = nlohmann::json::binary(encodedVideoFrame);
 
       auto serializedData = Serde::serialize(resultData);
       std::cout << "ImageSource:\n"
