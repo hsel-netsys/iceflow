@@ -9,9 +9,9 @@ pkg_check_modules(SVS REQUIRED libndn-svs)
 
 
 set(SOURCES
-#wordCount/text2lines/text2lines.cpp
-#wordCount/lines2words/lines2words.cpp
-#wordCount/wordcount/wordcount.cpp
+wordCount/text2lines/text2lines.cpp
+wordCount/lines2words/lines2words.cpp
+wordCount/wordcount/wordcount.cpp
 visionProcessing/imageSource/imageSource.cpp
 visionProcessing/faceDetection/faceDetection.cpp
 visionProcessing/ageDetection/ageDetection.cpp
