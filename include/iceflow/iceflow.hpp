@@ -126,8 +126,12 @@ public:
       return std::nullopt;
     }
 
-    // TODO: Deal with the case that the key does not have the right type
-    return std::optional(applicationConfiguration.at(key).get<T>());
+    try {
+      auto value = applicationConfiguration.at(key).get<T>();
+      return std::optional(value);
+    } catch (...) {
+      return std::nullopt;
+    }
   }
 
 private:
