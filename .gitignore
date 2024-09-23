@@ -122,6 +122,8 @@ test_build/
 
 #measurement files
 *.csv
+
+# machine-learning models and configuration files
 *.pb
 *.pbtxt
 *.caffemodel
