@@ -100,8 +100,8 @@ public:
     return genderAnalysis;
   }
 
-  std::vector<uint8_t> serializeResults(int &frameCounter,
-                                        std::string &analytics) {
+  std::vector<uint8_t> serializeResults(const int &frameCounter,
+                                        const std::string &analytics) {
 
     nlohmann::json resultData;
     resultData["frameID"] = frameCounter;
