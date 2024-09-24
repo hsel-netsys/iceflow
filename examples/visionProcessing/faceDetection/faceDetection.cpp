@@ -153,8 +153,8 @@ public:
     return std::make_tuple(frameOpenCVDNN, rectangles);
   }
 
-  std::vector<uint8_t> serializeResults(int frameCounter,
-                                        std::vector<uint8_t> faceEncoded) {
+  std::vector<uint8_t> serializeResults(int &frameCounter,
+                                        std::vector<uint8_t> &faceEncoded) {
     nlohmann::json resultData;
     resultData["frameID"] = frameCounter;
     resultData["image"] = nlohmann::json::binary(faceEncoded);

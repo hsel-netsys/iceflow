@@ -108,9 +108,9 @@ public:
     return ageAnalytics;
   }
 
-  std::vector<uint8_t> serializeResults(int frameCounter,
-                                        std::string analytics) {
-    // Serialize results
+  std::vector<uint8_t> serializeResults(int &frameCounter,
+                                        std::string &analytics) {
+
     nlohmann::json resultData;
     resultData["frameID"] = frameCounter;
     resultData["Age"] = analytics;

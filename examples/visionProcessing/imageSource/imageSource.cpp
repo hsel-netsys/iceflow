@@ -95,7 +95,7 @@ public:
   }
 
   std::vector<uint8_t>
-  serializeResults(int frameCounter, std::vector<uint8_t> encodedVideoFrame) {
+  serializeResults(int &frameCounter, std::vector<uint8_t> &encodedVideoFrame) {
     nlohmann::json resultData;
     resultData["frameID"] = frameCounter;
     resultData["image"] = nlohmann::json::binary(encodedVideoFrame);

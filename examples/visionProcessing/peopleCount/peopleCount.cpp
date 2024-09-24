@@ -117,7 +117,7 @@ public:
     return foundFiltered.size();
   }
 
-  std::vector<uint8_t> serializeResults(int frameCounter, int numPeople) {
+  std::vector<uint8_t> serializeResults(int &frameCounter, int &numPeople) {
     nlohmann::json resultData;
     resultData["frameID"] = frameCounter;
     resultData["PeopleCount"] = std::to_string(numPeople);
