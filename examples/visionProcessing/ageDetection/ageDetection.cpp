@@ -49,13 +49,13 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class AgeDetection {
+class AgeDetector {
 public:
-  AgeDetection(const std::string &protobufFile, const std::string &mlModel)
-      : ageNet(cv::dnn::readNet(mlModel, protobufFile)) {}
+  AgeDetector(const std::string &protobufFile, const std::string &mlModel)
+      : m_ageNet(cv::dnn::readNet(mlModel, protobufFile)) {}
 
-  void ageDetection(std::vector<uint8_t> encodedCropped,
-                    std::function<void(std::vector<uint8_t>)> push) {
+  void detectAge(std::vector<uint8_t> encodedCropped,
+                 std::function<void(std::vector<uint8_t>)> push) {
 
     nlohmann::json deserializedData = Serde::deserialize(encodedCropped);
 
@@ -69,130 +69,115 @@ public:
 
       // Decode the image (JPEG format) using OpenCV
       cv::Mat greyImage = cv::imdecode(encodedImage, cv::IMREAD_COLOR);
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
-                                   0);
+
+      measurementHandler->setField(std::to_string(m_computeCounter),
+                                   "CMP_START", 0);
       measurementHandler->setField(std::to_string(frameID), "FD->AD", 0);
 
-      cv::Mat blob = cv::dnn::blobFromImage(greyImage, 1, cv::Size(227, 227),
-                                            MODEL_MEAN_VALUES, false);
-
-      ageNet.setInput(blob);
-      cv::Mat agePreds = ageNet.forward();
-
-      // Get age prediction
-      std::vector<float> agePredsVec;
-      agePreds.reshape(1, 1).copyTo(agePredsVec);
-      int maxIndiceAge = std::distance(
-          agePredsVec.begin(),
-          std::max_element(agePredsVec.begin(), agePredsVec.end()));
-
-      std::string ageAnalytics = ageList[maxIndiceAge];
-
-      // Serialize results
-      nlohmann::json resultData;
-      resultData["frameID"] = frameID;
-      resultData["Age"] = ageAnalytics;
-
-      std::vector<uint8_t> encodedAnalytics = Serde::serialize(resultData);
-
-      std::cout << "AgeDetection: \n"
-                << " FrameID:" << frameID << "\n"
-                << " Age: " << ageAnalytics << "\n"
-                << " Encoded Analytics Size: " << encodedAnalytics.size()
-                << " bytes" << std::endl;
-      std::cout << "------------------------------------" << std::endl;
+      auto ageAnalysis = getAgePrediction(greyImage);
+      auto encodedAnalytics = serializeResults(frameID, ageAnalysis);
 
       push(encodedAnalytics);
+
       measurementHandler->setField(std::to_string(frameID), "AD->AGG", 0);
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
-                                   0);
-      computeCounter++;
+      measurementHandler->setField(std::to_string(m_computeCounter),
+                                   "CMP_FINISH", 0);
+      m_computeCounter++;
     }
   }
 
+  std::string getAgePrediction(cv::Mat greyFrame) {
+    cv::Scalar MODEL_MEAN_VALUES =
+        cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
+    std::vector<std::string> ageList = {"(0-2)",   "(4-6)",   "(8-12)",
+                                        "(15-20)", "(25-32)", "(38-43)",
+                                        "(48-53)", "(60-100)"};
+    cv::Mat blob = cv::dnn::blobFromImage(greyFrame, 1, cv::Size(227, 227),
+                                          MODEL_MEAN_VALUES, false);
+    m_ageNet.setInput(blob);
+    cv::Mat agePreds = m_ageNet.forward();
+
+    std::vector<float> agePredsVec;
+    agePreds.reshape(1, 1).copyTo(agePredsVec);
+    int maxIndexAge =
+        std::distance(agePredsVec.begin(),
+                      std::max_element(agePredsVec.begin(), agePredsVec.end()));
+
+    std::string ageAnalytics = ageList[maxIndexAge];
+
+    return ageAnalytics;
+  }
+
+  std::vector<uint8_t> serializeResults(int frameCounter,
+                                        std::string analytics) {
+    // Serialize results
+    nlohmann::json resultData;
+    resultData["frameID"] = frameCounter;
+    resultData["Age"] = analytics;
+
+    std::vector<uint8_t> serializedResults = Serde::serialize(resultData);
+
+    NDN_LOG_INFO(" AgeDetection: \n"
+                 << " FrameID:" << frameCounter << "\n"
+                 << " Age: " << analytics << "\n"
+                 << " Encoded Analytics Size: " << serializedResults.size()
+                 << " bytes"
+                 << "\n"
+                    "------------------------------------");
+    return serializedResults;
+  }
+
 private:
-  cv::dnn::Net ageNet;
-  cv::Scalar MODEL_MEAN_VALUES =
-      cv::Scalar(78.4263377603, 87.7689143744, 114.895847746);
-  std::vector<std::string> ageList = {"(0-2)",   "(4-6)",   "(8-12)",
-                                      "(15-20)", "(25-32)", "(38-43)",
-                                      "(48-53)", "(60-100)"};
-  int computeCounter = 0;
+  cv::dnn::Net m_ageNet;
+
+  int m_computeCounter = 0;
 };
 
-std::vector<uint32_t> createConsumerPartitions(uint32_t highestPartitionNumber,
-                                               uint32_t consumerIndex,
-                                               uint32_t numberOfConsumers) {
-  std::vector<uint32_t> consumerPartitions;
-  for (auto i = consumerIndex; i <= highestPartitionNumber;
-       i += numberOfConsumers) {
-    consumerPartitions.push_back(i);
-  }
-  return consumerPartitions;
-}
-
 void run(const std::string &nodeName, const std::string &dagFileName,
-         uint32_t consumerIndex, uint32_t numberOfConsumers,
          const std::string &protobufFile, const std::string &mlModel) {
 
-  AgeDetection ageDetection(protobufFile, mlModel);
+  AgeDetector ageDetector(protobufFile, mlModel);
   ndn::Face face;
 
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
   auto node = dagParser.findNodeByName(nodeName);
-  if (!node.downstream.empty()) {
-    std::string downstreamEdgeName;
-    for (const auto &downstream : node.downstream) {
-      if (downstream.id == "ad2agg") {
-        downstreamEdgeName = downstream.id;
-      }
-    }
 
-    if (downstreamEdgeName.empty()) {
-      std::cerr << "Error: Missing downstream target for age detection."
-                << std::endl;
-      return;
-    }
+  auto upstreamEdge = dagParser.findUpstreamEdges(node).at(0).second;
+  auto upstreamEdgeName = upstreamEdge.id;
 
-    auto upstreamEdge = dagParser.findUpstreamEdges(node).at(0).second;
-    auto upstreamEdgeName = upstreamEdge.id;
+  auto applicationConfiguration = node.applicationConfiguration;
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
 
-    auto consumerPartitions = createConsumerPartitions(
-        upstreamEdge.maxPartitions, consumerIndex, numberOfConsumers);
+  auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
 
-    auto applicationConfiguration = node.applicationConfiguration;
-    auto saveThreshold =
-        applicationConfiguration.at("measurementsSaveThreshold")
-            .get<uint64_t>();
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler = new iceflow::Measurement(
+      nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
 
-    auto iceflow =
-        std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
-
-    ::signal(SIGINT, signalCallbackHandler);
-    measurementHandler = new iceflow::Measurement(
-        nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
-
-    auto prosumerCallback = [&iceflow, &ageDetection, &downstreamEdgeName](
-                                const std::vector<uint8_t> &encodedCroppedFace,
-                                iceflow::ProducerCallback producerCallback) {
-      auto pushDataCallback = [downstreamEdgeName, producerCallback](
+  auto prosumerCallback = [&iceflow, &ageDetector, &node](
+                              const std::vector<uint8_t> &encodedCroppedFace,
+                              iceflow::ProducerCallback producerCallback) {
+    for (auto downstream : node.downstream) {
+      auto pushDataCallback = [downstream, producerCallback](
                                   std::vector<uint8_t> encodedAnalytics) {
+        auto downstreamEdgeName = downstream.id;
         producerCallback(downstreamEdgeName, encodedAnalytics);
       };
-      ageDetection.ageDetection(encodedCroppedFace, pushDataCallback);
-    };
+      ageDetector.detectAge(encodedCroppedFace, pushDataCallback);
+    }
+  };
 
-    iceflow->registerProsumerCallback(upstreamEdgeName, prosumerCallback);
-    iceflow->repartitionConsumer(upstreamEdgeName, {0});
-    iceflow->run();
-  }
+  iceflow->registerProsumerCallback(upstreamEdgeName, prosumerCallback);
+  iceflow->repartitionConsumer(upstreamEdgeName, {0});
+  iceflow->run();
 }
 
 int main(int argc, const char *argv[]) {
-  if (argc != 6) {
+  if (argc != 4) {
     std::cout << "usage: " << argv[0]
               << " <application-dag-file><protobuf_binary> "
-                 "<ML-Model><instance-number> <number-of-instances>"
+                 "<ML-Model>"
               << std::endl;
     return 1;
   }
@@ -202,11 +187,8 @@ int main(int argc, const char *argv[]) {
     std::string dagFileName = argv[1];
     std::string protobufFile = argv[2];
     std::string mlModel = argv[3];
-    int consumerIndex = std::stoi(argv[4]);
-    int numberOfConsumers = std::stoi(argv[5]);
 
-    run(nodeName, dagFileName, consumerIndex, numberOfConsumers, protobufFile,
-        mlModel);
+    run(nodeName, dagFileName, protobufFile, mlModel);
   } catch (const std::exception &e) {
     NDN_LOG_ERROR(e.what());
   }

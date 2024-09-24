@@ -1,1 +1,1 @@
-./build/peopleCount ./examples/visionProcessing/application-dag.json 1 1
+./build/peopleCount ./examples/visionProcessing/application-dag.json

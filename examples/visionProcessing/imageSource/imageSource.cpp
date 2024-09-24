@@ -1,3 +1,21 @@
+/*
+ * Copyright 2024 The IceFlow Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
 #include "iceflow/dag-parser.hpp"
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
@@ -10,7 +28,6 @@
 #include <nlohmann/json.hpp>
 #include <thread>
 #include <vector>
-#include <yaml-cpp/yaml.h>
 
 #include <ndn-cxx/util/logger.hpp>
 #include <opencv2/opencv.hpp>
@@ -24,9 +41,9 @@ void signalCallbackHandler(int signum) {
   exit(signum);
 }
 
-class ImageSource {
+class ImageFeeder {
 public:
-  void imageSource(
+  void SourceImage(
       const std::string &videoFilename,
       std::function<void(std::vector<uint8_t>, const std::string &)> push) {
 
@@ -62,16 +79,7 @@ public:
         return;
       }
 
-      nlohmann::json resultData;
-      resultData["frameID"] = frameID;
-      resultData["image"] = nlohmann::json::binary(encodedVideoFrame);
-
-      auto serializedData = Serde::serialize(resultData);
-      std::cout << "ImageSource:\n"
-                << "FrameID:" << frameID << "\n"
-                << "Encoded Image Size: " << serializedData.size() << " bytes"
-                << std::endl;
-      std::cout << "------------------------------------" << std::endl;
+      auto serializedData = serializeResults(m_frameID, encodedVideoFrame);
 
       push(serializedData, "is2fd");
       push(serializedData, "is2pc");
@@ -82,67 +90,62 @@ public:
                                    0);
 
       computeCounter++;
-      frameID++;
+      m_frameID++;
     }
   }
 
+  std::vector<uint8_t>
+  serializeResults(int frameCounter, std::vector<uint8_t> encodedVideoFrame) {
+    nlohmann::json resultData;
+    resultData["frameID"] = frameCounter;
+    resultData["image"] = nlohmann::json::binary(encodedVideoFrame);
+
+    auto serializedResults = Serde::serialize(resultData);
+
+    NDN_LOG_INFO("ImageSource:\n"
+                 << "FrameID:" << m_frameID << "\n"
+                 << "Encoded Image Size: " << serializedResults.size()
+                 << " bytes"
+                 << "\n"
+                 << "------------------------------------");
+
+    return serializedResults;
+  }
+
 private:
-  int frameID = 1;
+  int m_frameID = 1;
 };
 
 void run(const std::string &nodeName, const std::string &dagFileName,
          const std::string &videoFile) {
   std::cout << "Starting IceFlow Stream Processing - - - -" << std::endl;
-  ImageSource inputImage;
+  ImageFeeder inputImage;
   ndn::Face face;
 
   auto dagParser = iceflow::DAGParser::parseFromFile(dagFileName);
   auto iceflow = std::make_shared<iceflow::IceFlow>(dagParser, nodeName, face);
   auto node = dagParser.findNodeByName(nodeName);
 
-  if (!node.downstream.empty()) {
-    std::string downstreamEdgeNameFD, downstreamEdgeNamePC;
-    for (const auto &downstream : node.downstream) {
-      if (downstream.id == "is2fd") {
-        downstreamEdgeNameFD = downstream.id;
-      } else if (downstream.id == "is2pc") {
-        downstreamEdgeNamePC = downstream.id;
-      }
-    }
+  auto applicationConfiguration = node.applicationConfiguration;
+  auto saveThreshold =
+      applicationConfiguration.at("measurementsSaveThreshold").get<uint64_t>();
 
-    if (downstreamEdgeNameFD.empty() || downstreamEdgeNamePC.empty()) {
-      std::cerr << "Error: Missing downstream targets for face detection or "
-                   "people counting."
-                << std::endl;
-      return;
-    }
+  ::signal(SIGINT, signalCallbackHandler);
+  measurementHandler = new iceflow::Measurement(
+      nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
 
-    auto applicationConfiguration = node.applicationConfiguration;
-    auto saveThreshold =
-        applicationConfiguration.at("measurementsSaveThreshold")
-            .get<uint64_t>();
+  std::vector<std::thread> threads;
+  threads.emplace_back(&iceflow::IceFlow::run, iceflow);
+  threads.emplace_back([&inputImage, &iceflow, videoFile]() {
+    inputImage.SourceImage(videoFile,
+                           [&iceflow](const std::vector<uint8_t> &data,
+                                      const std::string &edgeName) {
+                             iceflow->pushData(edgeName, data);
+                           });
+  });
 
-    ::signal(SIGINT, signalCallbackHandler);
-    measurementHandler = new iceflow::Measurement(
-        nodeName, iceflow->getNodePrefix(), saveThreshold, "A");
-
-    std::vector<std::thread> threads;
-    threads.emplace_back(&iceflow::IceFlow::run, iceflow);
-    threads.emplace_back([&inputImage, &iceflow, videoFile,
-                          downstreamEdgeNameFD, downstreamEdgeNamePC]() {
-      inputImage.imageSource(videoFile,
-                             [&iceflow](const std::vector<uint8_t> &data,
-                                        const std::string &edgeName) {
-                               iceflow->pushData(edgeName, data);
-                             });
-    });
-
-    for (auto &thread : threads) {
-      thread.join();
-    }
-  } else {
-    std::cerr << "Error: No downstream nodes found in the DAG." << std::endl;
-    return;
+  for (auto &thread : threads) {
+    thread.join();
   }
 }
 

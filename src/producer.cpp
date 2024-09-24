@@ -52,7 +52,6 @@ void IceflowProducer::pushData(const std::vector<uint8_t> &data) {
         dataID, data, ndn::Name(m_nodePrefix), ndn::time::seconds(4));
 
     NDN_LOG_INFO("Publish: " << dataID << "/" << sequenceNo);
-    std::cout << "Publish: " << dataID << "/" << sequenceNo << std::endl;
   }
 }
 

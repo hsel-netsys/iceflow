@@ -42,35 +42,42 @@ void signalCallbackHandler(int signum) {
   std::exit(signum);
 }
 
-class Aggregate {
+class AnalysisCollector {
 public:
-  void aggregate(std::vector<uint8_t> &data) {
-    measurementHandler->setField(std::to_string(computeCounter), "CMP_START",
+  void aggregator(std::vector<uint8_t> &data) {
+    measurementHandler->setField(std::to_string(m_computeCounter), "CMP_START",
+                                 0);
+    measurementHandler->setField(std::to_string(m_computeCounter), "IS->AGG",
                                  0);
 
     nlohmann::json deserializedData = Serde::deserialize(data);
 
     if (deserializedData.contains("frameID")) {
       int frameID = deserializedData["frameID"];
-      auto &dataTuple = frameData[frameID];
+      auto &dataTuple = m_frameData[frameID];
 
       if (deserializedData.contains("Age")) {
+        measurementHandler->setField(std::to_string(m_computeCounter),
+                                     "AD->AGG", 0);
         std::get<0>(dataTuple) = deserializedData["Age"].get<std::string>();
       }
       if (deserializedData.contains("Gender")) {
+        measurementHandler->setField(std::to_string(m_computeCounter),
+                                     "GD->AGG", 0);
         std::get<1>(dataTuple) = deserializedData["Gender"].get<std::string>();
       }
       if (deserializedData.contains("PeopleCount")) {
+        measurementHandler->setField(std::to_string(m_computeCounter),
+                                     "PC->AGG", 0);
         std::get<2>(dataTuple) =
             deserializedData["PeopleCount"].get<std::string>();
       }
 
-      // Display the aggregated result
       printAggregateResult(frameID, dataTuple);
 
-      measurementHandler->setField(std::to_string(computeCounter), "CMP_FINISH",
-                                   0);
-      computeCounter++;
+      measurementHandler->setField(std::to_string(m_computeCounter),
+                                   "CMP_FINISH", 0);
+      m_computeCounter++;
     }
   }
 
@@ -84,21 +91,21 @@ public:
     std::string peopleCount =
         std::get<2>(dataTuple).empty() ? "N/A" : std::get<2>(dataTuple);
 
-    std::cout << "Frame ID: " << frameID << "\n"
-              << "  Age: " << age << "\n"
-              << "  Gender: " << gender << "\n"
-              << "  PeopleCount: " << peopleCount << "\n"
-              << "------------------------------------" << std::endl;
+    NDN_LOG_INFO("Frame ID: " << frameID << "\n"
+                              << "  Age: " << age << "\n"
+                              << "  Gender: " << gender << "\n"
+                              << "  PeopleCount: " << peopleCount << "\n"
+                              << "------------------------------------");
   }
 
 private:
-  std::map<int, std::tuple<std::string, std::string, std::string>> frameData;
-  int computeCounter = 0;
+  std::map<int, std::tuple<std::string, std::string, std::string>> m_frameData;
+  int m_computeCounter = 0;
 };
 
 void run(const std::string &nodeName, const std::string &dagFileName) {
 
-  Aggregate aggregator;
+  AnalysisCollector collector;
   ndn::Face face;
 
   auto iceflow =
@@ -123,8 +130,8 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
 
   for (auto upstream : upStreamedges) {
     iceflow->registerConsumerCallback(upstream,
-                                      [&aggregator](std::vector<uint8_t> data) {
-                                        aggregator.aggregate(data);
+                                      [&collector](std::vector<uint8_t> data) {
+                                        collector.aggregator(data);
                                       });
     iceflow->repartitionConsumer(upstream, {0});
   }
