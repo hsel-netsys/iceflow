@@ -1,6 +1,6 @@
 project(${CMAKE_PROJECT_NAME})
 
-find_package(yaml-cpp REQUIRED)
+
 find_package(Boost)
 find_package(PkgConfig)
 find_package(OpenCV REQUIRED)
@@ -9,9 +9,6 @@ pkg_check_modules(SVS REQUIRED libndn-svs)
 
 
 set(SOURCES
-wordCount/text2lines/text2lines.cpp
-wordCount/lines2words/lines2words.cpp
-wordCount/wordcount/wordcount.cpp
 visionProcessing/imageSource/imageSource.cpp
 visionProcessing/faceDetection/faceDetection.cpp
 visionProcessing/ageDetection/ageDetection.cpp
@@ -26,7 +23,7 @@ foreach(SOURCE_FILE ${SOURCES})
   set_target_properties(${EXECUTABLE_NAME} PROPERTIES RUNTIME_OUTPUT_DIRECTORY
                                                       ../build)
   target_include_directories(
-    ${EXECUTABLE_NAME} PRIVATE ../include include ${NDN_CXX_INCLUDE_DIRS} ${YAML_INCLUDE_DIRS} ${OpenCV_INCLUDE_DIRS})
+    ${EXECUTABLE_NAME} PRIVATE ../include include ${NDN_CXX_INCLUDE_DIRS}  ${OpenCV_INCLUDE_DIRS})
   target_compile_options(${EXECUTABLE_NAME} PRIVATE -D_GNU_SOURCE
                                                     -DBOOST_LOG_DYN_LINK)
   install(TARGETS ${EXECUTABLE_NAME})
@@ -40,6 +37,5 @@ foreach(SOURCE_FILE ${SOURCES})
     -lpthread
     -lndn-cxx
     -lndn-svs
-    ${OpenCV_LIBS}
-    ${YAML_CPP_LIBRARIES})
+    ${OpenCV_LIBS})
 endforeach(SOURCE_FILE ${SOURCES})

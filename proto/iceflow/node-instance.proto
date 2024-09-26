@@ -1,0 +1,70 @@
+/*
+ * Copyright 2024 The IceFlow Authors.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ * SPDX-License-Identifier: Apache-2.0
+ */
+
+syntax = "proto3";
+
+package iceflow;
+
+// Service definition for repartitioning node instances.
+service NodeInstance {
+  // Performs the repartition of a node instance.
+  rpc Repartition(RepartitionRequest) returns (RepartitionResponse) {}
+
+  // Retrieves production and consumption stats from the node instance.
+  rpc QueryStats(StatsRequest)
+      returns (StatsResponse) {}
+}
+
+// The request message for repartitioning a node instance.
+//
+// Expects a lower and an upper partition bound for the new partition range.
+message RepartitionRequest {
+  string edge_name = 1;
+  uint32 lower_partition_bound = 2;
+  uint32 upper_partition_bound = 3;
+}
+
+// The response message that indicates whether repartitioning was successful.
+//
+// Will also report the current/updated lower and upper partition bounds defined
+// for the node instance.
+message RepartitionResponse {
+  string edge_name = 1;
+  bool success = 2;
+  uint32 lower_partition_bound = 3;
+  uint32 upper_partition_bound = 4;
+}
+
+// The request message for querying production and consumption stats from a node
+// instance.
+message StatsRequest {}
+
+// The response message indicating production and consumption stats for a all
+// incoming and outgoing edges of a node instance.
+message StatsResponse {
+  message ProductionStats {
+    string edge_name = 1;
+    uint32 units_produced = 2;
+  }
+  message ConsumptionStats {
+    string edge_name = 1;
+    uint32 units_consumed = 2;
+  }
+  repeated ProductionStats production_stats = 1;
+  repeated ConsumptionStats consumption_stats = 2;
+}
