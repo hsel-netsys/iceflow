@@ -16,7 +16,7 @@
         lib = nixpkgs.lib;
         deps = overlays.deps final prev;
         pkgs = prev // deps;
-      in prev // (rec {
+      in deps // (rec {
       
         iceflow = lib.makeOverridable pkgs.stdenv.mkDerivation {
           name = "iceflow";
