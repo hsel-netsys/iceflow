@@ -16,8 +16,7 @@
         lib = nixpkgs.lib;
         deps = overlays.deps final prev;
         pkgs = prev // deps;
-      in rec {
-        inherit deps;
+      in prev // (rec {
       
         iceflow = lib.makeOverridable pkgs.stdenv.mkDerivation {
           name = "iceflow";
@@ -40,7 +39,7 @@
 
           cmakeFlags = [ "-DBUILD_APPS=ON" ];
         };
-      };
+      });
 
       overlays.deps = final: prev: let
          lib = nixpkgs.lib;
