@@ -10,9 +10,36 @@
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
       iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf" "opencv"];
-    in {
+    in rec {
 
       overlays.default = final: prev: let
+        lib = nixpkgs.lib;
+        pkgs = prev.extend overlays.deps;
+      in rec {
+        iceflow = lib.makeOverridable pkgs.stdenv.mkDerivation {
+          name = "iceflow";
+          src = ./.;
+
+          # Build using cmake, pkg-config and gnumake, add doxygen for docs.
+          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
+          buildInputs = map (x: pkgs."${x}") iceflowDependencies;
+
+          cmakeFlags = [ "-DBUILD_APPS=OFF" ];
+        };
+
+        iceflow-with-examples = lib.makeOverridable pkgs.stdenv.mkDerivation {
+          name = "iceflow";
+          src = ./.;
+
+          # Build using cmake, pkg-config and gnumake, add doxygen for docs.
+          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
+          buildInputs = map (x: pkgs."${x}") iceflowDependencies;
+
+          cmakeFlags = [ "-DBUILD_APPS=ON" ];
+        };
+      };
+
+      overlays.deps = final: prev: let
          lib = nixpkgs.lib;
          pkgs = prev;
       in rec {
@@ -88,18 +115,9 @@
         lib = nixpkgs.lib;
         iceflowPackage = ({enableExamples ? false, crossTarget ? "${system}"}:  let
           pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
-        in lib.makeOverridable pkgs.stdenv.mkDerivation {
-          name = "iceflow";
-          src = ./.;
-
-          # Build using cmake, pkg-config and gnumake, add doxygen for docs.
-          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
-          buildInputs = map (x: pkgs."${x}") iceflowDependencies;
-
-          cmakeFlags = [ "-DBUILD_APPS=${if enableExamples then "ON" else "OFF"}" ];
-        });
+        in pkgs.iceflow);
         genIceflowExampleCtrImage = {example_name, args ? [], crossTarget ? "${system}"}: let
-          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
+          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.deps;
           crossTargetContainer =
             if crossTarget == "x86_64-linux" then "amd64"
             else if crossTarget == "aarch64-linux" then "arm64"
@@ -159,7 +177,7 @@
       devShells = forEachSystem
         (system:
           let
-            pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
+            pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.deps;
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
             keepDebuggingDisabledFor = [];
