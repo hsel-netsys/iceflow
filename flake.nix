@@ -10,9 +10,10 @@
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
       # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
-      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf"];
-    in {
-
+      iceflowBaseDependencies = ["yaml-cpp" "nlohmann_json" "boost" "ndn-svs" "ndn-cxx" "openssl"];
+      iceflowGrpcDependencies = ["protobuf" "grpc"];
+      iceflowDependencies = iceflowBaseDependencies ++ iceflowGrpcDependencies;
+    in rec {
       overlays.default = final: prev: let
          lib = nixpkgs.lib;
          pkgs = prev;
@@ -54,20 +55,23 @@
 
       packages = forEachSystem (system: let
         lib = nixpkgs.lib;
-        iceflowPackage = ({enableExamples ? false, crossTarget ? "${system}"}:  let
+        iceflowPackage = ({crossTarget ? "${system}"}:  let
           pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
-        in lib.makeOverridable pkgs.stdenv.mkDerivation {
-          name = "iceflow";
-          src = ./.;
+        in 
+          pkgs.callPackage ({enableExamples ? false, enableGRPC ? true}: pkgs.stdenv.mkDerivation {
+            name = "iceflow";
+            src = ./.;
 
-          # Build using cmake, pkg-config and gnumake, add doxygen for docs.
-          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen ];
-          buildInputs = map (x: pkgs."${x}") iceflowDependencies;
+            # Build using cmake, pkg-config and gnumake, add doxygen for docs.
+            # In order to compile the protobuf files, we need the GRPC dependencies as native build inputs as well.
+            nativeBuildInputs = (with pkgs; [ cmake pkg-config gnumake doxygen ]) ++ (if enableGRPC then map (x: pkgs."${x}") iceflowGrpcDependencies else []);
+            buildInputs = map (x: pkgs."${x}") (iceflowBaseDependencies ++ (if enableGRPC then iceflowGrpcDependencies else []));
 
-          cmakeFlags = [ "-DBUILD_APPS=${if enableExamples then "ON" else "OFF"}" ];
-        });
+            cmakeFlags = [ "-DBUILD_APPS=${if enableExamples then "ON" else "OFF"}" "-DUSE_GRPC=${if enableGRPC then "1" else "0"}" ];
+          }) {}
+        );
         genIceflowExampleCtrImage = {example_name, args ? [], crossTarget ? "${system}"}: let
-          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
+          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.deps;
           crossTargetContainer =
             if crossTarget == "x86_64-linux" then "amd64"
             else if crossTarget == "aarch64-linux" then "arm64"
@@ -91,17 +95,14 @@
         iceflow = iceflow-cross."${system}";
 
         # IceFlow package including examples
-        iceflow-with-examples = iceflow-with-examples-cross."${system}";
+        iceflow-with-examples = iceflow-cross."${system}".override {enableExamples = true;};
 
         docker-text2lines = docker-text2lines-cross."${system}";
         docker-lines2words = docker-lines2words-cross."${system}";
         docker-wordcount = docker-wordcount-cross."${system}";
 
         # IceFlow package
-        iceflow-cross = forEachSystem (crossTarget: iceflowPackage {enableExamples = false; crossTarget = crossTarget;});
-
-        # IceFlow examples
-        iceflow-with-examples-cross = forEachSystem (crossTarget: iceflowPackage {enableExamples = true; crossTarget = crossTarget;});
+        iceflow-cross = forEachSystem (crossTarget: iceflowPackage {crossTarget = crossTarget;});
 
         docker-text2lines-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "text2lines";
