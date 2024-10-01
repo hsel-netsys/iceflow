@@ -14,8 +14,11 @@
 
       overlays.default = final: prev: let
         lib = nixpkgs.lib;
-        pkgs = prev.extend overlays.deps;
+        deps = overlays.deps final prev;
+        pkgs = prev // deps;
       in rec {
+        inherit deps;
+      
         iceflow = lib.makeOverridable pkgs.stdenv.mkDerivation {
           name = "iceflow";
           src = ./.;
