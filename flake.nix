@@ -23,7 +23,7 @@
           src = ./.;
 
           # Build using cmake, pkg-config and gnumake, add doxygen for docs.
-          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen protobuf ];
+          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen protobuf grpc ];
           buildInputs = map (x: pkgs."${x}") iceflowDependencies;
 
           cmakeFlags = [ "-DBUILD_APPS=OFF" ];
