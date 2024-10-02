@@ -9,7 +9,7 @@
   outputs = { self, nixpkgs, devenv, systems, ... } @ inputs:
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
-      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf_21" "opencv"];
+      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf" "opencv"];
     in rec {
 
       overlays.default = final: prev: let
@@ -23,7 +23,7 @@
           src = ./.;
 
           # Build using cmake, pkg-config and gnumake, add doxygen for docs.
-          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen protobuf_21 grpc ];
+          nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen protobuf grpc ];
           buildInputs = map (x: pkgs."${x}") iceflowDependencies;
 
           cmakeFlags = [ "-DBUILD_APPS=OFF" ];
@@ -76,6 +76,10 @@
           dontAddWafCrossFlags = true;
 
           doCheck = false;
+        });
+
+        opencv = prev.opencv.overrideAttrs (old: {
+          buildInputs = (lib.lists.remove prev.protobuf_21 old.buildInputs) ++ [ pkgs.protobuf ];
         });
 
         # Add ndn-svs build dependency.
