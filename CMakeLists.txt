@@ -47,7 +47,7 @@ include(cmake/lint.cmake)
 include(GNUInstallDirs)
 
 add_library(iceflow SHARED src/iceflow.cpp src/consumer.cpp src/producer.cpp
-                           src/measurements.cpp src/dag-parser.cpp)
+                           src/measurements.cpp src/dag-parser.cpp src/serde.cpp)
 
 if(USE_GRPC)
   target_sources(
@@ -56,7 +56,6 @@ if(USE_GRPC)
             src/services/node-executor-service.cpp
             src/scaler.cpp
             src/executor.cpp
-            src/serde.cpp
             proto/node-executor.proto
             proto/node-instance.proto)
 
