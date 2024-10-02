@@ -78,9 +78,9 @@
           doCheck = false;
         });
 
-        opencv = prev.opencv.overrideAttrs (old: {
-          buildInputs = (lib.lists.remove prev.protobuf_21 old.buildInputs) ++ [ pkgs.protobuf ];
-        });
+        opencv = prev.opencv.override {
+          protobuf_21 = pkgs.protobuf;
+        };
 
         # Add ndn-svs build dependency.
         ndn-svs = lib.makeOverridable prev.stdenv.mkDerivation rec {
@@ -187,7 +187,7 @@
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
             keepDebuggingDisabledFor = [];
-            additionalShellPackages = with pkgs; [nfd cppcheck manifest-tool opencv4];
+            additionalShellPackages = with pkgs; [nfd cppcheck manifest-tool];
           in rec {
             default = lib.makeOverridable devenv.lib.mkShell {
               inherit inputs pkgs;
