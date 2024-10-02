@@ -95,7 +95,7 @@
             src = ./.;
 
             # Build using cmake, pkg-config and gnumake, add doxygen for docs.
-            nativeBuildInputs = with pkgs; [ cmake pkg-config gnumake doxygen protobuf grpc ];
+            nativeBuildInputs = (with pkgs; [ cmake pkg-config gnumake doxygen ]) ++ (if enableGRPC then map (x: pkgs."${x}") iceflowGrpcDependencies else []);
             buildInputs = map (x: pkgs."${x}") (iceflowBaseDependencies ++ (if enableGRPC then iceflowGrpcDependencies else []));
 
             cmakeFlags = [ "-DBUILD_APPS=${if enableExamples then "ON" else "OFF"}" "-DUSE_GRPC=${if enableGRPC then "1" else "0"}" ];
