@@ -63,13 +63,6 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
     nodeInstance.scalingParameters.taskComplexity =
         nodeJson.at("scalingParameters").at("taskComplexity").get<uint32_t>();
 
-    // Communication task with optional payload size
-    if (nodeJson.contains("communicationTask") &&
-        nodeJson["communicationTask"].contains("payloadSize")) {
-      nodeInstance.communicationTask.payloadSize =
-          nodeJson["communicationTask"]["payloadSize"].get<uint32_t>();
-    }
-
     // downstream edges
     if (nodeJson.contains("downstream")) {
       std::vector<Edge> edges;

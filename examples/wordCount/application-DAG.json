@@ -16,9 +16,6 @@
       "scalingParameters": {
         "taskComplexity": 2
       },
-      "communicationTask": {
-        "payloadSize": 9001
-      },
       "downstream": [
         {
           "id": "t2l",
@@ -42,9 +39,6 @@
           "cpu": 1,
           "memory": 1000000000
         }
-      },
-      "communicationTask": {
-        "payloadSize": 9001
       },
       "scalingParameters": {
         "taskComplexity": 2
@@ -74,9 +68,6 @@
       },
       "scalingParameters": {
         "taskComplexity": 2
-      },
-      "communicationTask": {
-        "payloadSize": 9001
       },
       "applicationConfiguration": {
         "measurementsSaveThreshold": 100
