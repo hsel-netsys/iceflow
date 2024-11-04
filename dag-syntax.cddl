@@ -35,9 +35,6 @@ node = {
     scalingParameters: {
         taskComplexity: uint,
     }
-    communicationTask: {
-        ? payloadSize: uint,
-    },
     ? downstream: [ + edge ],
     ? applicationConfiguration: { * text => any }
 }

@@ -47,10 +47,6 @@ struct ScalingParameters {
   uint32_t taskComplexity;
 };
 
-struct CommunicationTask {
-  std::optional<uint32_t> payloadSize;
-};
-
 struct Edge {
   std::string id;
   std::string target;
@@ -68,7 +64,6 @@ struct Node {
   std::string executor;
   Container container;
   ScalingParameters scalingParameters;
-  CommunicationTask communicationTask;
   std::vector<Edge> downstream;
   nlohmann::json::object_t applicationConfiguration;
 };
