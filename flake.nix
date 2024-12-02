@@ -10,7 +10,7 @@
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
       # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
-      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf"];
+      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf"];
     in {
 
       overlays.default = final: prev: let
