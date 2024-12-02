@@ -1,6 +1,6 @@
 {
   inputs = {
-    nixpkgs.url = "nixpkgs/nixos-24.05";
+    nixpkgs.url = "nixpkgs/nixos-24.11";
     systems.url = "github:nix-systems/default";
     devenv.url = "github:cachix/devenv";
     devenv.inputs.nixpkgs.follows = "nixpkgs";
@@ -10,46 +10,13 @@
     let
       forEachSystem = nixpkgs.lib.genAttrs (import systems);
       # Define build dependencies for IceFlow (will be added both to the devShell and to the package build).
-      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost179" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf"];
+      iceflowDependencies = ["yaml-cpp" "nlohmann_json" "boost" "ndn-svs" "ndn-cxx" "grpc" "openssl" "protobuf"];
     in {
 
       overlays.default = final: prev: let
          lib = nixpkgs.lib;
          pkgs = prev;
       in rec {
-        # Update ndn-cxx to specific commit (required by ndn-svs).
-        ndn-cxx = prev.ndn-cxx.overrideAttrs (old: rec {
-          src = prev.fetchFromGitHub {
-            owner = "named-data";
-            repo = "ndn-cxx";
-            rev = "18ccbb3b1f600d913dd42dd5c462afdac77e37e0";
-            hash = "sha256-yHsp6dBq2kMsubJrn77qeQ9Ah+Udy7nE9eWBX2smemA=";
-            fetchSubmodules = true;
-          };
-
-          dontAddWafCrossFlags = true;
-
-        });
-
-        # Update nfd to specific commit.
-        nfd = prev.nfd.overrideAttrs (old: {
-          src = prev.fetchFromGitHub {
-            owner = "named-data";
-            repo = "nfd";
-            rev = "95d63b113219d1f6bed9fb8f0fff86c9b24db422";
-            hash = "sha256-3TxX9cscbysDRVE5Zr8KHYwlrbI0gkuMldnFLVk9L48=";
-            fetchSubmodules = true;
-          };
-
-          wafConfigureFlags = [
-            "--boost-includes=${prev.boost179.dev}/include"
-            "--boost-libs=${prev.boost179.out}/lib"
-          ];
-          dontAddWafCrossFlags = true;
-
-          doCheck = false;
-        });
-
         # Add ndn-svs build dependency.
         ndn-svs = lib.makeOverridable prev.stdenv.mkDerivation rec {
           pname = "ndn-svs";
@@ -63,7 +30,7 @@
           };
 
           nativeBuildInputs = with prev; [ pkg-config wafHook python3 ];
-          buildInputs = [ ndn-cxx prev.sphinx prev.openssl ];
+          buildInputs = [ prev.ndn-cxx prev.sphinx prev.openssl ];
 
           wafConfigureFlags = [
             "--boost-includes=${prev.boost179.dev}/include"
