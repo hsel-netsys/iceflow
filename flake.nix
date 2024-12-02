@@ -31,25 +31,6 @@
 
         });
 
-        # Update nfd to specific commit.
-        nfd = prev.nfd.overrideAttrs (old: {
-          src = prev.fetchFromGitHub {
-            owner = "named-data";
-            repo = "nfd";
-            rev = "95d63b113219d1f6bed9fb8f0fff86c9b24db422";
-            hash = "sha256-3TxX9cscbysDRVE5Zr8KHYwlrbI0gkuMldnFLVk9L48=";
-            fetchSubmodules = true;
-          };
-
-          wafConfigureFlags = [
-            "--boost-includes=${prev.boost179.dev}/include"
-            "--boost-libs=${prev.boost179.out}/lib"
-          ];
-          dontAddWafCrossFlags = true;
-
-          doCheck = false;
-        });
-
         # Add ndn-svs build dependency.
         ndn-svs = lib.makeOverridable prev.stdenv.mkDerivation rec {
           pname = "ndn-svs";
