@@ -17,20 +17,6 @@
          lib = nixpkgs.lib;
          pkgs = prev;
       in rec {
-        # Update ndn-cxx to specific commit (required by ndn-svs).
-        ndn-cxx = prev.ndn-cxx.overrideAttrs (old: rec {
-          src = prev.fetchFromGitHub {
-            owner = "named-data";
-            repo = "ndn-cxx";
-            rev = "18ccbb3b1f600d913dd42dd5c462afdac77e37e0";
-            hash = "sha256-yHsp6dBq2kMsubJrn77qeQ9Ah+Udy7nE9eWBX2smemA=";
-            fetchSubmodules = true;
-          };
-
-          dontAddWafCrossFlags = true;
-
-        });
-
         # Add ndn-svs build dependency.
         ndn-svs = lib.makeOverridable prev.stdenv.mkDerivation rec {
           pname = "ndn-svs";
@@ -44,7 +30,7 @@
           };
 
           nativeBuildInputs = with prev; [ pkg-config wafHook python3 ];
-          buildInputs = [ ndn-cxx prev.sphinx prev.openssl ];
+          buildInputs = [ prev.ndn-cxx prev.sphinx prev.openssl ];
 
           wafConfigureFlags = [
             "--boost-includes=${prev.boost179.dev}/include"
