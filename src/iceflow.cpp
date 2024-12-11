@@ -26,10 +26,10 @@
 
 namespace iceflow {
 
-std::string generateNodePrefix() {
+std::string generateNodePrefix(const std::string& applicationName) {
   boost::uuids::basic_random_generator<boost::mt19937> gen;
   boost::uuids::uuid uuid = gen();
-  return to_string(uuid);
+  return "/node-"+applicationName+"/"+to_string(uuid);
 }
 
 NDN_LOG_INIT(iceflow.IceFlow);
@@ -63,7 +63,7 @@ IceFlow::IceFlow(
     DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_face(face), m_congestionReporter(congestionReporter) {
-  m_nodePrefix = generateNodePrefix();
+  m_nodePrefix = generateNodePrefix(dagParser.getApplicationName());
   m_syncPrefix = "/" + dagParser.getApplicationName();
 
   m_node = dagParser.findNodeByName(nodeName);
