@@ -22,7 +22,7 @@ namespace iceflow {
 
 NodeExecutorService::NodeExecutorService(
     std::weak_ptr<IceflowExecutor> executor)
-    : m_executor(executor){};
+    : m_executor(executor) {};
 
 grpc::Status
 NodeExecutorService::ReportCongestion(grpc::ServerContext *context,
