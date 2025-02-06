@@ -20,6 +20,7 @@
 #define ICEFLOW_NODE_EXECUTOR_HPP
 
 #include "iceflow.hpp"
+#include "stats.hpp"
 
 #include "node-executor.grpc.pb.h"
 #include "node-instance.grpc.pb.h"
@@ -27,11 +28,6 @@
 #include <grpc/grpc.h>
 
 namespace iceflow {
-
-struct EdgeStats {
-  std::optional<uint64_t> produced;
-  std::optional<uint64_t> consumed;
-};
 
 class IceflowExecutor : public std::enable_shared_from_this<IceflowExecutor> {
 public:

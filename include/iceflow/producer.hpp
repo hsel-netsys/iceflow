@@ -34,6 +34,7 @@
 #endif // USE_GRPC
 
 #include "congestion-reporter.hpp"
+#include "stats.hpp"
 
 namespace iceflow {
 
@@ -57,7 +58,7 @@ public:
 
   void setTopicPartitions(uint64_t numberOfPartitions);
 
-  uint32_t getProductionStats();
+  EdgeProductionStats getProductionStats();
 
 private:
   uint32_t getNextPartitionNumber();
@@ -70,6 +71,9 @@ private:
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
   ndn::Name prepareDataName(uint32_t partitionNumber);
+
+  uint64_t determineIdleTime(
+      std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
 private:
   const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
@@ -91,6 +95,8 @@ private:
   std::chrono::seconds m_maxProductionTimestampAge = std::chrono::seconds(1);
 
   const std::string &m_downstreamEdgeName;
+
+  std::chrono::time_point<std::chrono::steady_clock> m_idleSince;
 };
 } // namespace iceflow
 

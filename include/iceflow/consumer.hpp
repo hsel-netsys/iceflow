@@ -26,6 +26,7 @@
 #include <vector>
 
 #include "congestion-reporter.hpp"
+#include "stats.hpp"
 
 namespace iceflow {
 
@@ -50,7 +51,7 @@ public:
 
   std::vector<u_int32_t> getPartitions();
 
-  u_int32_t getConsumptionStats();
+  EdgeConsumptionStats getConsumptionStats();
 
 private:
   void validatePartitionConfiguration(uint32_t numberOfPartitions,
@@ -82,6 +83,9 @@ private:
 
   void reportCongestion(CongestionReason congestionReason);
 
+  uint64_t determineIdleTime(
+      std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
+
 private:
   const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
   const std::string m_subTopic;
@@ -101,6 +105,8 @@ private:
   std::optional<std::shared_ptr<CongestionReporter>> m_congestionReporter;
 
   const std::string &m_upstreamEdgeName;
+
+  std::chrono::time_point<std::chrono::steady_clock> m_idleSince;
 };
 } // namespace iceflow
 

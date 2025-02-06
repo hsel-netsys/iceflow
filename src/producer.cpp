@@ -90,12 +90,21 @@ void IceflowProducer::setTopicPartitions(uint64_t numberOfPartitions) {
   }
 }
 
-uint32_t IceflowProducer::getProductionStats() {
+uint64_t IceflowProducer::determineIdleTime(
+    std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint) {
+  return static_cast<uint64_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(referenceTimepoint -
+                                                            m_idleSince)
+          .count());
+}
+
+EdgeProductionStats IceflowProducer::getProductionStats() {
   auto referenceTimestamp = std::chrono::steady_clock::now();
+  auto idleTime = determineIdleTime(referenceTimestamp);
 
   cleanUpTimestamps(referenceTimestamp);
 
-  return m_productionTimestamps.size();
+  return EdgeProductionStats{m_productionTimestamps.size(), idleTime};
 }
 
 uint32_t IceflowProducer::getNextPartitionNumber() {

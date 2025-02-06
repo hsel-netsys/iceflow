@@ -99,9 +99,9 @@ public:
   void repartitionProducer(const std::string &downstreamEdgeName,
                            uint64_t numberOfPartitions);
 
-  std::unordered_map<std::string, uint32_t> getConsumerStats();
+  std::unordered_map<std::string, EdgeConsumptionStats> getConsumerStats();
 
-  std::unordered_map<std::string, uint32_t> getProducerStats();
+  std::unordered_map<std::string, EdgeProductionStats> getProducerStats();
 
   void reportCongestion(const std::string &edgeName,
                         CongestionReason congestionReason);
