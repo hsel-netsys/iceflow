@@ -1,7 +1,7 @@
 project(${CMAKE_PROJECT_NAME})
 
 find_package(yaml-cpp REQUIRED)
-find_package(Boost)
+find_package(Boost CONFIG)
 find_package(PkgConfig)
 pkg_check_modules(NDN_CXX REQUIRED libndn-cxx)
 pkg_check_modules(SVS REQUIRED libndn-svs)

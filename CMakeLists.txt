@@ -26,7 +26,7 @@ set(CMAKE_CXX_STANDARD 20)
 
 option(USE_GRPC "Enable gRPC support" ON)
 
-find_package(Boost)
+find_package(Boost CONFIG)
 find_package(PkgConfig)
 find_package(OpenSSL REQUIRED)
 
