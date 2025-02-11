@@ -25,7 +25,7 @@ namespace iceflow {
 NDN_LOG_INIT(iceflow.services.NodeInstanceService);
 
 NodeInstanceService::NodeInstanceService(std::shared_ptr<IceFlow> iceflow)
-    : m_iceflow(iceflow) {};
+    : m_iceflow(iceflow){};
 
 grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
                                               const RepartitionRequest *request,

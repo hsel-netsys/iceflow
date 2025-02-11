@@ -32,7 +32,7 @@ Measurement::Measurement(const std::string &measurementId,
   m_fileCount = 0;
   createMeasurementFolder();
 }
-Measurement::~Measurement() {};
+Measurement::~Measurement(){};
 
 void Measurement::createMeasurementFolder() {
   std::string folderName = "measurements";

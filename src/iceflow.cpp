@@ -36,29 +36,28 @@ NDN_LOG_INIT(iceflow.IceFlow);
 
 IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
                  ndn::Face &face)
-    : IceFlow(dagParser, nodeName, face, std::nullopt) {};
+    : IceFlow(dagParser, nodeName, face, std::nullopt){};
 
 IceFlow::IceFlow(DAGParser dagParser, const std::string &nodeName,
                  ndn::Face &face,
                  std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceFlow(dagParser, nodeName, face, std::optional(congestionReporter)) {};
+    : IceFlow(dagParser, nodeName, face, std::optional(congestionReporter)){};
 
 IceFlow::IceFlow(const std::string &dagFileName, const std::string &nodeName,
                  ndn::Face &face)
-    : IceFlow(dagFileName, nodeName, face, std::nullopt) {};
+    : IceFlow(dagFileName, nodeName, face, std::nullopt){};
 
 IceFlow::IceFlow(const std::string &dagFileName, const std::string &nodeName,
                  ndn::Face &face,
                  std::shared_ptr<CongestionReporter> congestionReporter)
-    : IceFlow(dagFileName, nodeName, face, std::optional(congestionReporter)) {
-      };
+    : IceFlow(dagFileName, nodeName, face, std::optional(congestionReporter)){};
 
 IceFlow::IceFlow(
     const std::string &dagFileName, const std::string &nodeName,
     ndn::Face &face,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : IceFlow(DAGParser::parseFromFile(dagFileName), nodeName, face,
-              std::optional(congestionReporter)) {};
+              std::optional(congestionReporter)){};
 
 IceFlow::IceFlow(
     DAGParser dagParser, const std::string &nodeName, ndn::Face &face,
