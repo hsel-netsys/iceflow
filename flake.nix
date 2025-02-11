@@ -71,7 +71,7 @@
           }) {}
         );
         genIceflowExampleCtrImage = {example_name, args ? [], crossTarget ? "${system}"}: let
-          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.deps;
+          pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
           crossTargetContainer =
             if crossTarget == "x86_64-linux" then "amd64"
             else if crossTarget == "aarch64-linux" then "arm64"
