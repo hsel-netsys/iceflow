@@ -80,7 +80,7 @@
           name = "iceflow-${example_name}";
           tag = "latest";
 
-          contents = [ self.packages."${system}".iceflow-with-examples-cross."${crossTarget}" pkgs.busybox ];
+          contents = [ (self.packages."${system}".iceflow-cross."${crossTarget}".override {enableExamples = true;}) pkgs.busybox ];
           architecture = crossTargetContainer;
           config = {
             Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
