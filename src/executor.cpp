@@ -113,19 +113,27 @@ std::unordered_map<std::string, EdgeStats> IceflowExecutor::queryEdgeStats() {
   for (auto productionStat : productionStats) {
     auto edgeName = productionStat.edge_name();
     auto unitsProduced = productionStat.units_produced();
+    auto idleTime = productionStat.idle_time();
 
-    auto edgeStats = EdgeStats{std::optional(unitsProduced), std::nullopt};
+    auto internalProductionStats =
+        std::optional{EdgeProductionStats{unitsProduced, idleTime}};
+
+    auto edgeStats = EdgeStats{internalProductionStats, std::nullopt};
     result[edgeName] = edgeStats;
   }
 
   for (auto consumptionStat : consumptionStats) {
     auto edgeName = consumptionStat.edge_name();
     auto unitsConsumed = consumptionStat.units_consumed();
+    auto idleTime = consumptionStat.idle_time();
+
+    auto internalConsumptionStats =
+        std::optional{EdgeConsumptionStats{unitsConsumed, idleTime}};
 
     if (result.contains(edgeName)) {
-      result[edgeName].consumed = unitsConsumed;
+      result[edgeName].consumptionStats = internalConsumptionStats;
     } else {
-      auto edgeStats = EdgeStats{std::nullopt, std::optional(unitsConsumed)};
+      auto edgeStats = EdgeStats{std::nullopt, internalConsumptionStats};
       result[edgeName] = edgeStats;
     }
   }

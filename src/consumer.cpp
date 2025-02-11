@@ -32,7 +32,9 @@ IceflowConsumer::IceflowConsumer(
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_svsPubSub(svsPubSub), m_subTopic(syncPrefix + "/" + upstreamEdgeName),
       m_upstreamEdgeName(upstreamEdgeName),
-      m_congestionReporter(congestionReporter){};
+      m_congestionReporter(congestionReporter) {
+  m_idleSince = std::chrono::steady_clock::now();
+};
 
 IceflowConsumer::~IceflowConsumer() { unsubscribeFromAllPartitions(); }
 
@@ -40,6 +42,7 @@ void IceflowConsumer::saveTimestamp() {
   auto timestamp = std::chrono::steady_clock::now();
 
   m_consumptionTimestamps.push_back(timestamp);
+  m_idleSince = timestamp;
 
   cleanUpTimestamps(timestamp);
 }
@@ -74,12 +77,21 @@ bool IceflowConsumer::repartition(std::vector<uint32_t> partitions) {
   return true;
 }
 
-uint32_t IceflowConsumer::getConsumptionStats() {
+uint64_t IceflowConsumer::determineIdleTime(
+    std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint) {
+  return static_cast<uint64_t>(
+      std::chrono::duration_cast<std::chrono::milliseconds>(referenceTimepoint -
+                                                            m_idleSince)
+          .count());
+}
+
+EdgeConsumptionStats IceflowConsumer::getConsumptionStats() {
   auto referenceTimestamp = std::chrono::steady_clock::now();
+  auto idleTime = determineIdleTime(referenceTimestamp);
 
   cleanUpTimestamps(referenceTimestamp);
 
-  return m_consumptionTimestamps.size();
+  return EdgeConsumptionStats{m_consumptionTimestamps.size(), idleTime};
 }
 
 void IceflowConsumer::subscribeCallBack(

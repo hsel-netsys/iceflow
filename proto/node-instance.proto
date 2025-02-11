@@ -60,10 +60,12 @@ message StatsResponse {
   message ProductionStats {
     string edge_name = 1;
     uint32 units_produced = 2;
+    uint64 idle_time = 3;
   }
   message ConsumptionStats {
     string edge_name = 1;
     uint32 units_consumed = 2;
+    uint64 idle_time = 3;
   }
   repeated ProductionStats production_stats = 1;
   repeated ConsumptionStats consumption_stats = 2;
