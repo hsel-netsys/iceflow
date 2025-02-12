@@ -13,9 +13,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
-
+      - uses: nixbuild/nix-quick-install-action@v29
+      - uses: hsel-netsys/cache-nix-action@main
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
+      
       - name: Generate CMake Build Files
         run: nix develop --impure .#ci -c cmake -DBUILD_TESTS=ON .
 
@@ -36,8 +38,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: nixbuild/nix-quick-install-action@v29
+      - uses: hsel-netsys/cache-nix-action@main
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
 
       - name: Generate CMake Build Files
         run: nix develop --impure .#ci -c cmake -DBUILD_TESTS=ON .

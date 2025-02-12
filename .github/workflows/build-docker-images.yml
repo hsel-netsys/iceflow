@@ -31,8 +31,10 @@ jobs:
         with:
           packages: skopeo
           version: 1.0
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: nixbuild/nix-quick-install-action@v29
+      - uses: hsel-netsys/cache-nix-action@main
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
 
       - name: Build text2lines image
         run: |
@@ -72,8 +74,10 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
-      - uses: DeterminateSystems/nix-installer-action@main
-      - uses: DeterminateSystems/magic-nix-cache-action@main
+      - uses: nixbuild/nix-quick-install-action@v29
+      - uses: hsel-netsys/cache-nix-action@main
+        with:
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
 
       - name: Upload manifest
         if: ${{ github.ref != 'main' }}
