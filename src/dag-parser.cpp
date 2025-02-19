@@ -54,6 +54,12 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
 
     nodeInstance.container.image = containerJson.at("image").get<std::string>();
     nodeInstance.container.tag = containerJson.value("tag", "latest");
+    if (containerJson.contains("envs")) {
+      nodeInstance.container.envs =
+          containerJson.at("envs").get<std::map<std::string, std::string>>();
+    } else {
+      nodeInstance.container.envs = std::map<std::string, std::string>();
+    }
     nodeInstance.container.resources.cpu =
         containerJson.at("resources").at("cpu").get<uint32_t>();
     nodeInstance.container.resources.memory =
