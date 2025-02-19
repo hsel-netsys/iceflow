@@ -58,7 +58,7 @@
         iceflowPackage = ({crossTarget ? "${system}"}:  let
           pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
         in 
-          pkgs.callPackage ({enableExamples ? false, enableGRPC ? true}: pkgs.stdenv.mkDerivation {
+          pkgs.callPackage ({enableExamples ? false, enableGRPC ? true, stdenv, pkgs}: stdenv.mkDerivation {
             name = "iceflow";
             src = ./.;
 
