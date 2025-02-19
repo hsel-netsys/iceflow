@@ -49,7 +49,7 @@ jobs:
           echo WORDCOUNT_IMAGE=$(nix build '.#docker-wordcount-cross.${{ matrix.architecture }}' --print-out-paths) >> "$GITHUB_ENV"
 
       - name: Push image
-        if: ${{ github.ref != 'main' }}
+        if: ${{ github.ref != 'refs/heads/main' }}
         run: |
           export BRANCH_NAME=$(bash -c "echo $GITHUB_REF_NAME | sed -r 's,/,_,g'")
           skopeo copy --all --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$TEXT2LINES_IMAGE docker://$REGISTRY/iceflow-examples/text2lines/$INPUT_ARCH:$BRANCH_NAME
@@ -59,7 +59,7 @@ jobs:
           INPUT_ARCH: ${{ ( matrix.architecture == 'x86_64-linux' && 'amd64' ) || ( matrix.architecture == 'aarch64-linux' && 'arm64' ) }}
 
       - name: Push image (and update latest tag)
-        if: ${{ github.ref == 'main' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           export BRANCH_NAME=$(bash -c "echo $GITHUB_REF_NAME | sed -r 's,/,_,g'")
           skopeo copy --all --additional-tags=latest --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$TEXT2LINES_IMAGE docker://$REGISTRY/iceflow-examples/text2lines/$INPUT_ARCH:$BRANCH_NAME
@@ -80,7 +80,7 @@ jobs:
           primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock') }}
 
       - name: Upload manifest
-        if: ${{ github.ref != 'main' }}
+        if: ${{ github.ref != 'refs/heads/main' }}
         run: |
           export BRANCH_NAME=$(bash -c "echo $GITHUB_REF_NAME | sed -r 's,/,_,g'")
           nix develop --impure .#ci -c manifest-tool --username $REGISTRY_USER --password $REGISTRY_PASS push from-args --platforms linux/amd64,linux/arm64 --template $REGISTRY/iceflow-examples/text2lines/ARCH:$BRANCH_NAME --target $REGISTRY/iceflow-examples/text2lines:$BRANCH_NAME
@@ -88,7 +88,7 @@ jobs:
           nix develop --impure .#ci -c manifest-tool --username $REGISTRY_USER --password $REGISTRY_PASS push from-args --platforms linux/amd64,linux/arm64 --template $REGISTRY/iceflow-examples/wordcount/ARCH:$BRANCH_NAME --target $REGISTRY/iceflow-examples/wordcount:$BRANCH_NAME
 
       - name: Upload manifest (and update latest tag)
-        if: ${{ github.ref == 'main' }}
+        if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           export BRANCH_NAME=$(bash -c "echo $GITHUB_REF_NAME | sed -r 's,/,_,g'")
           nix develop --impure .#ci -c manifest-tool --username $REGISTRY_USER --password $REGISTRY_PASS push from-args --platforms linux/amd64,linux/arm64 --template $REGISTRY/iceflow-examples/text2lines/ARCH:$BRANCH_NAME --tags latest --target $REGISTRY/iceflow-examples/text2lines:$BRANCH_NAME
