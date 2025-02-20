@@ -62,9 +62,9 @@ jobs:
         if: ${{ github.ref == 'refs/heads/main' }}
         run: |
           export BRANCH_NAME=$(bash -c "echo $GITHUB_REF_NAME | sed -r 's,/,_,g'")
-          skopeo copy --all --additional-tags=latest --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$TEXT2LINES_IMAGE docker://$REGISTRY/iceflow-examples/text2lines/$INPUT_ARCH:$BRANCH_NAME
-          skopeo copy --all --additional-tags=latest --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$LINES2WORDS_IMAGE docker://$REGISTRY/iceflow-examples/lines2words/$INPUT_ARCH:$BRANCH_NAME
-          skopeo copy --all --additional-tags=latest --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$WORDCOUNT_IMAGE docker://$REGISTRY/iceflow-examples/wordcount/$INPUT_ARCH:$BRANCH_NAME
+          skopeo copy --all --additional-tag=latest --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$TEXT2LINES_IMAGE docker://$REGISTRY/iceflow-examples/text2lines/$INPUT_ARCH:$BRANCH_NAME
+          skopeo copy --all --additional-tag=latest --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$LINES2WORDS_IMAGE docker://$REGISTRY/iceflow-examples/lines2words/$INPUT_ARCH:$BRANCH_NAME
+          skopeo copy --all --additional-tag=latest --dest-creds="$REGISTRY_USER:$REGISTRY_PASS" docker-archive:$WORDCOUNT_IMAGE docker://$REGISTRY/iceflow-examples/wordcount/$INPUT_ARCH:$BRANCH_NAME
         env:
           INPUT_ARCH: ${{ ( matrix.architecture == 'x86_64-linux' && 'amd64' ) || ( matrix.architecture == 'aarch64-linux' && 'arm64' ) }}
 
