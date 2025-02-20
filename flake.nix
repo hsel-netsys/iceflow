@@ -80,7 +80,7 @@
           name = "iceflow-${example_name}";
           tag = "latest";
 
-          contents = [ (self.packages."${system}".iceflow-cross."${crossTarget}".override {enableExamples = true;}) pkgs.busybox ];
+          contents = [ (self.packages."${system}".iceflow-cross."${crossTarget}".override {enableExamples = true;}) pkgs.busybox pkgs.libgcc];
           architecture = crossTargetContainer;
           config = {
             Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
@@ -131,6 +131,7 @@
             pkgs = nixpkgs.legacyPackages.${system}.extend self.overlays.default;
             lib = nixpkgs.lib;
             # Keep debug symbols disabled for very large packages to avoid long compilation times.
+            # Also, keep it disabled for libraries that do not support overriding (like libgcc).
             keepDebuggingDisabledFor = [];
             additionalShellPackages = with pkgs; [nfd cppcheck manifest-tool];
           in rec {

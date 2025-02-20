@@ -40,6 +40,7 @@ struct Resources {
 struct Container {
   std::string image;
   std::string tag;
+  std::map<std::string, std::string> envs;
   Resources resources;
 };
 
