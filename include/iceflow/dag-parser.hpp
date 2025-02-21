@@ -74,7 +74,7 @@ struct Node {
  */
 class DAGParser {
 public:
-  DAGParser(const std::string &appName, const std::vector<Node> &nodes);
+  DAGParser(const std::string &appName, std::vector<Node> &&nodes);
 
   static DAGParser parseFromFile(const std::string &filename);
 

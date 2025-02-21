@@ -84,7 +84,7 @@
           architecture = crossTargetContainer;
           config = {
             Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
-            Env = [ "ICEFLOW_CONFIG_FILE=/data/${example_name}.yaml" "ICEFLOW_METRICS_FILE=/data/${example_name}.metrics" ];
+            Env = [ "ICEFLOW_CONFIG_FILE=/dag.json" ];
             Volume = "/data";
           };
         };
@@ -106,19 +106,19 @@
 
         docker-text2lines-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "text2lines";
-          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_INPUT_FILE" "$ICEFLOW_METRICS_FILE"];
+          args = ["$ICEFLOW_CONFIG_FILE"];
           crossTarget = crossTarget;
         });
 
         docker-lines2words-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "lines2words";
-          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
+          args = ["$ICEFLOW_CONFIG_FILE"];
           crossTarget = crossTarget;
         });
 
         docker-wordcount-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "wordcount";
-          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_METRICS_FILE"];
+          args = ["$ICEFLOW_CONFIG_FILE"];
           crossTarget = crossTarget;
         });
 
