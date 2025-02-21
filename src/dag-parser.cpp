@@ -24,9 +24,8 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.DAGParser);
 
-DAGParser::DAGParser(const std::string &appName,
-                     const std::vector<Node> &nodeList)
-    : m_applicationName(appName), nodes(nodeList) {}
+DAGParser::DAGParser(const std::string &appName, std::vector<Node> &&nodeList)
+    : m_applicationName(appName), nodes(std::move(nodeList)) {}
 
 DAGParser DAGParser::parseFromFile(const std::string &filename) {
   std::ifstream file(filename);
@@ -54,11 +53,10 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
 
     nodeInstance.container.image = containerJson.at("image").get<std::string>();
     nodeInstance.container.tag = containerJson.value("tag", "latest");
-    if (containerJson.contains("envs")) {
-      nodeInstance.container.envs =
-          containerJson.at("envs").get<std::map<std::string, std::string>>();
-    } else {
-      nodeInstance.container.envs = std::map<std::string, std::string>();
+    nodeInstance.container.envs = std::map<std::string, std::string>();
+    auto envs = containerJson.at("envs").get<nlohmann::json>();
+    for (const auto &[key, value] : envs.items()) {
+      nodeInstance.container.envs.emplace(key, value.get<std::string>());
     }
     nodeInstance.container.resources.cpu =
         containerJson.at("resources").at("cpu").get<uint32_t>();
@@ -91,7 +89,7 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
     nodeList.push_back(nodeInstance);
   }
 
-  return DAGParser(appName, nodeList);
+  return DAGParser(appName, std::move(nodeList));
 }
 
 const std::vector<Node> &DAGParser::getNodes() { return nodes; }
