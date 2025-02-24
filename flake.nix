@@ -112,7 +112,7 @@
 
         docker-lines2words-cross = forEachSystem (crossTarget: genIceflowExampleCtrImage {
           example_name = "lines2words";
-          args = ["$ICEFLOW_CONFIG_FILE"];
+          args = ["$ICEFLOW_CONFIG_FILE" "$ICEFLOW_INSTANCE_NUMBER" "$ICEFLOW_INSTANCE_COUNT"];
           crossTarget = crossTarget;
         });
 

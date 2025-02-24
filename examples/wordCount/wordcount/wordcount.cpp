@@ -3,6 +3,10 @@
 #include "iceflow/iceflow.hpp"
 #include "iceflow/measurements.hpp"
 
+#ifdef USE_GRPC
+#include "iceflow/scaler.hpp"
+#endif
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -87,6 +91,14 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
 
   iceflow->repartitionConsumer(upstreamEdgeName, {0});
 
+#ifdef USE_GRPC
+  auto grpcPath =
+      iceflow->getApplicationParameter<std::string>("grpcPath").value();
+  auto scaler =
+      iceflow::IceflowScaler(grpcPath + "/node-instance.sock",
+                             grpcPath + "/node-executor.sock", iceflow);
+#endif
+
   iceflow->run();
 }
 
@@ -94,8 +106,7 @@ int main(int argc, const char *argv[]) {
 
   if (argc != 2) {
     std::string command = argv[0];
-    std::cout << "usage: " << command << " <<application-dag-file>>"
-              << std::endl;
+    std::cout << "usage: " << command << " <application-dag-file>" << std::endl;
     return 1;
   }
 

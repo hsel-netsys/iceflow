@@ -3,6 +3,10 @@
 #include "iceflow/measurements.hpp"
 #include "iceflow/producer.hpp"
 
+#ifdef USE_GRPC
+#include "iceflow/scaler.hpp"
+#endif
+
 #include <boost/uuid/uuid.hpp>
 #include <boost/uuid/uuid_generators.hpp>
 #include <boost/uuid/uuid_io.hpp>
@@ -82,6 +86,14 @@ void run(const std::string &nodeName, const std::string &dagFileName) {
       iceflow->pushData(downstreamEdgeName, encodedString);
     });
   });
+
+#ifdef USE_GRPC
+  auto grpcPath =
+      iceflow->getApplicationParameter<std::string>("grpcPath").value();
+  auto scaler =
+      iceflow::IceflowScaler(grpcPath + "/node-instance.sock",
+                             grpcPath + "/node-executor.sock", iceflow);
+#endif
 
   for (auto &thread : threads) {
     thread.join();

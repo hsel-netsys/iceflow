@@ -41,6 +41,7 @@ struct Container {
   std::string image;
   std::string tag;
   std::map<std::string, std::string> envs;
+  std::map<std::string, std::string> mounts;
   Resources resources;
 };
 
