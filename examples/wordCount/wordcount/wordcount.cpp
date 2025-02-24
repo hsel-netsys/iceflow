@@ -94,8 +94,7 @@ int main(int argc, const char *argv[]) {
 
   if (argc != 2) {
     std::string command = argv[0];
-    std::cout << "usage: " << command << " <<application-dag-file>>"
-              << std::endl;
+    std::cout << "usage: " << command << " <application-dag-file>" << std::endl;
     return 1;
   }
 
