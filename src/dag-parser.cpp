@@ -58,6 +58,10 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
     for (const auto &[key, value] : envs.items()) {
       nodeInstance.container.envs.emplace(key, value.get<std::string>());
     }
+    auto mounts = containerJson.at("mounts").get<nlohmann::json>();
+    for (const auto &[key, value] : mounts.items()) {
+      nodeInstance.container.mounts.emplace(key, value.get<std::string>());
+    }
     nodeInstance.container.resources.cpu =
         containerJson.at("resources").at("cpu").get<uint32_t>();
     nodeInstance.container.resources.memory =
