@@ -85,7 +85,7 @@ void IceflowExecutor::repartition(const std::string &edgeName,
     return;
   }
 
-  NDN_LOG_INFO("Received an error response.");
+  NDN_LOG_INFO("Received an error response: " << status.error_message());
 }
 
 void IceflowExecutor::receiveCongestionReport(CongestionReason congestionReason,
