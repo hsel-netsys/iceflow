@@ -35,6 +35,7 @@ IceflowExecutor::IceflowExecutor(
     : m_serverAddress(serverAddress), m_clientAddress(clientAddress),
       m_congestionReportCallback(congestionReportCallback) {
   runGrpcServer(m_serverAddress);
+  sleep(5);
   runGrpcClient(m_clientAddress);
 };
 
@@ -85,7 +86,7 @@ void IceflowExecutor::repartition(const std::string &edgeName,
     return;
   }
 
-  NDN_LOG_INFO("Received an error response.");
+  NDN_LOG_INFO("Received an error response: " << status.error_message());
 }
 
 void IceflowExecutor::receiveCongestionReport(CongestionReason congestionReason,
