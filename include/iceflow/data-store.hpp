@@ -18,38 +18,36 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
- #ifndef ICEFLOW_STORE_MEMORY_HPP
- #define ICEFLOW_STORE_MEMORY_HPP
+#ifndef ICEFLOW_STORE_MEMORY_HPP
+#define ICEFLOW_STORE_MEMORY_HPP
 
- #include "ndn-svs/store.hpp"
+#include "ndn-svs/store.hpp"
 
- #include <ndn-cxx/ims/in-memory-storage-persistent.hpp>
+#include <ndn-cxx/ims/in-memory-storage-persistent.hpp>
 
- namespace iceflow {
+namespace iceflow {
 
- class IceflowMemoryDataStore : public ndn::svs::DataStore
- {
- public:
-   std::shared_ptr<const ndn::Data> find(const ndn::Interest& interest) override
-   {
-     return m_ims.find(interest);
-   }
+class IceflowMemoryDataStore : public ndn::svs::DataStore {
+public:
+  std::shared_ptr<const ndn::Data>
+  find(const ndn::Interest &interest) override {
+    return m_ims.find(interest);
+  }
 
-   void insert(const ndn::Data& data) override
-   {
+  void insert(const ndn::Data &data) override {
     // TODO: Ignore backchannel deletions
 
-     return m_ims.insert(data);
-   }
+    return m_ims.insert(data);
+  }
 
-   void erase(const ndn::Name& prefix, const bool isPrefix = true) {
+  void erase(const ndn::Name &prefix, const bool isPrefix = true) {
     m_ims.erase(prefix, isPrefix);
-   }
+  }
 
- private:
-   ndn::InMemoryStoragePersistent m_ims;
- };
+private:
+  ndn::InMemoryStoragePersistent m_ims;
+};
 
- } // namespace iceflow
+} // namespace iceflow
 
- #endif // ICEFLOW_STORE_MEMORY_HPP
+#endif // ICEFLOW_STORE_MEMORY_HPP
