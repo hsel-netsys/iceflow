@@ -75,11 +75,16 @@ private:
   uint64_t determineIdleTime(
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
+  void setupBackchannel();
+
 private:
   const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
+
   const std::string m_pubTopic;
 
   std::string m_nodePrefix;
+
+  std::string m_syncPrefix;
 
   uint32_t m_numberOfPartitions;
   std::unordered_set<uint32_t> m_topicPartitions;
