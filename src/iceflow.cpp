@@ -77,6 +77,8 @@ IceFlow::IceFlow(
 
   ndn::svs::SVSPubSubOptions opts;
 
+  opts.dataStore = m_iceflowMemoryDataStore;
+
   m_svsPubSub = std::make_shared<ndn::svs::SVSPubSub>(
       ndn::Name(m_syncPrefix), ndn::Name(m_nodePrefix), m_face,
       std::bind(&IceFlow::onMissingData, this, _1), opts, secOpts);

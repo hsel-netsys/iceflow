@@ -160,6 +160,8 @@ private:
   std::vector<Edge> m_downstreamEdges;
 
   std::vector<Edge> m_upstreamEdges;
+
+  std::shared_ptr<IceflowMemoryDataStore> m_iceflowMemoryDataStore;
 };
 
 } // namespace iceflow

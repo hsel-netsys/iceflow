@@ -26,10 +26,11 @@ NDN_LOG_INIT(iceflow.IceflowProducer);
 
 IceflowProducer::IceflowProducer(
     std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+    std::shared_ptr<IceflowMemoryDataStore> iceflowMemoryDataStore,
     const std::string &nodePrefix, const std::string &syncPrefix,
     const std::string &downstreamEdgeName, uint32_t numberOfPartitions,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
-    : m_svsPubSub(svsPubSub), m_numberOfPartitions(numberOfPartitions),
+    : m_svsPubSub(svsPubSub), m_iceflowMemoryDataStore(iceflowMemoryDataStore), m_numberOfPartitions(numberOfPartitions),
       m_nodePrefix(nodePrefix), m_downstreamEdgeName(downstreamEdgeName),
       m_pubTopic(syncPrefix + "/" + downstreamEdgeName),
       m_randomNumberGenerator(std::mt19937(time(nullptr))),
@@ -42,6 +43,21 @@ IceflowProducer::~IceflowProducer() {}
 
 ndn::Name IceflowProducer::prepareDataName(uint32_t partitionNumber) {
   return ndn::Name(m_pubTopic).appendNumber(partitionNumber);
+}
+
+void IceflowProducer::setupBackchannel() {
+  auto backChannelPrefix = ndn::Name(m_nodePrefix);
+  backChannelPrefix.append("backchannel");
+
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
+    validSvsPubSub->subscribe(backChannelPrefix, [this, backChannelPrefix] (const ndn::svs::SVSPubSub::SubscriptionData &subscriptionData) {
+      if (auto validIceflowMemoryDataStore = this->m_iceflowMemoryDataStore.lock()) {
+        validIceflowMemoryDataStore->erase(backChannelPrefix);
+      }
+    }
+
+    );
+  }
 }
 
 void IceflowProducer::pushData(const std::vector<uint8_t> &data) {

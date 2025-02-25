@@ -132,6 +132,7 @@ install(
         include/iceflow/ringbuffer.hpp
         include/iceflow/scaler.hpp
         include/iceflow/stats.hpp
+        include/iceflow/data-store.hpp
   DESTINATION include/iceflow)
 
 if(USE_GRPC)

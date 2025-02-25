@@ -35,6 +35,7 @@
 
 #include "congestion-reporter.hpp"
 #include "stats.hpp"
+#include "data-store.hpp"
 
 namespace iceflow {
 
@@ -48,6 +49,7 @@ class IceflowProducer {
 public:
   IceflowProducer(
       std::shared_ptr<ndn::svs::SVSPubSub> svsPubSub,
+      std::shared_ptr<IceflowMemoryDataStore> iceflowMemoryDataStore,
       const std::string &nodePrefix, const std::string &syncPrefix,
       const std::string &upstreamEdgeName, uint32_t numberOfPartitions,
       std::optional<std::shared_ptr<CongestionReporter>> congestionReporter);
@@ -75,8 +77,13 @@ private:
   uint64_t determineIdleTime(
       std::chrono::time_point<std::chrono::steady_clock> referenceTimepoint);
 
+  void setupBackchannel();
+
 private:
   const std::weak_ptr<ndn::svs::SVSPubSub> m_svsPubSub;
+
+  const std::weak_ptr<IceflowMemoryDataStore> m_iceflowMemoryDataStore;
+
   const std::string m_pubTopic;
 
   std::string m_nodePrefix;
