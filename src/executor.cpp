@@ -35,6 +35,7 @@ IceflowExecutor::IceflowExecutor(
     : m_serverAddress(serverAddress), m_clientAddress(clientAddress),
       m_congestionReportCallback(congestionReportCallback) {
   runGrpcServer(m_serverAddress);
+  sleep(5);
   runGrpcClient(m_clientAddress);
 };
 

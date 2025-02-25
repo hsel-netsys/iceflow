@@ -34,6 +34,7 @@ IceflowScaler::IceflowScaler(const std::string &serverAddress,
     : m_serverAddress(serverAddress), m_clientAddress(clientAddress),
       m_iceflow(iceflow) {
   runGrpcServer(m_serverAddress);
+  sleep(5);
   runGrpcClient(m_clientAddress);
 };
 
