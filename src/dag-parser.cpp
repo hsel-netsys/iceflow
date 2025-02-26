@@ -54,11 +54,11 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
     nodeInstance.container.image = containerJson.at("image").get<std::string>();
     nodeInstance.container.tag = containerJson.value("tag", "latest");
     nodeInstance.container.envs = std::map<std::string, std::string>();
-    auto envs = containerJson.at("envs").get<nlohmann::json>();
+    auto envs = containerJson.value("envs", json::object());
     for (const auto &[key, value] : envs.items()) {
       nodeInstance.container.envs.emplace(key, value.get<std::string>());
     }
-    auto mounts = containerJson.at("mounts").get<nlohmann::json>();
+    auto mounts = containerJson.value("mounts", json::object());
     for (const auto &[key, value] : mounts.items()) {
       nodeInstance.container.mounts.emplace(key, value.get<std::string>());
     }
