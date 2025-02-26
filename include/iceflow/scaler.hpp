@@ -20,6 +20,7 @@
 #define ICEFLOW_SCALER_HPP
 
 #include "congestion-reporter.hpp"
+#include "node-instance-service.hpp"
 
 #include "iceflow.hpp"
 #include "producer.hpp"
@@ -58,6 +59,8 @@ private:
   const std::string &m_clientAddress;
 
   std::shared_ptr<IceFlow> m_iceflow;
+
+  std::shared_ptr<iceflow::NodeInstanceService> m_instanceService;
 
   std::unique_ptr<grpc::Server> m_server;
 
