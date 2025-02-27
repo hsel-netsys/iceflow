@@ -33,10 +33,7 @@ IceflowExecutor::IceflowExecutor(
     std::function<void(CongestionReason, const std::string &)>
         congestionReportCallback)
     : m_serverAddress(serverAddress), m_clientAddress(clientAddress),
-      m_congestionReportCallback(congestionReportCallback) {
-  runGrpcServer(m_serverAddress);
-  runGrpcClient(m_clientAddress);
-};
+      m_congestionReportCallback(congestionReportCallback){};
 
 IceflowExecutor::~IceflowExecutor() {
   if (m_server) {
@@ -44,20 +41,20 @@ IceflowExecutor::~IceflowExecutor() {
   }
 }
 
-void IceflowExecutor::runGrpcServer(const std::string &address) {
+void IceflowExecutor::runGrpcServer() {
   auto executorPointer = weak_from_this();
   auto service = NodeExecutorService(executorPointer);
 
   grpc::ServerBuilder builder;
-  builder.AddListeningPort(address, grpc::InsecureServerCredentials());
+  builder.AddListeningPort(m_serverAddress, grpc::InsecureServerCredentials());
   builder.RegisterService(&service);
   m_server = builder.BuildAndStart();
-  NDN_LOG_INFO("Server listening on " << address);
+  NDN_LOG_INFO("Server listening on " << m_serverAddress);
 }
 
-void IceflowExecutor::runGrpcClient(const std::string &address) {
+void IceflowExecutor::runGrpcClient() {
   auto channel =
-      grpc::CreateChannel(address, grpc::InsecureChannelCredentials());
+      grpc::CreateChannel(m_clientAddress, grpc::InsecureChannelCredentials());
   m_nodeInstanceService = NodeInstance::NewStub(channel, grpc::StubOptions());
 }
 
@@ -76,6 +73,7 @@ void IceflowExecutor::repartition(const std::string &edgeName,
 
   RepartitionResponse response;
   grpc::ClientContext context;
+  context.set_wait_for_ready(true);
 
   auto status =
       m_nodeInstanceService->Repartition(&context, request, &response);
@@ -97,6 +95,7 @@ std::unordered_map<std::string, EdgeStats> IceflowExecutor::queryEdgeStats() {
   StatsRequest request;
   grpc::ClientContext context;
   StatsResponse response;
+  context.set_wait_for_ready(true);
 
   auto status = m_nodeInstanceService->QueryStats(&context, request, &response);
 

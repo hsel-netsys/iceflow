@@ -46,15 +46,14 @@ public:
 
   std::unordered_map<std::string, EdgeStats> queryEdgeStats();
 
+  void runGrpcServer();
+
+  void runGrpcClient();
+
 private:
-  void runGrpcServer(const std::string &address);
+  std::string m_serverAddress;
 
-  void runGrpcClient(const std::string &address);
-
-private:
-  const std::string &m_serverAddress;
-
-  const std::string &m_clientAddress;
+  std::string m_clientAddress;
 
   std::unique_ptr<grpc::Server> m_server;
 
