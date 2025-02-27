@@ -24,7 +24,7 @@ project(
   DESCRIPTION "NDN-based stream processing library written in C++.")
 set(CMAKE_CXX_STANDARD 20)
 
-option(USE_GRPC "Enable gRPC support" ON)
+option(USE_GRPC "Enable gRPC support" OFF)
 
 find_package(Boost CONFIG)
 find_package(PkgConfig)
