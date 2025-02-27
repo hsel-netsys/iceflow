@@ -44,11 +44,11 @@ IceflowScaler::~IceflowScaler() {
 }
 
 void IceflowScaler::runGrpcServer(const std::string &address) {
-  NodeInstanceService service(m_iceflow);
+  m_instanceService = std::make_shared<NodeInstanceService>(m_iceflow);
 
   grpc::ServerBuilder builder;
   builder.AddListeningPort(address, grpc::InsecureServerCredentials());
-  builder.RegisterService(&service);
+  builder.RegisterService(m_instanceService.get());
   m_server = builder.BuildAndStart();
   NDN_LOG_INFO("Server listening on " << address);
 }

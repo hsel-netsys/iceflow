@@ -40,7 +40,8 @@ grpc::Status NodeInstanceService::Repartition(grpc::ServerContext *context,
                << lowerPartitionBound << "--" << upperPartitionBound << ".");
 
   auto partitions =
-      std::vector<uint32_t>(lowerPartitionBound, upperPartitionBound);
+      std::vector<uint32_t>(upperPartitionBound - lowerPartitionBound);
+  std::iota(partitions.begin(), partitions.end(), lowerPartitionBound);
 
   response->set_lower_partition_bound(lowerPartitionBound);
   response->set_upper_partition_bound(upperPartitionBound);
