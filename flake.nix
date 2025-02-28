@@ -57,8 +57,8 @@
         lib = nixpkgs.lib;
         iceflowPackage = ({crossTarget ? "${system}"}:  let
           pkgs = (import nixpkgs { localSystem = system; crossSystem = crossTarget; }).extend self.overlays.default;
-        in 
-          pkgs.callPackage ({enableExamples ? false, enableGRPC ? true, stdenv, pkgs}: stdenv.mkDerivation {
+        in
+          pkgs.callPackage ({enableExamples ? false, enableGRPC ? false, stdenv, pkgs}: stdenv.mkDerivation {
             name = "iceflow";
             src = ./.;
 
@@ -80,7 +80,7 @@
           name = "iceflow-${example_name}";
           tag = "latest";
 
-          contents = [ (self.packages."${system}".iceflow-cross."${crossTarget}".override {enableExamples = true;}) pkgs.busybox pkgs.libgcc];
+          contents = [ (self.packages."${system}".iceflow-cross."${crossTarget}".override {enableExamples = true; enableGRPC = true;}) pkgs.busybox pkgs.libgcc];
           architecture = crossTargetContainer;
           config = {
             Cmd = ["sh" "-c" (lib.concatStringsSep " " (["/bin/${example_name}" ] ++ args))];
