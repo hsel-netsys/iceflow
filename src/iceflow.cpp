@@ -64,7 +64,7 @@ IceFlow::IceFlow(
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_face(face), m_congestionReporter(congestionReporter) {
   m_nodePrefix = generateNodePrefix(dagParser.getApplicationName());
-  m_syncPrefix = "/" + dagParser.getApplicationName();
+  m_syncPrefix = dagParser.getApplicationName();
 
   m_node = dagParser.findNodeByName(nodeName);
   m_downstreamEdges = m_node.downstream;

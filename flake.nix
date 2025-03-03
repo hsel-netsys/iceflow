@@ -24,10 +24,10 @@
           version = "dev";
 
           src = prev.fetchFromGitHub {
-            owner = "named-data";
+            owner = "hsel-netsys";
             repo = "ndn-svs";
-            rev = "ec54124d79fcb1d4ee00038c8ed3a0cdd9ad4e8b";
-            sha256 = "sha256-BoT3G4CAhoq7CerZoOPgGlqRkVY6Arnax834YDAeohk=";
+            rev = "3e9074bf632e2c9a50148cb3595dd638408579cd";
+            sha256 = "sha256-f3oGJE4Td+AKZqIN8pbUsP/VpL6crMIqYnjOfVMUfZE=";
           };
 
           nativeBuildInputs = with prev; [ pkg-config wafHook python3 ];

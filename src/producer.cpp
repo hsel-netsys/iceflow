@@ -17,6 +17,7 @@
  */
 
 #include "ndn-cxx/util/logger.hpp"
+#include "nlohmann/json.hpp"
 
 #include "producer.hpp"
 
@@ -30,18 +31,66 @@ IceflowProducer::IceflowProducer(
     const std::string &downstreamEdgeName, uint32_t numberOfPartitions,
     std::optional<std::shared_ptr<CongestionReporter>> congestionReporter)
     : m_svsPubSub(svsPubSub), m_numberOfPartitions(numberOfPartitions),
-      m_nodePrefix(nodePrefix), m_downstreamEdgeName(downstreamEdgeName),
+      m_nodePrefix(nodePrefix), m_syncPrefix(syncPrefix),
+      m_downstreamEdgeName(downstreamEdgeName),
       m_pubTopic(syncPrefix + "/" + downstreamEdgeName),
       m_randomNumberGenerator(std::mt19937(time(nullptr))),
       m_congestionReporter(congestionReporter) {
 
   setTopicPartitions(numberOfPartitions);
+  setupBackchannel();
 }
 
 IceflowProducer::~IceflowProducer() {}
 
 ndn::Name IceflowProducer::prepareDataName(uint32_t partitionNumber) {
   return ndn::Name(m_pubTopic).appendNumber(partitionNumber);
+}
+
+void IceflowProducer::setupBackchannel() {
+  auto nodePrefix = m_nodePrefix;
+  auto syncPrefix = m_syncPrefix;
+
+  auto backChannelPrefixName = ndn::Name(m_pubTopic);
+  backChannelPrefixName.append("backchannel");
+
+  auto syncPrefixNameComponent = ndn::name::Component(m_syncPrefix);
+
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
+    auto dataStore = &validSvsPubSub->getSVSync().getDataStore();
+
+    validSvsPubSub->subscribe(
+        backChannelPrefixName,
+        [dataStore, nodePrefix, syncPrefix, backChannelPrefixName](
+            const ndn::svs::SVSPubSub::SubscriptionData &subscriptionData) {
+          auto data = subscriptionData.data;
+
+          try {
+            auto sequenceNumberJson = nlohmann::json::parse(data);
+
+            if (!sequenceNumberJson.is_number_integer()) {
+              return;
+            }
+
+            uint64_t sequenceNumber =
+                sequenceNumberJson.template get<uint64_t>();
+
+            auto sequenceNumberNameComponent =
+                ndn::name::Component::fromNumber(sequenceNumber);
+
+            auto dataName = ndn::Name(nodePrefix);
+
+            dataName.append(syncPrefix);
+            dataName.append(sequenceNumberNameComponent);
+
+            dataStore->erase(dataName);
+          } catch (std::exception &e) {
+            NDN_LOG_ERROR("Error encountered while handling backchannel input: "
+                          << e.what());
+            return;
+          }
+        });
+  }
 }
 
 void IceflowProducer::pushData(const std::vector<uint8_t> &data) {

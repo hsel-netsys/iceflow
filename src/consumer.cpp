@@ -18,6 +18,8 @@
 
 #include <ranges>
 
+#include "nlohmann/json.hpp"
+
 #include "ndn-cxx/util/logger.hpp"
 
 #include "consumer.hpp"
@@ -111,6 +113,19 @@ void IceflowConsumer::subscribeCallBack(
 
   m_consumerCallback.value()(data);
   saveTimestamp();
+
+  if (auto validSvsPubSub = m_svsPubSub.lock()) {
+    auto backChannelPrefix = ndn::Name(m_subTopic);
+    backChannelPrefix.append("backchannel");
+
+    nlohmann::json jsonData = subData.seqNo;
+
+    auto sequenceNumberData = jsonData.dump();
+
+    validSvsPubSub->publish(backChannelPrefix,
+                            std::vector<uint8_t>(sequenceNumberData.begin(),
+                                                 sequenceNumberData.end()));
+  }
 }
 
 ndn::Name IceflowConsumer::prepareDataName(uint32_t partitionNumber) {
