@@ -24,10 +24,12 @@
 
 #include "iceflow.hpp"
 
+#include <random>
+
 namespace iceflow {
 
 std::string generateNodePrefix(const std::string &applicationName) {
-  boost::uuids::basic_random_generator<boost::mt19937> gen;
+  boost::uuids::basic_random_generator<std::mt19937> gen;
   boost::uuids::uuid uuid = gen();
   return "/node-" + applicationName + "/" + to_string(uuid);
 }
