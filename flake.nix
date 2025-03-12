@@ -34,8 +34,8 @@
           buildInputs = [ prev.ndn-cxx prev.sphinx prev.openssl ];
 
           wafConfigureFlags = [
-            "--boost-includes=${prev.boost179.dev}/include"
-            "--boost-libs=${prev.boost179.out}/lib"
+            "--boost-includes=${prev.boost.dev}/include"
+            "--boost-libs=${prev.boost.out}/lib"
             "--with-tests"
           ];
           dontAddWafCrossFlags = true;
