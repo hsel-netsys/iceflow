@@ -27,19 +27,12 @@ NDN_LOG_INIT(iceflow.DAGParser);
 DAGParser::DAGParser(const std::string &appName, std::vector<Node> &&nodeList)
     : m_applicationName(appName), nodes(std::move(nodeList)) {}
 
-DAGParser DAGParser::parseFromFile(const std::string &filename) {
-  std::ifstream file(filename);
-  if (!file.is_open()) {
-    throw std::runtime_error("File can not be opened " + filename);
-  }
-
-  json dagParam;
-  file >> dagParam;
-
-  std::string appName = dagParam.at("applicationName").get<std::string>();
+DAGParser DAGParser::fromJson(nlohmann::json json,
+                              const std::string &filename) {
+  std::string appName = json.at("applicationName").get<std::string>();
 
   std::vector<Node> nodeList;
-  for (const auto &nodeJson : dagParam.at("nodes")) {
+  for (const auto &nodeJson : json.at("nodes")) {
     Node nodeInstance;
 
     // Tasks
@@ -94,6 +87,18 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
   }
 
   return DAGParser(appName, std::move(nodeList));
+}
+
+DAGParser DAGParser::parseFromFile(const std::string &filename) {
+  std::ifstream file(filename);
+  if (!file.is_open()) {
+    throw std::runtime_error("File can not be opened " + filename);
+  }
+
+  json dagParam;
+  file >> dagParam;
+
+  return DAGParser::fromJson(dagParam, filename);
 }
 
 const std::vector<Node> &DAGParser::getNodes() { return nodes; }
