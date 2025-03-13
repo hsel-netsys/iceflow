@@ -79,7 +79,7 @@ public:
 
   static DAGParser parseFromFile(const std::string &filename);
 
-  static DAGParser fromJson(nlohmann::json json, const std::string &filename);
+  static DAGParser fromJson(nlohmann::json json);
 
   const std::vector<Node> &getNodes();
 
