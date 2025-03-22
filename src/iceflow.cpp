@@ -69,8 +69,8 @@ IceFlow::IceFlow(
   m_node = dagParser.findNodeByName(nodeName);
   m_downstreamEdges = m_node.downstream;
 
-  for (auto foobar : dagParser.findUpstreamEdges(m_node)) {
-    m_upstreamEdges.push_back(foobar.second);
+  for (auto upstreamEdgeEntry : dagParser.findUpstreamEdges(m_node)) {
+    m_upstreamEdges.push_back(upstreamEdgeEntry.second);
   }
 
   ndn::svs::SecurityOptions secOpts(m_keyChain);
