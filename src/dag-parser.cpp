@@ -25,7 +25,7 @@ namespace iceflow {
 NDN_LOG_INIT(iceflow.DAGParser);
 
 DAGParser::DAGParser(const std::string &appName, std::vector<Node> &&nodeList)
-    : m_applicationName(appName), nodes(std::move(nodeList)) {}
+    : m_applicationName(appName), m_nodes(std::move(nodeList)) {}
 
 DAGParser DAGParser::fromJson(nlohmann::json json) {
   std::string appName = json.at("applicationName").get<std::string>();
@@ -100,17 +100,16 @@ DAGParser DAGParser::parseFromFile(const std::string &filename) {
   return DAGParser::fromJson(dagParam);
 }
 
-const std::vector<Node> &DAGParser::getNodes() { return nodes; }
+const std::vector<Node> &DAGParser::getNodes() { return m_nodes; }
 
 const std::string &DAGParser::getApplicationName() { return m_applicationName; }
 
 const Node &DAGParser::findNodeByName(const std::string &nodeName) {
-  auto it =
-      std::find_if(nodes.begin(), nodes.end(), [&nodeName](const Node &node) {
-        return node.name == nodeName;
-      });
+  auto it = std::find_if(
+      m_nodes.begin(), m_nodes.end(),
+      [&nodeName](const Node &node) { return node.name == nodeName; });
 
-  if (it != nodes.end()) {
+  if (it != m_nodes.end()) {
     return *it;
   }
 
@@ -118,7 +117,7 @@ const Node &DAGParser::findNodeByName(const std::string &nodeName) {
 }
 
 const Edge &DAGParser::findEdgeByName(const std::string &edgeId) {
-  for (const auto &node : nodes) {
+  for (const auto &node : m_nodes) {
     auto downstream = node.downstream;
 
     auto it =
@@ -142,7 +141,7 @@ std::vector<std::pair<const Node &, const Edge &>>
 DAGParser::findUpstreamEdges(const std::string &taskId) {
   std::vector<std::pair<const Node &, const Edge &>> upstreamEdges;
 
-  for (const auto &node : nodes) {
+  for (const auto &node : m_nodes) {
 
     auto it = std::find_if(
         node.downstream.begin(), node.downstream.end(),

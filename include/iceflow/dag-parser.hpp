@@ -97,7 +97,7 @@ public:
 
 private:
   std::string m_applicationName;
-  std::vector<Node> nodes;
+  std::vector<Node> m_nodes;
 };
 
 } // namespace iceflow
