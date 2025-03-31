@@ -77,6 +77,9 @@ class DAGParser {
 public:
   DAGParser(const std::string &appName, std::vector<Node> &&nodes);
 
+  DAGParser(const std::string &appName, std::vector<Node> &&nodeList,
+            std::optional<nlohmann::json> json);
+
   static DAGParser parseFromFile(const std::string &filename);
 
   static DAGParser fromJson(nlohmann::json json);
@@ -95,9 +98,13 @@ public:
   std::vector<std::pair<const Node &, const Edge &>>
   findUpstreamEdges(const Node &node);
 
+  std::optional<nlohmann::json> getRawDag();
+
 private:
   std::string m_applicationName;
   std::vector<Node> m_nodes;
+
+  std::optional<nlohmann::json> m_json;
 };
 
 } // namespace iceflow

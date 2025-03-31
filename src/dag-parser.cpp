@@ -24,8 +24,12 @@ namespace iceflow {
 
 NDN_LOG_INIT(iceflow.DAGParser);
 
+DAGParser::DAGParser(const std::string &appName, std::vector<Node> &&nodeList,
+                     std::optional<nlohmann::json> json)
+    : m_applicationName(appName), m_nodes(std::move(nodeList)), m_json(json) {}
+
 DAGParser::DAGParser(const std::string &appName, std::vector<Node> &&nodeList)
-    : m_applicationName(appName), m_nodes(std::move(nodeList)) {}
+    : DAGParser(appName, std::move(nodeList), std::nullopt) {}
 
 DAGParser DAGParser::fromJson(nlohmann::json json) {
   std::string appName = json.at("applicationName").get<std::string>();
@@ -85,7 +89,8 @@ DAGParser DAGParser::fromJson(nlohmann::json json) {
     nodeList.push_back(nodeInstance);
   }
 
-  return DAGParser(appName, std::move(nodeList));
+  return DAGParser(appName, std::move(nodeList),
+                   std::optional<nlohmann::json>(json));
 }
 
 DAGParser DAGParser::parseFromFile(const std::string &filename) {
@@ -154,5 +159,7 @@ DAGParser::findUpstreamEdges(const std::string &taskId) {
 
   return upstreamEdges;
 }
+
+std::optional<nlohmann::json> DAGParser::getRawDag() { return m_json; }
 
 } // namespace iceflow
